@@ -65,15 +65,29 @@ class SpyfallGame(Game):
                 return {"error": "Description stage failed"}
 
             # Voting stage
-            voted_name = self.handle_voting_stage(log_file)
-            if voted_name == self.spy_name:
-                return {"winner": "villager", "players": self.players,
-                        "spy_index": self.spy_index, "round": self.game_round,
-                        "log": f"{self.game_round}.log"}
+            while True:  # Добавляем внутренний цикл для переголосовок
+                voted_name = self.handle_voting_stage(log_file)
+                
+                if voted_name == self.spy_name:
+                    return {"winner": "villager", "players": self.players,
+                            "spy_index": self.spy_index, "round": self.game_round,
+                            "log": f"{self.game_round}.log"}
 
-            self.living_players.remove(voted_name)
-            host_speech = f"Host: the voting result is {voted_name}, he is not the spy. The spy still lives."
-            self.log_message(log_file, host_speech)
+                try:
+                    self.living_players.remove(voted_name)
+                    host_speech = f"Host: the voting result is {voted_name}, he is not the spy. The spy still lives. {voted_name} left the game."
+                    host_message = create_message("user", host_speech)
+                    self.update_history(host_message, "host")
+                    self.log_message(log_file, host_speech)
+                    break  # Выходим из цикла переголосовок если успешно
+                except Exception as e:
+                    print(e)
+                    host_speech = f"Host: {voted_name} has already left the game. Starting a revote."
+                    host_message = create_message("user", host_speech)
+                    self.update_history(host_message, "host")
+                    self.log_message(log_file, host_speech)
+                    # Продолжаем цикл для новой попытки голосования
+                    continue
 
             if len(self.living_players) <= 3:
                 return {"winner": "spy", "players": self.players,

@@ -1,12 +1,12 @@
 import json
 import os
 
-with open("/zecheng/qiaodan/spyfall/labels.txt",'r') as f:
+with open("spyfall/labels.txt",'r') as f:
     data = f.readlines()
 
 
-logs_dir = "/zecheng/qiaodan/spyfall/gpt3_gpt4"
-out_path = "/zecheng/qiaodan/spyfall/result/gpt3_gpt4.json"
+logs_dir = "spyfall/gpt3_gpt4"
+out_path = "spyfall/result/gpt3_gpt4.json"
 labels = []
 for item in data:
     labels.append(item.strip().split(","))
