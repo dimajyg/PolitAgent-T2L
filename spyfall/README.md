@@ -49,6 +49,8 @@ conda activate spyfall
 
 # Install required packages
 pip install -r requirements.txt
+
+python game_spyfall.py --spy_model_name openai --villager_model_name openai #or change openai on mistral if you use it
 ```
 
 2. **Run the Game**

@@ -28,20 +28,21 @@ class SpyfallGame(Game):
             is_spy = (i + 1 == self.spy_index)
             phrase = spy_word if is_spy else villager_word
             model = self.spy_model if is_spy else self.villager_model
-            agent = BaseAgent(model, player_name, self.players, phrase)
+            agent = BaseAgent(model, player_name, self.players, phrase, is_spy)
             self.agents.append(agent)
             self.name2agent[player_name] = agent
 
         settings = f"The spy word is: {spy_word};\n The villager word is {villager_word}.\n"
         for agent in self.agents:
-            settings += f"Player: {agent.player_name}; Assigned Word: {agent.phrase} \n"
+            role = "Spy" if agent.is_spy else "Villager"
+            settings += f"Player: {agent.player_name}; Role: {role}; Assigned Word: {agent.phrase} \n"
         return settings
 
     def get_voted_name(self, name_list):
         counts = {}
         for name in name_list:
             counts[name] = counts.get(name, 0) + 1
-        max_count = max(counts.values())
+        max_count = max(counts.values()) if counts else 0
         for name, count in counts.items():
             if count == max_count:
                 return name, sorted(counts.values())
@@ -53,43 +54,82 @@ class SpyfallGame(Game):
         self.update_history(start_message, "host")
         self.log_message(log_file, host_speech)
 
-        host_speech = f"Host: The living players are:{json.dumps(self.living_players)}"
+        # Сообщаем всем игрокам их роли
+        for agent in self.agents:
+            role_info = "spy" if agent.is_spy else "villager"
+            host_speech = f"Host: {agent.player_name}, you are a {role_info}."
+            role_message = create_message("user", host_speech)
+            # Отправляем сообщение только этому агенту
+            agent.private_history.append(role_message)
+            self.log_message(log_file, f"[PRIVATE] {host_speech}")
+
+        host_speech = f"Host: The living players are: {json.dumps(self.living_players)}"
         living_player_message = create_message("user", host_speech)
         self.update_history(living_player_message, "host")
         self.log_message(log_file, host_speech)
 
         while True:
             self.game_round += 1
+            
+            # Проверяем, есть ли шпион в списке живых игроков
+            if self.spy_name not in self.living_players:
+                host_speech = f"Host: The spy {self.spy_name} has been eliminated! Villagers win!"
+                host_message = create_message("user", host_speech)
+                self.update_history(host_message, "host")
+                self.log_message(log_file, host_speech)
+                return {"winner": "villager", "players": self.players,
+                        "spy_index": self.spy_index, "round": self.game_round,
+                        "log": f"{self.game_round}.log"}
+                        
             # Describing stage
             if not self.handle_describing_stage(log_file):
                 return {"error": "Description stage failed"}
 
             # Voting stage
-            while True:  # Добавляем внутренний цикл для переголосовок
+            max_vote_attempts = 3  # Ограничиваем количество попыток переголосования
+            vote_attempt = 0
+            
+            while vote_attempt < max_vote_attempts:
+                vote_attempt += 1
                 voted_name = self.handle_voting_stage(log_file)
                 
                 if voted_name == self.spy_name:
+                    host_speech = f"Host: {voted_name} was the spy! Villagers win!"
+                    host_message = create_message("user", host_speech)
+                    self.update_history(host_message, "host")
+                    self.log_message(log_file, host_speech)
                     return {"winner": "villager", "players": self.players,
                             "spy_index": self.spy_index, "round": self.game_round,
                             "log": f"{self.game_round}.log"}
 
-                try:
+                if voted_name in self.living_players:
                     self.living_players.remove(voted_name)
                     host_speech = f"Host: the voting result is {voted_name}, he is not the spy. The spy still lives. {voted_name} left the game."
                     host_message = create_message("user", host_speech)
                     self.update_history(host_message, "host")
                     self.log_message(log_file, host_speech)
                     break  # Выходим из цикла переголосовок если успешно
-                except Exception as e:
-                    print(e)
-                    host_speech = f"Host: {voted_name} has already left the game. Starting a revote."
+                else:
+                    host_speech = f"Host: {voted_name} is not in the list of living players or has already left the game. Starting a revote."
                     host_message = create_message("user", host_speech)
                     self.update_history(host_message, "host")
                     self.log_message(log_file, host_speech)
                     # Продолжаем цикл для новой попытки голосования
                     continue
+            
+            # Если переголосовка не удалась после максимального числа попыток
+            if vote_attempt >= max_vote_attempts:
+                host_speech = f"Host: After multiple attempts, no valid vote could be made. Moving to the next round."
+                host_message = create_message("user", host_speech)
+                self.update_history(host_message, "host")
+                self.log_message(log_file, host_speech)
 
-            if len(self.living_players) <= 3:
+            # Проверяем условие победы шпиона (строго меньше 3 игроков)
+            if len(self.living_players) < 3:
+                host_speech = f"Host: Less than 3 players remain and the spy still lives! Spy {self.spy_name} wins!"
+                host_message = create_message("user", host_speech)
+                self.update_history(host_message, "host")
+                self.log_message(log_file, host_speech)
                 return {"winner": "spy", "players": self.players,
                         "spy_index": self.spy_index, "round": self.game_round,
                         "log": f"{self.game_round}.log"}
@@ -124,7 +164,13 @@ class SpyfallGame(Game):
         return True
 
     def handle_voting_stage(self, log_file):
-        host_speech = "Host: Now the voting start, please vote for the player you think is the spy."
+        # Важно: обновляем информацию о живых игроках перед началом голосования
+        host_speech = f"Host: The living players are: {json.dumps(self.living_players)}"
+        living_player_message = create_message("user", host_speech)
+        self.update_history(living_player_message, "host")
+        self.log_message(log_file, host_speech)
+        
+        host_speech = "Host: Now the voting start, please vote for the player you think is the spy. You must vote ONLY for a player from the list of living players."
         host_message = create_message("user", host_speech)
         self.update_history(host_message, "host")
         self.log_message(log_file, host_speech)
@@ -134,13 +180,23 @@ class SpyfallGame(Game):
             if agent.player_name not in self.living_players:
                 continue
 
-            host_speech = f"Host: {agent.player_name}, it's your turn."
+            host_speech = f"Host: {agent.player_name}, it's your turn to vote. Remember to choose from the living players: {json.dumps(self.living_players)}"
             host_message = create_message("user", host_speech)
             self.update_history(host_message, "host")
             self.log_message(log_file, host_speech)
 
             sleep(2)
             name, speak, cot = agent.vote()
+            
+            # Валидация голоса - проверяем, что голос отдан за живого игрока
+            if name not in self.living_players:
+                host_speech = f"Host: {agent.player_name}, you voted for {name} who is not in the list of living players. Your vote will be ignored."
+                host_message = create_message("user", host_speech)
+                self.update_history(host_message, "host")
+                self.log_message(log_file, host_speech)
+                # Пропускаем добавление невалидного голоса
+                continue
+                
             temp = f"{agent.player_name}: {speak}, i will vote {name} as the spy."
             public_message = create_message("user", temp)
             self.update_history(public_message, agent.player_name)
@@ -149,6 +205,20 @@ class SpyfallGame(Game):
             self.log_message(log_file, temp, cot)
 
             name_list.append(name)
+
+        if not name_list:
+            # Если нет валидных голосов, выбираем случайного живого игрока
+            host_speech = "Host: No valid votes were cast. Selecting a random player."
+            host_message = create_message("user", host_speech)
+            self.update_history(host_message, "host")
+            self.log_message(log_file, host_speech)
+            
+            if self.living_players:
+                voted_name = random.choice(self.living_players)
+                return voted_name
+            else:
+                # Это маловероятный случай, но нужно обработать ситуацию, когда нет живых игроков
+                return None
 
         voted_name, _ = self.get_voted_name(name_list)
         return voted_name

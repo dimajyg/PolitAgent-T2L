@@ -12,14 +12,12 @@ There are two stages in each round of the game.
 
 The first stage is describing stage:
 Everyone needs to use a word or a few words to say something in turn about the word he received without directly saying the word.
-The funniest part of the game is that since you do not know other's words, you are not sure whether you are the spy.
-So, you can only infer who have the different based on other players description.
+Players now who are they, the spy or the common people. So, accroding to the description of other players, they need to infer who are the spy.
 
 The second stage is the voting stage:
 After everyone speaks, each player must vote for a player who he thinks is the spy and tell others why. Players can not repeat other players' speeches or their own speeches in the previous round. The player getting the most votes will be eliminated from the game.
 
 If the spy is eliminated, the rest of the players win.
 If there are less than three players, and the spy still lives, then the spy wins.
-
 '''
 
