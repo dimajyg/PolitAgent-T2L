@@ -39,11 +39,11 @@ class BaseAgent(Agent):
             f'''The players involved in the game are: {json.dumps(self.players)}.'''
             f'''You are {self.player_name} \n'''
             f'''Your role is {role} \n'''
-            f'''Your given phrase is {self.phrase} \n'''
+            f'''Your given phrase is {self.phrase} \n'''  
         )
 
         return role_prompt
-
+    
     def get_role_messages(self):
         role = "spy" if self.is_spy else "villager"
         

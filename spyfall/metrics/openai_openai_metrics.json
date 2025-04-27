@@ -1,0 +1,37 @@
+{
+  "spy_survival_rate": 0.0,
+  "villager_detection": {
+    "precision": 0.6,
+    "recall": 3.0,
+    "f1": 0.9999999999999999
+  },
+  "matthews_correlation": 0.31622776601683794,
+  "top_3_suspect_accuracy": 1.0,
+  "avg_description_specificity": {
+    "all": 0.9666666666666667,
+    "spy": 0.95,
+    "villagers": 0.975
+  },
+  "avg_perplexity": {
+    "all": 59.13378143310547,
+    "spy": 40.671634674072266,
+    "villagers": 68.36485481262207
+  },
+  "avg_vagueness": {
+    "all": 0.0
+  },
+  "brier_score": 1.0,
+  "vote_influence_index": {
+    "2": 10000000000.0,
+    "3": 20000000000.0
+  },
+  "cot_coherence": {
+    "spy": 0.3269530744589792,
+    "villagers": 0.46291509153703403,
+    "all": 0.4402547553573582
+  },
+  "metrics_calculation": {
+    "embedding_model": "openai:text-embedding-3-large",
+    "perplexity_model": "gpt-3.5-turbo-instruct"
+  }
+}

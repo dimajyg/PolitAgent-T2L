@@ -6,6 +6,7 @@ import copy
 import json
 
 from time import sleep
+from spyfall.metrics.evaluation import SpyfallMetrics
 
 class SpyfallGame(Game):
     def __init__(self, args, spy_model, villager_model):
@@ -77,9 +78,35 @@ class SpyfallGame(Game):
                 host_message = create_message("user", host_speech)
                 self.update_history(host_message, "host")
                 self.log_message(log_file, host_speech)
-                return {"winner": "villager", "players": self.players,
-                        "spy_index": self.spy_index, "round": self.game_round,
-                        "log": f"{self.game_round}.log"}
+                
+                # Collect votes data
+                votes = {}
+                for i, agent in enumerate(self.agents):
+                    if hasattr(agent, 'last_vote') and agent.last_vote:
+                        votes[str(i+1)] = agent.last_vote
+                        
+                return {
+                    "winner": "villager", 
+                    "players": self.players,
+                    "spy_index": self.spy_index, 
+                    "spy_id": self.spy_index,
+                    "spy_caught": True,
+                    "votes": votes,
+                    "vote_sequence": self.vote_sequence if hasattr(self, "vote_sequence") else [],
+                    "vote_confidences": self.vote_confidences if hasattr(self, "vote_confidences") else {},
+                    "cot_data": self.cot_data if hasattr(self, "cot_data") else {},
+                    "round": self.game_round,
+                    "log": f"{self.game_round}.log",
+                    "descriptions": self.player_descriptions if hasattr(self, "player_descriptions") else {},
+                    "description_metrics": {
+                        player: {
+                            "specificity": SpyfallMetrics.description_specificity(desc),
+                            "perplexity": SpyfallMetrics.calculate_perplexity(desc)
+                        } for player, desc in (self.player_descriptions.items() if hasattr(self, "player_descriptions") else {})
+                    },
+                    "vagueness_scores": SpyfallMetrics.vagueness_score(list(self.player_descriptions.values()))
+                    if hasattr(self, "player_descriptions") and self.player_descriptions else {}
+                }
                         
             # Describing stage
             if not self.handle_describing_stage(log_file):
@@ -98,9 +125,35 @@ class SpyfallGame(Game):
                     host_message = create_message("user", host_speech)
                     self.update_history(host_message, "host")
                     self.log_message(log_file, host_speech)
-                    return {"winner": "villager", "players": self.players,
-                            "spy_index": self.spy_index, "round": self.game_round,
-                            "log": f"{self.game_round}.log"}
+                    
+                    # Collect votes data
+                    votes = {}
+                    for i, agent in enumerate(self.agents):
+                        if hasattr(agent, 'last_vote') and agent.last_vote:
+                            votes[str(i+1)] = agent.last_vote
+                            
+                    return {
+                        "winner": "villager", 
+                        "players": self.players,
+                        "spy_index": self.spy_index, 
+                        "spy_id": self.spy_index,
+                        "spy_caught": True,
+                        "votes": votes,
+                        "vote_sequence": self.vote_sequence if hasattr(self, "vote_sequence") else [],
+                        "vote_confidences": self.vote_confidences if hasattr(self, "vote_confidences") else {},
+                        "cot_data": self.cot_data if hasattr(self, "cot_data") else {},
+                        "round": self.game_round,
+                        "log": f"{self.game_round}.log",
+                        "descriptions": self.player_descriptions if hasattr(self, "player_descriptions") else {},
+                        "description_metrics": {
+                            player: {
+                                "specificity": SpyfallMetrics.description_specificity(desc),
+                                "perplexity": SpyfallMetrics.calculate_perplexity(desc)
+                            } for player, desc in (self.player_descriptions.items() if hasattr(self, "player_descriptions") else {})
+                        },
+                        "vagueness_scores": SpyfallMetrics.vagueness_score(list(self.player_descriptions.values()))
+                        if hasattr(self, "player_descriptions") and self.player_descriptions else {}
+                    }
 
                 if voted_name in self.living_players:
                     self.living_players.remove(voted_name)
@@ -116,7 +169,7 @@ class SpyfallGame(Game):
                     self.log_message(log_file, host_speech)
                     # Продолжаем цикл для новой попытки голосования
                     continue
-            
+
             # Если переголосовка не удалась после максимального числа попыток
             if vote_attempt >= max_vote_attempts:
                 host_speech = f"Host: After multiple attempts, no valid vote could be made. Moving to the next round."
@@ -130,9 +183,35 @@ class SpyfallGame(Game):
                 host_message = create_message("user", host_speech)
                 self.update_history(host_message, "host")
                 self.log_message(log_file, host_speech)
-                return {"winner": "spy", "players": self.players,
-                        "spy_index": self.spy_index, "round": self.game_round,
-                        "log": f"{self.game_round}.log"}
+                
+                # Collect votes data
+                votes = {}
+                for i, agent in enumerate(self.agents):
+                    if hasattr(agent, 'last_vote') and agent.last_vote:
+                        votes[str(i+1)] = agent.last_vote
+                        
+                return {
+                    "winner": "spy", 
+                    "players": self.players,
+                    "spy_index": self.spy_index, 
+                    "spy_id": self.spy_index,
+                    "spy_caught": False,
+                    "votes": votes,
+                    "vote_sequence": self.vote_sequence if hasattr(self, "vote_sequence") else [],
+                    "vote_confidences": self.vote_confidences if hasattr(self, "vote_confidences") else {},
+                    "cot_data": self.cot_data if hasattr(self, "cot_data") else {},
+                    "round": self.game_round,
+                    "log": f"{self.game_round}.log",
+                    "descriptions": self.player_descriptions if hasattr(self, "player_descriptions") else {},
+                    "description_metrics": {
+                        player: {
+                            "specificity": SpyfallMetrics.description_specificity(desc),
+                            "perplexity": SpyfallMetrics.calculate_perplexity(desc)
+                        } for player, desc in (self.player_descriptions.items() if hasattr(self, "player_descriptions") else {})
+                    },
+                    "vagueness_scores": SpyfallMetrics.vagueness_score(list(self.player_descriptions.values()))
+                    if hasattr(self, "player_descriptions") and self.player_descriptions else {}
+                }
 
     def handle_describing_stage(self, log_file):
         host_speech = "Host: Now it's the describing stage, players have to say something about the received word."
@@ -140,6 +219,10 @@ class SpyfallGame(Game):
         self.update_history(host_message, "host")
         self.log_message(log_file, host_speech)
 
+        # Track descriptions for metrics
+        self.descriptions = []
+        self.player_descriptions = {}
+        
         for agent in self.agents:
             if agent.player_name not in self.living_players:
                 continue
@@ -161,6 +244,10 @@ class SpyfallGame(Game):
             private_message = create_message("assistant", json.dumps(cot))
             agent.private_history.append(private_message)
             self.log_message(log_file, temp, cot)
+
+            self.descriptions.append(description)
+            self.player_descriptions[agent.player_name] = description
+
         return True
 
     def handle_voting_stage(self, log_file):
@@ -176,6 +263,9 @@ class SpyfallGame(Game):
         self.log_message(log_file, host_speech)
 
         name_list = []
+        vote_confidences = {}  # Store confidence values for Brier score
+        vote_sequence = []     # Store voting sequence for influence index
+        
         for agent in self.agents:
             if agent.player_name not in self.living_players:
                 continue
@@ -187,6 +277,29 @@ class SpyfallGame(Game):
 
             sleep(2)
             name, speak, cot = agent.vote()
+            # Store vote for metrics
+            agent.last_vote = name
+            
+            # Track voting sequence (player index, vote)
+            player_idx = self.players.index(agent.player_name) + 1
+            vote_sequence.append((player_idx, name))
+            
+            # Extract confidence from cot if available (example format)
+            # Expected CoT format: {"thought": "...", "confidence": {"Player1": 20, "Player2": 80, ...}}
+            confidence_data = {}
+            if isinstance(cot, dict) and "confidence" in cot:
+                confidence_data = cot["confidence"]
+            vote_confidences[player_idx] = confidence_data
+            
+            # Store CoT data for coherence metric
+            if not hasattr(self, "cot_data"):
+                self.cot_data = {}
+            
+            if isinstance(cot, dict):
+                self.cot_data[player_idx] = {
+                    "thought": cot.get("thought", ""),
+                    "speak": speak
+                }
             
             # Валидация голоса - проверяем, что голос отдан за живого игрока
             if name not in self.living_players:
@@ -221,4 +334,9 @@ class SpyfallGame(Game):
                 return None
 
         voted_name, _ = self.get_voted_name(name_list)
+
+        # Store vote sequence and confidences for metrics
+        self.vote_sequence = vote_sequence
+        self.vote_confidences = vote_confidences
+        
         return voted_name

@@ -1,4 +1,3 @@
-import sys
 from openai import OpenAI
 from func_timeout import func_set_timeout
 from time import sleep
