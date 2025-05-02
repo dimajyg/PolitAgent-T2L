@@ -1,0 +1,56 @@
+The spy word is: headphone;
+ The villager word is earbud.
+Player: Jack; Role: Spy; Assigned Word: headphone 
+Player: Cindy; Role: Villager; Assigned Word: earbud 
+Player: Nancy; Role: Villager; Assigned Word: earbud 
+Player: Tom; Role: Villager; Assigned Word: earbud 
+Player: Edward; Role: Villager; Assigned Word: earbud 
+Player: Rose; Role: Villager; Assigned Word: earbud 
+Host: The game now start.
+[PRIVATE] Host: Jack, you are a spy.
+[PRIVATE] Host: Cindy, you are a villager.
+[PRIVATE] Host: Nancy, you are a villager.
+[PRIVATE] Host: Tom, you are a villager.
+[PRIVATE] Host: Edward, you are a villager.
+[PRIVATE] Host: Rose, you are a villager.
+Host: The living players are: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Host: Now it's the describing stage, players have to say something about the received word.
+Host: Jack, it's your turn.
+Jack: They often help with music or calls.
+{"thought": "I need to describe my word without revealing I'm the spy. I'll keep it vague and relatable.", "speak": "They often help with music or calls."}
+Host: Cindy, it's your turn.
+Cindy: They come in pairs and are often portable.
+{"thought": "I need to give a description that conveys my word without making it too obvious. I should also ensure it aligns with Jack's hint about music or calls.", "speak": "They come in pairs and are often portable."}
+Host: Nancy, it's your turn.
+Nancy: They are commonly used for listening to audio discreetly.
+{"thought": "I need to convey that my word is something related to audio and is small and convenient, without being too obvious.", "speak": "They are commonly used for listening to audio discreetly."}
+Host: Tom, it's your turn.
+Tom: They are small and often fit snugly in your ears.
+{"thought": "I need to describe my word in a way that connects with the others but doesn\u2019t give away too much. I\u2019ll focus on their usage in daily life.", "speak": "They are small and often fit snugly in your ears."}
+Host: Edward, it's your turn.
+Edward: They provide a personal listening experience without disturbing others.
+{"thought": "Everyone is describing their words clearly, and I must ensure my description fits the theme without being too obvious or too vague. I want to indicate that my word is related to audio and portability.", "speak": "They provide a personal listening experience without disturbing others."}
+Host: Rose, it's your turn.
+Rose: They are often used while exercising or commuting.
+{"thought": "I need to describe my word without being too obvious. Everyone is talking about music and audio, but I want to focus on the comfort aspect.", "speak": "They are often used while exercising or commuting."}
+Host: The living players are: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Host: Now the voting start, please vote for the player you think is the spy. You must vote ONLY for a player from the list of living players.
+Host: Jack, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Jack: I believe there's someone here who didn't quite align with the others' descriptions. I'm voting for Nancy., i will vote Nancy as the spy.
+{"thought": "Nancy seems very confident in her description, which makes her a likely villager. I should vote for her to deflect suspicion from myself.", "speak": "I believe there's someone here who didn't quite align with the others' descriptions. I'm voting for Nancy.", "name": "Nancy"}
+Host: Cindy, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Cindy: I think Cindy is suspicious, i will vote Cindy as the spy.
+{"thought": "Jack seems to suspect Nancy, but I need to consider everyone's descriptions. All have been somewhat aligned, but I feel like Tom's description was very specific. I will vote for Tom as I find his description a bit too precise.", "speak": "I noticed that one person's description felt overly detailed compared to the rest. I'm voting for Tom."}
+Host: Nancy, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Nancy: I think someone is not being clear about their word, and I suspect that might be Jack., i will vote Jack as the spy.
+{"thought": "Based on the descriptions, everyone is talking about small audio devices. However, Jack's description seemed a bit vague compared to the others. I suspect he might be the spy.", "speak": "I think someone is not being clear about their word, and I suspect that might be Jack.", "name": "Jack"}
+Host: Tom, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Tom: I noticed that Jack's description seemed a bit too vague and didn't connect well with the specific usages mentioned by others., i will vote Jack as the spy.
+{"thought": "Jack's description was quite general and didn't offer much specificity compared to the others. I suspect he might be the spy.", "speak": "I noticed that Jack's description seemed a bit too vague and didn't connect well with the specific usages mentioned by others.", "name": "Jack"}
+Host: Edward, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Edward: I think Jack's description was not as specific as it could have been, which raises my suspicion. I'm voting for Jack as the spy., i will vote Jack as the spy.
+{"thought": "Jack received multiple votes and his description was somewhat vague. However, I need to ensure my vote aligns with my suspicion of who the spy might be. I suspect Jack might be the spy based on how others reacted.", "speak": "I think Jack's description was not as specific as it could have been, which raises my suspicion. I'm voting for Jack as the spy.", "name": "Jack"}
+Host: Rose, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Rose: I feel that one player's description lacked detail and didn't match the others, leading me to suspect them. I'm voting for Jack., i will vote Jack as the spy.
+{"thought": "Everyone seems suspicious of Jack, and I noticed his description was vague compared to the others. I will vote for Jack as well to eliminate the spy.", "speak": "I feel that one player's description lacked detail and didn't match the others, leading me to suspect them. I'm voting for Jack.", "name": "Jack"}
+Host: Jack was the spy! Villagers win!

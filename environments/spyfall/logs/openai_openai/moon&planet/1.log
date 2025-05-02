@@ -1,0 +1,44 @@
+The spy word is: moon;
+ The villager word is planet.
+Player: Cindy; Role: Villager; Assigned Word: planet 
+Player: Edward; Role: Villager; Assigned Word: planet 
+Player: Rose; Role: Villager; Assigned Word: planet 
+Player: Tom; Role: Villager; Assigned Word: planet 
+Player: Jack; Role: Spy; Assigned Word: moon 
+Player: Nancy; Role: Villager; Assigned Word: planet 
+Host: The game now start.
+[PRIVATE] Host: Cindy, you are a villager.
+[PRIVATE] Host: Edward, you are a villager.
+[PRIVATE] Host: Rose, you are a villager.
+[PRIVATE] Host: Tom, you are a villager.
+[PRIVATE] Host: Jack, you are a spy.
+[PRIVATE] Host: Nancy, you are a villager.
+Host: The living players are: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Host: Now it's the describing stage, players have to say something about the received word.
+Host: Cindy, it's your turn.
+Cindy: Our word is something that orbits around a star.
+Host: Edward, it's your turn.
+Edward: Our word is a celestial body that orbits a star.
+Host: Rose, it's your turn.
+Rose: There are many celestial bodies in the universe, and some are known for their rings.
+Host: Tom, it's your turn.
+Tom: Let's explore the universe beyond Earth.
+Host: Jack, it's your turn.
+Jack: I love stargazing at night and admiring the beautiful moon.
+Host: Nancy, it's your turn.
+Nancy: We all live on one of these, and it revolves around the sun.
+Host: The living players are: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Host: Now the voting start, please vote for the player you think is the spy. You must vote ONLY for a player from the list of living players.
+Host: Cindy, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Cindy: I noticed someone hesitating during their description., i will vote Jack as the spy.
+Host: Edward, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Edward: I think the word I received is something that is commonly found in kitchens., i will vote Cindy as the spy.
+Host: Rose, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Rose: I think we should vote for Jack., i will vote Jack as the spy.
+Host: Tom, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Tom: I think we should vote for Jack because his description seemed a bit suspicious., i will vote Jack as the spy.
+Host: Jack, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Jack: My word is something you often use in the kitchen., i will vote Tom as the spy.
+Host: Nancy, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Nancy: I think we should pay attention to the details mentioned by each player to identify the spy., i will vote Jack as the spy.
+Host: Jack was the spy! Villagers win!

@@ -4,3 +4,4 @@ venv/
 .cursorignore
 .vscode/
 .env
+benchmark_results/

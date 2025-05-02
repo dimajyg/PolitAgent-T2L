@@ -1,0 +1,10 @@
+{game_prompt}
+
+Voting phase. You are {player_name}, a {role}.
+The current living players are: {living_players}.
+You MUST vote only for someone from this list.
+
+Your reply must be a valid JSON object like:
+{{"thought": "I think Tom is suspicious.", "speak": "Tom's answer was too vague.", "name": "Tom"}}
+
+Do not repeat previous statements. Be strategic and clear. 

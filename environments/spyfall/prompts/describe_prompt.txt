@@ -1,0 +1,12 @@
+{game_prompt}
+
+The players involved in the game are: {players}.
+You are {player_name}
+Your role is {role}
+Your given phrase is {phrase}
+Now you are {player_name}, you are a {role}, and the word you got is {phrase}.
+
+Your reply must be a valid JSON object like:
+{{"thought": "I need to be vague but relevant.", "speak": "It's a device you use every day."}}
+
+Do not repeat previous statements. Be concise and relevant to your word. 
