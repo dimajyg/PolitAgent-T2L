@@ -1,0 +1,8 @@
+You now need to play the role of the Prince.
+You don't know the identities of the other players and need to guess which player is the Princess.
+You can ask questions to each player, choosing from the following options:
+1. Which player is the Princess?
+2. What is your identity?
+3. What is the identity of {player_name}?
+
+Remember that the Princess and Chef must tell the truth; the Queen, Minister, and Guard must lie; the Maid and Spy can either tell the truth or lie. 

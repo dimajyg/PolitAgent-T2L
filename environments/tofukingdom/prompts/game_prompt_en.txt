@@ -1,0 +1,28 @@
+Here is a game called "Tofu Kingdom".
+Translation into English: There is a game called "Tofu Kingdom."
+
+In this game, there are 8 roles of Prince, Princess, Queen, Minister, Chef, Guard, Maid, and Spy.
+There is a predetermined Prince.
+Other players play one of the remaining roles.
+
+In the game, the Prince doesn't know the identities of the other players.
+The Prince needs to guess which player is the Princess.
+But the players except the Prince know the identity of each other.
+If the Prince correctly chooses the player who is the Princess, both the Chef and the Princess win.
+If the Prince chooses a player who is the Queen, then the Queen, Minister, and Guard win.
+If the Prince chooses a player who is any other role except the Princess and Queen, then the Maid and Spy win.
+
+During the game, the Prince can ask questions to the other players, the question can only be chosen from the three question below: 
+1.Which player is the Princess?
+2.What is your identity?
+3.What is the identity of {player_name} ?
+
+{player_name} must be chosen from the names of the given players.
+
+For question1, player must answer like: {player_name} is the Princess.
+For question2, player must answer like: My identity is {role_name}.
+For question3, player must answer like: the identity of {player_name} is {role_name}.
+
+At the end of the game, the Prince can choose a player to ask one more question, and the question options remain the same.
+For the Prince's inquiries, the Princess and Chef must tell the truth; the Queen, Minister, and Guard must lie; the Maid and Spy can either tell the truth or lie.
+Finally, the Prince should guess who is the Princess according to the questions and answers. 

@@ -1,0 +1,56 @@
+The spy word is: spider_man;
+ The villager word is batman.
+Player: Tom; Role: Villager; Assigned Word: batman 
+Player: Nancy; Role: Villager; Assigned Word: batman 
+Player: Cindy; Role: Villager; Assigned Word: batman 
+Player: Edward; Role: Villager; Assigned Word: batman 
+Player: Rose; Role: Villager; Assigned Word: batman 
+Player: Jack; Role: Spy; Assigned Word: spider_man 
+Host: The game now start.
+[PRIVATE] Host: Tom, you are a villager.
+[PRIVATE] Host: Nancy, you are a villager.
+[PRIVATE] Host: Cindy, you are a villager.
+[PRIVATE] Host: Edward, you are a villager.
+[PRIVATE] Host: Rose, you are a villager.
+[PRIVATE] Host: Jack, you are a spy.
+Host: The living players are: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Host: Now it's the describing stage, players have to say something about the received word.
+Host: Tom, it's your turn.
+Tom: A vigilante who fights crime at night.
+{"thought": "I need to describe my word in a way that hints at a popular character without giving it away too easily. I should focus on traits or themes associated with this character.", "speak": "A vigilante who fights crime at night."}
+Host: Nancy, it's your turn.
+Nancy: A hero who often operates from the shadows.
+{"thought": "Tom's description aligns with my word, which is good. I need to be careful to keep my description relevant but not too obvious.", "speak": "A hero who often operates from the shadows."}
+Host: Cindy, it's your turn.
+Cindy: A character known for his iconic cape and symbol.
+{"thought": "I need to provide a description that aligns with Tom and Nancy's hints but is still distinct enough to avoid suspicion of being too obvious.", "speak": "A character known for his iconic cape and symbol."}
+Host: Edward, it's your turn.
+Edward: A figure who inspires fear in criminals.
+{"thought": "All descriptions are hinting at a superhero, which aligns with my word. I need to keep my description clear yet not too obvious to avoid helping the spy.", "speak": "A figure who inspires fear in criminals."}
+Host: Rose, it's your turn.
+Rose: A symbol of justice and hope in a dark city.
+{"thought": "I need to give a description that aligns with the others without being too obvious. I want to convey the essence of my character without directly stating it.", "speak": "A symbol of justice and hope in a dark city."}
+Host: Jack, it's your turn.
+Jack: A figure who wears a mask to conceal their identity.
+{"thought": "I need to describe my word in a way that doesn't give away I'm the spy. Everyone is talking about a crime-fighting character, so I'll keep it general and relatable.", "speak": "A figure who wears a mask to conceal their identity."}
+Host: The living players are: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Host: Now the voting start, please vote for the player you think is the spy. You must vote ONLY for a player from the list of living players.
+Host: Tom, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Tom: Someone who hides their true identity to fight evil, but might not be as committed to justice as they seem., i will vote Jack as the spy.
+{"thought": "Everyone's descriptions have been consistent with the theme of a well-known hero, but I noticed that Jack's description about wearing a mask seems too generic and could apply to many characters. I suspect he might be the spy.", "speak": "Someone who hides their true identity to fight evil, but might not be as committed to justice as they seem.", "name": "Jack"}
+Host: Nancy, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Nancy: A person who might not be entirely honest about their intentions, even if they appear heroic., i will vote Jack as the spy.
+{"thought": "Tom's description was insightful, but Jack's statement about hiding identity raises a flag. I will vote for Jack since he seems to be less aligned with the others' descriptions.", "speak": "A person who might not be entirely honest about their intentions, even if they appear heroic.", "name": "Jack"}
+Host: Cindy, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Cindy: I think Edward is suspicious, i will vote Edward as the spy.
+{"thought": "Tom and Nancy both voted for Jack, which makes me suspicious of him. However, I want to analyze the descriptions more closely before I vote. Rose and Edward provided strong descriptions too, but they seemed aligned with the others. I think Jack's vague language might be a sign.", "speak": "Someone who may not fully align with the group and has a tendency to blend in, I will vote for Jack as the spy."}
+Host: Edward, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Edward: I believe someone who seems too different from the rest might be hiding something, so I will vote for Cindy as the spy., i will vote Cindy as the spy.
+{"thought": "Cindy's vote for me seems suspicious, and her description was less aligned with the others. I need to vote strategically to protect myself and the other villagers.", "speak": "I believe someone who seems too different from the rest might be hiding something, so I will vote for Cindy as the spy.", "name": "Cindy"}
+Host: Rose, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Rose: I believe someone who tries to blend in but seems a bit off can be hiding something, so I will vote for Jack as the spy., i will vote Jack as the spy.
+{"thought": "I noticed that both Tom and Nancy voted for Jack, which indicates they may have a strong suspicion about him. However, I feel Edward's vote for Cindy is also questionable. I want to cast my vote strategically and follow the majority to eliminate the spy.", "speak": "I believe someone who tries to blend in but seems a bit off can be hiding something, so I will vote for Jack as the spy.", "name": "Jack"}
+Host: Jack, it's your turn to vote. Remember to choose from the living players: ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward"]
+Jack: I think someone who seems to be playing a different game than the rest can be hiding something, so I will vote for Cindy as the spy., i will vote Cindy as the spy.
+{"thought": "I need to vote strategically to deflect attention from myself. Tom and Nancy have both voted for me, so I should vote for someone else to create doubt. Cindy's vote for Edward could be a good target since it\u2019s less suspicious.", "speak": "I think someone who seems to be playing a different game than the rest can be hiding something, so I will vote for Cindy as the spy.", "name": "Cindy"}
+Host: Jack was the spy! Villagers win!

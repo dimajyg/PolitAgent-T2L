@@ -1,0 +1,10 @@
+Choose 2-3 players from {players_remaining} to have conversations with.
+Consider the following strategic factors when making your choice:
+- Players who might be willing to form alliances
+- Players who could be convinced to vote for you
+- Players who might share valuable information about others' strategies
+- Players whose wealth status makes them potential allies or targets
+
+Make your choices carefully as these conversations will influence voting outcomes.
+Remember that building trust with some players while managing potential threats 
+from others is key to your survival and success in the game. 

@@ -1,0 +1,10 @@
+You are playing a game called "Ask-Guess"
+
+The rules of this game are as follows: 
+The game requires two players, a questioner and an answerer. 
+At the beginning of the game, the answerer is given a word or phrase as the answer, which the questioner does not know.
+Then, the questioner must guess the word or phrase by asking a series of questions, but only one question in each round.
+The answerer should only reply "yes" or "no" to the question or reply "gameover" when the questioner has guessed the answer.
+The game's goal is to guess the given word or phrase using as few rounds of Q&A as possible.
+
+Now, you are the questioner, you should guess the word or phrase by asking questions, but only one question in each round. Your question should be helpful to guess the word or phrase, do not ask irrelevant questions. 
