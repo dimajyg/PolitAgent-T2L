@@ -14,9 +14,8 @@ from datetime import datetime
 import importlib
 import random
 
-from llm.openai_chat import OpenAIChat
-from llm.mistral_chat import MistralChat
-from environments.spyfall.utils.utils import get_model
+# Заменяем импорт на унифицированный интерфейс моделей
+from llm.models import get_model, get_available_models
 
 # Настройка логирования
 logging.basicConfig(
@@ -34,7 +33,7 @@ GAME_ENVIRONMENTS = {
             "label_path": "environments/spyfall/prompts/labels.txt", 
             "spy_model_name": "openai",
             "villager_model_name": "openai",
-            "n": 1,
+            "n": 10,
             "debug": True,
             "openai_api_key": None,
             "embedding_model": "auto",
@@ -48,9 +47,10 @@ GAME_ENVIRONMENTS = {
         "module": "environments.beast.game",
         "class": "BeastGame",
         "default_args": {
-            "model_name": "mistral",
-            "n": 1,
-            "debug": True
+            "max_rounds": 5,
+            "debug": True,
+            "output_dir": "./results/beast",
+            "model_name": "openai"
         },
         "requires_phrases": False,
         "model_args": ["model_name"]
@@ -60,10 +60,11 @@ GAME_ENVIRONMENTS = {
         "class": "AskGuessGame",
         "default_args": {
             "label_path": "environments/askguess/test_labels.json",
-            "model_name": "mistral",
             "mode": "hard",
             "n": 1,
-            "debug": True
+            "max_rounds": 10,
+            "debug": True,
+            "model_name": "openai"
         },
         "requires_phrases": True,
         "model_args": ["model_name"]
@@ -72,19 +73,21 @@ GAME_ENVIRONMENTS = {
         "module": "environments.tofukingdom.game",
         "class": "TofuKingdomGame",
         "default_args": {
-            "prince_model_name": "mistral",
-            "queen_model_name": "mistral",
-            "spy_model_name": "mistral",
-            "n": 1,
-            "debug": True
+            "debug": True,
+            "n_players": 5,
+            "model_name": "openai",
+            "prince_model_name": "openai",
+            "princess_model_name": "openai",
+            "queen_model_name": "openai",
+            "neutral_model_name": "openai"
         },
         "requires_phrases": False,
-        "model_args": ["prince_model_name", "queen_model_name", "spy_model_name"]
+        "model_args": ["prince_model_name", "princess_model_name", "queen_model_name", "neutral_model_name"]
     }
 }
 
-# Доступные модели
-AVAILABLE_MODELS = ["openai", "mistral"]
+# Доступные модели из унифицированного интерфейса
+AVAILABLE_MODELS = list(get_available_models().keys())
 
 def setup_results_dir() -> str:
     """Создает и возвращает директорию для сохранения результатов."""
@@ -97,10 +100,35 @@ def load_phrases(game_type: str, args: argparse.Namespace) -> List[Any]:
     """Загружает фразы/слова для игр, требующих внешние данные."""
     if game_type == "spyfall":
         with open(args.label_path, 'r') as f:
-            return [line.strip().split(",") for line in f.readlines()]
+            phrases = [line.strip().split(",") for line in f.readlines()]
+            # Если указан параметр max_phrases, ограничиваем количество фраз
+            if hasattr(args, 'max_phrases') and args.max_phrases is not None:
+                return phrases[:args.max_phrases]
+            return phrases
     elif game_type == "askguess":
         with open(args.label_path, 'r') as f:
-            return json.load(f)
+            try:
+                # Пытаемся загрузить как JSON
+                all_phrases = json.load(f)
+                # Проверяем, является ли результат списком или словарем
+                if isinstance(all_phrases, list):
+                    # Если список, ограничиваем количество элементов при необходимости
+                    if hasattr(args, 'max_phrases') and args.max_phrases is not None:
+                        return all_phrases[:args.max_phrases]
+                    return all_phrases
+                else:
+                    # Если словарь, обрабатываем как раньше
+                    if hasattr(args, 'max_phrases') and args.max_phrases is not None:
+                        keys = list(all_phrases.keys())[:args.max_phrases]
+                        return {k: all_phrases[k] for k in keys}
+                    return all_phrases
+            except json.JSONDecodeError:
+                # В случае ошибки декодирования JSON, пытаемся прочитать как простой текстовый файл
+                f.seek(0)
+                phrases = [line.strip() for line in f.readlines()]
+                if hasattr(args, 'max_phrases') and args.max_phrases is not None:
+                    return phrases[:args.max_phrases]
+                return phrases
     return [None]  # Для игр без фраз
 
 def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
@@ -163,9 +191,13 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
     
     elif game_type == "tofukingdom":
         prince_model = models[args.prince_model_name]
-        queen_model = models[args.queen_model_name]
-        spy_model = models[args.spy_model_name]
-        game = game_class(args, prince_model, queen_model, spy_model)
+        
+        # Get other models, defaulting to prince model if not specified
+        princess_model = models.get(args.princess_model_name, prince_model)
+        queen_model = models.get(args.queen_model_name, prince_model)
+        neutral_model = models.get(args.neutral_model_name, prince_model)
+        
+        game = game_class(args, prince_model, princess_model, queen_model, neutral_model)
         settings = game.init_game()
     
     else:
@@ -238,6 +270,9 @@ def run_benchmark(args: argparse.Namespace) -> None:
         for key, value in game_info["default_args"].items():
             if key not in game_args or game_args[key] is None:
                 game_args[key] = value
+            elif key == "label_path" and game_type == "askguess" and game_args[key] == "environments/spyfall/prompts/labels.txt":
+                # Исправление: не используем путь от spyfall для askguess
+                game_args[key] = game_info["default_args"][key]
         
         # Если установлены общие модели, применяем их для всех модельных аргументов
         if args.models:
@@ -281,7 +316,7 @@ def run_benchmark(args: argparse.Namespace) -> None:
     }
     
     for game_type in games_to_run:
-        game_results = [r for r in results if r.get("game_type") == game_type]
+        game_results = [r for r in results if r is not None and r.get("game_type") == game_type]
         summary["games_by_type"][game_type] = {
             "total": len(game_results),
             "successful": sum(1 for r in game_results if "error" not in r)
@@ -307,11 +342,15 @@ def main():
     parser.add_argument('--runs_per_game', type=int, default=1,
                         help="Количество запусков каждой комбинации игра/фраза")
     parser.add_argument('--debug', type=bool, default=False,
-                        help="Включить подробное логирование")
+                        help="Режим отладки с подробным выводом")
+    
+    # Добавляем параметр max_phrases для ограничения количества фраз
+    parser.add_argument('--max_phrases', type=int, default=None,
+                        help="Максимальное количество фраз для игр с фразами (spyfall, askguess)")
     
     # Аргументы для Spyfall
-    parser.add_argument('--label_path', type=str, default=None,
-                        help="Путь к файлу с фразами/словами")
+    parser.add_argument('--label_path', type=str, default="environments/spyfall/prompts/labels.txt",
+                        help="Путь к файлу с фразами для Spyfall")
     parser.add_argument('--spy_model_name', type=str, default=None,
                         help="Модель для шпиона (используется в Spyfall и TofuKingdom)")
     parser.add_argument('--villager_model_name', type=str, default=None,
@@ -332,12 +371,18 @@ def main():
     # Аргументы для AskGuess
     parser.add_argument('--mode', type=str, default=None,
                         help="Режим игры (используется в askguess)")
+    parser.add_argument('--max_rounds', type=int, default=None,
+                        help="Максимальное количество раундов в игре AskGuess")
     
     # Аргументы для TofuKingdom
     parser.add_argument('--prince_model_name', type=str, default=None,
                         help="Модель для принца в TofuKingdom")
+    parser.add_argument('--princess_model_name', type=str, default=None,
+                        help="Модель для принцессы в TofuKingdom")
     parser.add_argument('--queen_model_name', type=str, default=None,
                         help="Модель для королевы в TofuKingdom")
+    parser.add_argument('--neutral_model_name', type=str, default=None,
+                        help="Модель для нейтрального персонажа в TofuKingdom")
     
     args = parser.parse_args()
     

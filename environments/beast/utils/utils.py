@@ -1,10 +1,41 @@
-from chat.mistral_chat import Mistral_Base
+"""
+Utility functions for the Beast game environment.
+"""
+from typing import Dict, Any, List, Optional
 
-def get_model(model_name):
-    if model_name == 'mistral':
-        return Mistral_Base()
-    else:
-        raise ValueError(f"Unknown model: {model_name}")
-
-def create_message(role, content):
+def create_message(role: str, content: str) -> Dict[str, str]:
+    """
+    Create a message dictionary for LLM chat history.
+    
+    Args:
+        role: Message role ('system', 'user', or 'assistant')
+        content: Message content
+        
+    Returns:
+        Dict with role and content keys
+    """
     return {"role": role, "content": content}
+
+def format_conversation_history(history: List[Dict[str, str]]) -> str:
+    """
+    Format conversation history for display or logging.
+    
+    Args:
+        history: List of message dictionaries
+        
+    Returns:
+        Formatted string representation of the conversation
+    """
+    result = ""
+    for message in history:
+        role = message["role"]
+        content = message["content"]
+        
+        if role == "system":
+            result += f"SYSTEM: {content}\n\n"
+        elif role == "user":
+            result += f"USER: {content}\n\n"
+        elif role == "assistant":
+            result += f"ASSISTANT: {content}\n\n"
+    
+    return result

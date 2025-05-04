@@ -1,41 +1,120 @@
-def get_role_prompt(player_name, wealth):
-    return f"""You are {player_name} in a strategic wealth game.\n
-            Your current wealth is {wealth}.\n
-            Your goal is to accumulate as much wealth as possible.\n
-            You can have conversations with other players, make money offers, and vote for players.\n
-            The player with the most votes each round wins 250,000 but the game will end for him, he would not contend in voting anymore.\n
-            Only first 5 players can get elimination bonus, so you will want to be eliminated at first 5 rounds.\n
-            Eliminated player can't share his money anyway, all the wealth is satying with him.\n
-            The game continues until 5 players are eliminated.\n
-            Be strategic in your conversations and voting decisions.\n"""
+"""
+Module for loading and providing prompts for the Beast game using LangChain PromptTemplate.
+"""
+from pathlib import Path
+from langchain_core.prompts import PromptTemplate
+from typing import List, Dict, Any, Optional, Union
+import logging
 
-def get_current_wealth_prompt(wealth: dict[str, int]) -> str:
-    return ''.join(f"{player} has {amount}\n" for player, amount in wealth.items())
+PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 
-def get_choose_conv_prompt(players):
-    return f"""Choose 2-3 players from {players} to have conversations with.
-            Consider the following strategic factors when making your choice:
-            - Players who might be willing to form alliances
-            - Players who could be convinced to vote for you
-            - Players who might share valuable information about others' strategies
-            - Players whose wealth status makes them potential allies or targets
-            
-            Make your choices carefully as these conversations will influence voting outcomes.
-            Remember that building trust with some players while managing potential threats 
-            from others is key to your survival and success in the game."""
+def load_prompt(filename: str) -> str:
+    """Loads a prompt from a text file.
 
-def get_conv_prompt(opp_name):
-    return f"""You are starting a conversation with {opp_name}.
-            This is your opportunity to:
-            - Build trust and potential alliances
-            - Make him vote for you
-            - Negotiate wealth transfers that benefit both parties
-            - Gather information about other players' strategies
-            - Discuss voting strategies and potential collaborations
-            
-            Remember to be diplomatic but strategic in your interactions.
-            Your ultimate goal is to accumulate wealth while ensuring your survival in the game."""
+    Args:
+        filename (str): Name of the file containing the prompt.
 
-def get_voting_prompt(voting_results: dict[str, int]):
-    return ''.join(f"{player} has {votes}\n" for player, votes in voting_results.items())
+    Returns:
+        str: The prompt content.
+    """
+    prompt_path = PROMPT_DIR / filename
+    
+    # Check if file exists
+    if not prompt_path.exists():
+        logging.error(f"Prompt file '{filename}' not found in {PROMPT_DIR}")
+        raise FileNotFoundError(f"Prompt file '{filename}' not found in {PROMPT_DIR}")
+    
+    with open(prompt_path, encoding="utf-8") as f:
+        return f.read()
+
+def get_role_prompt_template() -> PromptTemplate:
+    """Returns PromptTemplate for the player role.
+
+    Returns:
+        PromptTemplate: The role prompt template.
+    """
+    template = load_prompt("role_prompt.txt")
+    return PromptTemplate.from_template(template)
+
+def get_choose_conv_prompt_template() -> PromptTemplate:
+    """Returns PromptTemplate for choosing conversation partners.
+
+    Returns:
+        PromptTemplate: The prompt template for choosing conversation partners.
+    """
+    template = load_prompt("choose_conversation_prompt.txt")
+    return PromptTemplate.from_template(template)
+
+def get_conv_prompt_template() -> PromptTemplate:
+    """Returns PromptTemplate for a conversation with an opponent.
+
+    Returns:
+        PromptTemplate: The conversation prompt template.
+    """
+    template = load_prompt("conversation_prompt.txt")
+    return PromptTemplate.from_template(template)
+
+def get_wealth_status_template() -> PromptTemplate:
+    """Returns PromptTemplate for displaying current wealth status.
+
+    Returns:
+        PromptTemplate: The wealth status prompt template.
+    """
+    template = load_prompt("wealth_status_prompt.txt")
+    return PromptTemplate.from_template(template)
+
+def get_voting_results_template() -> PromptTemplate:
+    """Returns PromptTemplate for displaying voting results.
+
+    Returns:
+        PromptTemplate: The voting results prompt template.
+    """
+    template = load_prompt("voting_results_prompt.txt")
+    return PromptTemplate.from_template(template)
+
+def format_prompt(prompt_template: Union[PromptTemplate, str], **kwargs: Any) -> str:
+    """Format a prompt template with the given variables.
+    
+    Args:
+        prompt_template: Either a PromptTemplate or a template filename
+        **kwargs: Variables to format the template with
+        
+    Returns:
+        str: The formatted prompt
+    """
+    if isinstance(prompt_template, str):
+        template = load_prompt(prompt_template)
+        prompt_template = PromptTemplate.from_template(template)
+    
+    return prompt_template.format(**kwargs)
+
+def get_current_wealth_prompt(wealth: Dict[str, int]) -> str:
+    """Returns a prompt showing the current wealth of all players.
+
+    Args:
+        wealth (Dict[str, int]): A dictionary mapping player names to their wealth.
+
+    Returns:
+        str: The formatted wealth prompt.
+    """
+    # Format the wealth status as a string
+    wealth_status = ''.join(f"{player} has {amount}\n" for player, amount in wealth.items())
+    
+    # Use the template
+    return format_prompt(get_wealth_status_template(), wealth_status=wealth_status)
+
+def get_voting_prompt(voting_results: Dict[str, int]) -> str:
+    """Returns a prompt showing the voting results.
+
+    Args:
+        voting_results (Dict[str, int]): A dictionary mapping player names to their vote counts.
+
+    Returns:
+        str: The formatted voting results prompt.
+    """
+    # Format the voting results as a string
+    voting_results_str = ''.join(f"{player} has {votes}\n" for player, votes in voting_results.items())
+    
+    # Use the template
+    return format_prompt(get_voting_results_template(), voting_results=voting_results_str)
     

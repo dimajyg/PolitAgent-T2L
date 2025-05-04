@@ -1,0 +1,48 @@
+{
+  "round": 1,
+  "eliminated_players": [
+    "Player_7"
+  ],
+  "players": {
+    "Player_1": {
+      "wealth": 9945,
+      "eliminated": false
+    },
+    "Player_2": {
+      "wealth": 34809,
+      "eliminated": false
+    },
+    "Player_3": {
+      "wealth": 18165,
+      "eliminated": false
+    },
+    "Player_4": {
+      "wealth": 23722,
+      "eliminated": false
+    },
+    "Player_5": {
+      "wealth": 53403,
+      "eliminated": false
+    },
+    "Player_6": {
+      "wealth": 74587,
+      "eliminated": false
+    },
+    "Player_7": {
+      "wealth": 406344,
+      "eliminated": true
+    },
+    "Player_8": {
+      "wealth": 70677,
+      "eliminated": false
+    },
+    "Player_9": {
+      "wealth": 125475,
+      "eliminated": false
+    },
+    "Player_10": {
+      "wealth": 19237,
+      "eliminated": false
+    }
+  }
+}

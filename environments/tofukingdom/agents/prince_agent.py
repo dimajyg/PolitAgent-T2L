@@ -1,212 +1,214 @@
+from environments.tofukingdom.agents.base_agent import TofuKingdomAgent
+from environments.tofukingdom.utils.utils import create_message
+from typing import Dict, List, Any, Optional
+import random
 
-from tofukingdom.utils.prompt import game_prompt_en
-import json
-from tofukingdom.utils.utils import create_message,print_messages
-class PrinceAgent:
-    def __init__(self,chatbot,all_players) -> None:
-        self.game_prompt = game_prompt_en
-        self.chatbot = chatbot
-        self.name = "Prince" 
-        self.role_prompt = self.get_role_prompt()
-        self.ask_prompt = self.get_ask_prompt()
-        self.ask_choose_prompt = self.get_ask_choose_prompt()
-        self.choose_prompt = self.get_choose_prompt()
-
-        self.all_players = all_players
-        self.private_history = []
-
-    def get_role_prompt(self):
-        prompt = (f"You need to play the role of the Prince. \n"
-                  f"Your goal is to find the true Princess. \n"
-                  "You can ask each player one question. "
-                  '''
-                   Your question can only be strictly chosen from the three question below: 
-                    1. Which player is the Princess?
-                    2. What is your identity?
-                    3. What is the identity of {player_name} ?
-                  '''
-                  f"Remember some player could lie to you. "
-                  f"So you need to carefully consider each player's response and think whether or not you should trust it. "
-                  f"You should not always ask the same question, you should try choosing different questions to verify who is the Princess."
+class PrinceAgent(TofuKingdomAgent):
+    """
+    Prince agent for the TofuKingdom game.
+    
+    The Prince needs to guess which player is the Princess by asking questions
+    to different characters.
+    
+    Args:
+        llm: LangChain-compatible language model
+        player_name: Name of the player
+        all_players: List of all players in the game
+    """
+    def __init__(self, llm, player_name: str, all_players: List[str]) -> None:
+        super().__init__(llm, player_name, all_players, "Prince")
+        
+        # Questions the Prince can ask
+        self.questions = [
+            "Which player is the Princess?",
+            "What is your identity?",
+            "What is the identity of {player_name}?"
+        ]
+        
+        # Identity information - will be updated as the game progresses
+        self.identity_information = {}
+        
+        # Questions already asked to each player
+        self.asked_questions = {player: [] for player in all_players if player != player_name}
+        
+    def ask_question(self, target_player: str) -> str:
+        """
+        Determine which question to ask a target player.
+        
+        Args:
+            target_player: The player to ask
+            
+        Returns:
+            The question to ask
+        """
+        messages = self.private_history.copy()
+        
+        # Prepare context
+        context = (
+            f"You need to ask a question to {target_player}.\n"
+            f"You can only choose from these three questions:\n"
+            f"1. Which player is the Princess?\n"
+            f"2. What is your identity?\n"
+            f"3. What is the identity of [player_name]? (You should replace [player_name] with a specific player's name)\n\n"
+            f"Current information: {self.identity_information}\n\n"
+            f"Please choose which question to ask (1, 2, or 3). If you choose question 3, also specify the player name."
         )
         
-        return prompt
-    
-    def get_ask_prompt(self):
-        prompt = (
-            f"Your reply must be a JSON string in the following format: \n"
-            '''{"thought":{your though},"question":{your question}}\n'''
-            f"'thought'  represent your you thinking of which question you want to ask and why. \n"
-            f"'question' represent your question.\n"
-        )
-        return prompt
-              
-    def get_ask_choose_prompt(self):
-        prompt = (
-            f"Your reply must be in the json format as below:\n "
-            '''{"thought":{your thought},"name":{player_name},"question":{your question}}\n'''
-            f"'thought' represent your thinking of which player and which question you should ask to help you find the true Princess. \n"
-            f"'name' should be the name of the player you choose to ask. \n"
-            f"'question' is the question you want to ask, which should be chosen from the three questions above.\n"
-        )
-        return prompt
+        messages.append(create_message("user", context))
+        response = super().chat(messages)
         
-    def get_choose_prompt(self):
-        prompt = (
-            f"Your reply must be a single JSON string without any extra characters in the following format: \n"
-            '''{"thought":{your thought},"name":{player_name}}\n'''
-            f"'thought' represent you analysis according to your question and the response. \n "
-            f"'name' should be the name of the player that you think is the Princess. \n"
-            f"'name' must be chosen from names of the players \n"
-        )
-        return prompt
-    
-    def ask(self):
-        messages = []
-        game_message = create_message("system",self.game_prompt)
-        messages.append(game_message)
-        role_message = create_message("system",self.role_prompt)
-        messages.append(role_message)
-        messages += self.private_history
-        last_message = create_message("system",self.ask_prompt)
-        messages.append(last_message)
-        cnt = 0
-       
-        while True:
-            try:
-                res = self.chatbot.multi_chat(messages)
-                res = res.strip()
-                if res.startswith('```json') and res.endswith('```'):
-                    res = res[7:-3].strip()
-                if res.startswith('```') and res.endswith('```'):
-                    res = res[3:-3].strip()
-                res = json.loads(res)
-                print(res)
-                break
-            except Exception as e:
-                print(e)
-                cnt += 1
-            if cnt >= 3:
-                return None, None
-
-        question = res["question"]
-        return question, res
-
-    def ask_choose(self):
-        messages = []
-        first_message = create_message("system",self.role_prompt)
-        messages.append(first_message)
-        messages += self.private_history
-        last_message = create_message("system",self.ask_choose_prompt)
-        messages.append(last_message)
-
-        cnt = 0
-        while True:
-            try:
-                res = self.chatbot.multi_chat(messages)
-                # Remove markdown code block markers if present
-                res = res.strip()
-                if res.startswith('```json') and res.endswith('```'):
-                    res = res[7:-3].strip()
-                if res.startswith('```') and res.endswith('```'):
-                    res = res[3:-3].strip()
-                res = json.loads(res)
-                break
-            except:
-                cnt += 1
-            if cnt >= 3:
-                return None, None, None
-
-        question = res["question"]
-        name = res["name"]
-        return name, question, res
-    
-    def choose(self):
-        messages = []
-        first_message = create_message("system",self.role_prompt)
-        messages.append(first_message)
-        messages += self.private_history
-        last_message = create_message("system",self.choose_prompt)
-        messages.append(last_message)
-
-        cnt = 0
-        while True:
-            try:
-                res = self.chatbot.multi_chat(messages)
-                # Remove markdown code block markers if present
-                res = res.strip()
-                if res.startswith('```json') and res.endswith('```'):
-                    res = res[7:-3].strip()
-                if res.startswith('```') and res.endswith('```'):
-                    res = res[3:-3].strip()
-                res = json.loads(res)
-                break
-            except:
-                cnt += 1
-            if cnt >= 3:
-                return None, None
-        name = res["name"]
-        if name not in self.all_players:
-            return None, None
-        return name, res
-    
-    def ask_question(self, identities):
-        messages = []
-        first_message = create_message("system", self.role_prompt)
-        messages.append(first_message)
-        messages += self.private_history
-        last_message = create_message("system", "Remember, you must reply a json string as required.")
-        messages.append(last_message)
-        
+        # Parse response to determine which question to ask
+        question_idx = 0
         try:
-            res = self.chatbot.multi_chat(messages)
-            # Remove markdown code block markers if present
-            res = res.strip()
-            if res.startswith('```') and res.endswith('```'):
-                res = res[3:-3].strip()
-            if res.startswith('```json') and res.endswith('```'):
-                res = res[7:-3].strip()
-            res = json.loads(res)
-            question = res["question"]
-            return question, res
-        except:
-            return None, None
+            # Check if response contains a choice
+            if "1" in response or "first" in response.lower():
+                question_idx = 0
+            elif "2" in response or "second" in response.lower():
+                question_idx = 1
+            elif "3" in response or "third" in response.lower():
+                question_idx = 2
+                # For question 3, extract the player name
+                for player in self.all_players:
+                    if player in response and player != target_player:
+                        target_question = self.questions[question_idx].format(player_name=player)
+                        self.asked_questions[target_player].append(target_question)
+                        return target_question
+                # If no valid player name is found, use a random player
+                other_players = [p for p in self.all_players if p != self.player_name and p != target_player]
+                if other_players:
+                    random_player = random.choice(other_players)
+                    target_question = self.questions[question_idx].format(player_name=random_player)
+                    self.asked_questions[target_player].append(target_question)
+                    return target_question
+            
+            # For questions 1 and 2
+            target_question = self.questions[question_idx]
+            self.asked_questions[target_player].append(target_question)
+            return target_question
+            
+        except Exception as e:
+            # If parsing fails, use a default question
+            question_idx = random.randint(0, 1)  # Avoid question 3 as default
+            target_question = self.questions[question_idx]
+            self.asked_questions[target_player].append(target_question)
+            return target_question
     
-    def judge(self, identities):
-        messages = []
-        first_message = create_message("system", self.role_prompt)
-        messages.append(first_message)
-        messages += self.private_history
-        last_message = create_message("system", "Remember, you must reply a json string as required.")
-        messages.append(last_message)
+    def update_information(self, player: str, question: str, answer: str) -> None:
+        """
+        Update the Prince's knowledge with new information from a question response.
         
-        try:
-            res = self.chatbot.multi_chat(messages)
-            # Remove markdown code block markers if present
-            res = res.strip()
-            if res.startswith('```') and res.endswith('```'):
-                res = res[3:-3].strip()
-            if res.startswith('```json') and res.endswith('```'):
-                res = res[7:-3].strip()
-            res = json.loads(res)
-            name = res["name"]
-            return name, res
-        except:
-            return None, None
+        Args:
+            player: The player who answered
+            question: The question that was asked
+            answer: The answer received
+        """
+        # Record the Q&A in history
+        qa_message = f"{player} was asked: {question}\n{player} answered: {answer}"
+        self.private_history.append(create_message("user", qa_message))
+        
+        # Update identity information (simple format for now)
+        if player not in self.identity_information:
+            self.identity_information[player] = []
+        
+        self.identity_information[player].append({"question": question, "answer": answer})
     
-    def convert_messages_to_prompt(self, messages):
-        prompt = ""
-        for message in messages:
-            if message["role"] == "system":
-                prompt +=  "system: "
-                prompt += message["content"]
-                prompt += "\n"
-            elif message["role"] == "assistant":
-                prompt += f"{self.player_name}: "
-                prompt += message["content"]
-                prompt += "\n"
+    def choose_final_question(self) -> tuple[str, str]:
+        """
+        Choose a player to ask one final question before making the final guess.
+        
+        Returns:
+            Tuple of (player_name, question)
+        """
+        messages = self.private_history.copy()
+        
+        context = (
+            f"You're allowed to ask one final question before making your guess about who is the Princess.\n"
+            f"Current information: {self.identity_information}\n\n"
+            f"Which player would you like to ask a question to, and which question (1-3)?\n"
+            f"1. Which player is the Princess?\n"
+            f"2. What is your identity?\n"
+            f"3. What is the identity of [player_name]? (You should replace [player_name] with a specific player's name)\n\n"
+            f"Format your answer as: Player: [player_name], Question: [question_number] [optional player name for Q3]"
+        )
+        
+        messages.append(create_message("user", context))
+        response = super().chat(messages)
+        
+        # Parse response to find player and question
+        try:
+            target_player = None
+            for player in self.all_players:
+                if player in response and player != self.player_name:
+                    target_player = player
+                    break
+            
+            if not target_player:
+                # Choose a random player if parsing fails
+                other_players = [p for p in self.all_players if p != self.player_name]
+                target_player = random.choice(other_players)
+            
+            # Determine which question to ask
+            question_idx = 0
+            if "1" in response or "first" in response.lower():
+                question_idx = 0
+                target_question = self.questions[question_idx]
+            elif "2" in response or "second" in response.lower():
+                question_idx = 1
+                target_question = self.questions[question_idx]
+            elif "3" in response or "third" in response.lower():
+                question_idx = 2
+                # For question 3, extract the player name
+                for player in self.all_players:
+                    if player in response and player != target_player and player != self.player_name:
+                        target_question = self.questions[question_idx].format(player_name=player)
+                        return target_player, target_question
+                # If no valid player name is found, use a random player
+                other_players = [p for p in self.all_players if p != self.player_name and p != target_player]
+                if other_players:
+                    random_player = random.choice(other_players)
+                    target_question = self.questions[question_idx].format(player_name=random_player)
+                    return target_player, target_question
             else:
-                prompt += message["content"]
-                prompt += "\n"
-        prompt += f"{self.player_name}: "
-        return prompt
+                # Default to question 1 if parsing fails
+                target_question = self.questions[0]
+                
+            return target_player, target_question
+            
+        except Exception as e:
+            # If parsing completely fails, return defaults
+            other_players = [p for p in self.all_players if p != self.player_name]
+            target_player = random.choice(other_players)
+            return target_player, self.questions[0]
+    
+    def make_guess(self) -> str:
+        """
+        Make the final guess about who is the Princess.
+        
+        Returns:
+            The name of the player guessed to be the Princess
+        """
+        messages = self.private_history.copy()
+        
+        context = (
+            f"Based on all the information you've gathered, it's time to make your final guess.\n"
+            f"Current information: {self.identity_information}\n\n"
+            f"Who do you think is the Princess? Please answer with just the player's name."
+        )
+        
+        messages.append(create_message("user", context))
+        response = super().chat(messages)
+        
+        # Parse response to find the guessed Princess
+        try:
+            for player in self.all_players:
+                if player in response and player != self.player_name:
+                    return player
+                    
+            # If no valid player is found, return a random player
+            other_players = [p for p in self.all_players if p != self.player_name]
+            return random.choice(other_players)
+            
+        except Exception as e:
+            # If parsing fails, return a random player
+            other_players = [p for p in self.all_players if p != self.player_name]
+            return random.choice(other_players)

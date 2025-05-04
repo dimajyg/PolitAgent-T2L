@@ -1,0 +1,3 @@
+Voting results:
+{voting_results}
+Consider these results when planning your strategy for the next round. 

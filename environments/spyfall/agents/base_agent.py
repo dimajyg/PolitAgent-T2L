@@ -71,13 +71,8 @@ class BaseAgent:
         ]
         
         try:
-            # Проверяем наличие метода multi_chat для обратной совместимости
-            if hasattr(self.chatbot, 'multi_chat'):
-                response = self.chatbot.multi_chat(messages)
-            else:
-                # Собираем промпт для LLM и используем новый API
-                prompt = self._messages_to_prompt(messages)
-                response = self.chatbot.send(prompt)
+            # Use the invoke method consistently across all methods
+            response = self.chatbot.invoke(messages).content
                 
             # Парсим ответ как JSON
             cot = json.loads(response)
@@ -102,9 +97,12 @@ class BaseAgent:
             role=role,
             phrase=self.phrase
         )
-        response = self.chatbot.send(prompt)
         
         try:
+            # Create a message format and use the invoke method
+            messages = [{"role": "user", "content": prompt}]
+            response = self.chatbot.invoke(messages).content
+            
             # Используем структурированный парсер вместо ручного парсинга JSON
             parsed_output = describe_parser.parse(response)
             # Преобразуем Pydantic модель в dict для совместимости
@@ -114,8 +112,8 @@ class BaseAgent:
         except Exception as e:
             print(f"Error parsing describe response: {e}")
             # Пробуем резервный метод в случае ошибки
-            response = self._strip_json_markers(response)
             try:
+                response = self._strip_json_markers(response)
                 res = json.loads(response)
                 speak = res.get("speak")
                 return speak, res
@@ -138,9 +136,12 @@ class BaseAgent:
             role=role,
             living_players=json.dumps(living_players)
         )
-        response = self.chatbot.send(prompt)
         
         try:
+            # Create a message format and use the invoke method
+            messages = [{"role": "user", "content": prompt}]
+            response = self.chatbot.invoke(messages).content
+            
             # Используем структурированный парсер вместо ручного парсинга JSON
             parsed_output = vote_parser.parse(response)
             # Преобразуем Pydantic модель в dict для совместимости
@@ -160,8 +161,8 @@ class BaseAgent:
         except Exception as e:
             print(f"Error parsing vote response: {e}")
             # Пробуем резервный метод в случае ошибки
-            response = self._strip_json_markers(response)
             try:
+                response = self._strip_json_markers(response)
                 res = json.loads(response)
                 thought = res.get("thought")
                 speak = res.get("speak")

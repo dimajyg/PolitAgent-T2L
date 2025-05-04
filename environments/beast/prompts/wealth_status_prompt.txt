@@ -1,0 +1,4 @@
+Current wealth status:
+{wealth_status}
+Consider this information when making your decisions about who to form alliances with 
+and who to vote for. Players with higher wealth might be strategic targets. 

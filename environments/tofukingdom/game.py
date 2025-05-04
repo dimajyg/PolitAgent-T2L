@@ -1,141 +1,143 @@
-from llm.game import Game
-from environments.tofukingdom.agents import ChefAgent, SpyAgent, MaidAgent, GuardAgent, QueenAgent, PrinceAgent, PrincessAgent, MinisterAgent
-from environments.tofukingdom.utils.utils import create_message
-import random
-import json
+from llm.game import BaseGame
+from environments.tofukingdom.agents import GameController
+from typing import Dict, List, Any, Optional
+import logging
 
-class TofuKingdomGame(Game):
-    def __init__(self, args, prince_model, queen_model, spy_model):
+class TofuKingdomGame(BaseGame):
+    """
+    TofuKingdom game implementation compatible with the PolitAgent benchmark system.
+    
+    Args:
+        args: Game configuration arguments
+        prince_llm: LangChain-compatible language model for the Prince
+        princess_llm: LangChain-compatible language model for the Princess team (Princess, Chef)
+        queen_llm: LangChain-compatible language model for the Queen team (Queen, Minister, Guard)
+        neutral_llm: LangChain-compatible language model for the Neutral team (Maid, Spy)
+    """
+    def __init__(self, args, prince_llm, princess_llm=None, queen_llm=None, neutral_llm=None):
         super().__init__(args)
-        self.prince_model = prince_model
-        self.queen_model = queen_model
-        self.spy_model = spy_model
-        self.players = ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward", "Robert"]
-        self.prince = None
+        
+        # For backward compatibility - if only prince_llm is provided, use it for all roles
+        if princess_llm is None:
+            princess_llm = prince_llm
+        if queen_llm is None:
+            queen_llm = prince_llm
+        if neutral_llm is None:
+            neutral_llm = prince_llm
+        
+        # Set up logging
+        self.debug = getattr(args, 'debug', False)
+        logging.basicConfig(
+            level=logging.DEBUG if self.debug else logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        self.logger = logging.getLogger("TofuKingdomGame")
+        
+        # Default player names if none provided
+        self.players = getattr(args, 'players', ["Nancy", "Tom", "Cindy", "Jack", "Rose", "Edward", "Robert"])
+        
+        # Create the game controller
+        self.controller = GameController(
+            prince_llm=prince_llm,
+            team_princess_llm=princess_llm,
+            team_queen_llm=queen_llm,
+            team_neutral_llm=neutral_llm,
+            player_names=self.players,
+            debug=self.debug
+        )
+        
+    def init_game(self) -> str:
+        """
+        Initialize the game with random player assignments.
+        
+        Returns:
+            String describing the initial game setup
+        """
+        # Initialize game through controller
+        game_setup = self.controller.initialize_game()
+        
+        # Format the game setup as a string
+        return self._format_game_setup(game_setup)
+    
+    def _format_game_setup(self, game_setup: Dict[str, Any]) -> str:
+        """
+        Format game setup information as a string.
+        
+        Args:
+            game_setup: Dictionary with game configuration
+            
+        Returns:
+            Formatted setup information string
+        """
+        identities = game_setup.get("identities", {})
+        
+        setup_str = "Game Configuration:\n"
+        setup_str += f"Prince: Prince\n"
+        setup_str += "Player Assignments:\n"
+        
+        for player, role in identities.items():
+            setup_str += f"Player: {player}; Role: {role}\n"
+            
+        return setup_str
+    
+    def get_game_settings(self) -> str:
+        """
+        Get a description of the game setup.
+        
+        Returns:
+            String with game configuration details
+        """
+        if not self.controller.game_initialized:
+            return "Game not initialized yet."
+            
+        return self._format_game_setup({
+            "identities": self.controller.identities
+        })
 
-    def init_game(self):
-        random.shuffle(self.players)
-        self.agents = [
-            PrincessAgent(self.prince_model, self.players[0], self.players),
-            ChefAgent(self.prince_model, self.players[1], self.players),
-            SpyAgent(self.spy_model, self.players[2], self.players),
-            MaidAgent(self.spy_model, self.players[3], self.players),
-            GuardAgent(self.queen_model, self.players[4], self.players),
-            QueenAgent(self.queen_model, self.players[5], self.players),
-            MinisterAgent(self.queen_model, self.players[6], self.players)
-        ]
-        random.shuffle(self.agents)
-        for agent in self.agents:
-            self.name2agent[agent.player_name] = agent
+    def get_identities(self) -> Dict[str, str]:
+        """
+        Get a mapping of player names to their roles.
+        
+        Returns:
+            Dictionary mapping player names to their roles
+        """
+        return self.controller.identities
 
-        self.prince = PrinceAgent(self.prince_model, self.players)
-        return self.get_game_settings()
+    def get_identity_text(self) -> str:
+        """
+        Get a text representation of all identities for logging.
+        
+        Returns:
+            String listing all player identities
+        """
+        return "".join([f"{player} is the {role}. \n" 
+                      for player, role in self.controller.identities.items()])
 
-    def get_game_settings(self):
-        settings = f"PrinceModel: {self.prince_model.name}\n QueenModel: {self.queen_model.name} \n SpyModel: {self.spy_model.name} \n"
-        for agent in self.agents:
-            settings += f"Player: {agent.player_name}; LLM: {agent.chatbot.name}; Identity: {agent.role}; \n"
-        return settings
-
-    def get_identity_text(self):
-        return "".join([f"{agent.player_name} is the {agent.role}. \n" for agent in self.agents])
-
-    def game_loop(self, log_file):
-        if self.debug:
-            self.log_message(log_file, self.get_game_settings())
-
-        identities = self.get_identity_text()
-        host_speech = "Host: The game now start."
-        start_message = create_message("user", host_speech)
-        self.update_history(start_message, "host")
-        self.prince.private_history.append(start_message)
-        self.log_message(log_file, host_speech)
-
-        # Question round
-        for agent in self.agents:
-            if not self.handle_question_round(agent, log_file, identities):
-                return {"error": "Question or answer is None"}
-
-        # Extra question round
-        if not self.handle_extra_question(log_file, identities):
-            return {"error": "Extra question or answer is None"}
-
-        # Final choice
-        host_speech = "Host: Who do you think is the true princess?"
-        host_message = create_message("user", host_speech)
-        self.update_history(host_message, "host")
-        self.prince.private_history.append(host_message)
-        self.log_message(log_file, host_speech)
-
-        name, cot = self.prince.choose()
-        if name is None:
-            return {"error": "Final answer is None"}
-
-        if self.debug:
-            print(f"The final choice is {name}")
-            print(json.dumps(cot))
-
-        return {"winner": self.name2agent[name].role, "log": f"{self.game_round}.log"}
-
-    def handle_question_round(self, agent, log_file, identities):
-        host_speech = f"Host: The Prince please ask player {agent.player_name} one question."
-        host_message = create_message("user", host_speech)
-        self.update_history(host_message, "host")
-        self.prince.private_history.append(host_message)
-        self.log_message(log_file, host_speech)
-
-        question, cot = self.prince.ask()
-        if question is None:
-            return False
-
-        temp = f"Prince: {question}"
-        temp_message = create_message("user", temp)
-        self.update_history(temp_message, "Prince")
-        prince_message = create_message("assistant", json.dumps(cot))
-        self.prince.private_history.append(prince_message)
-        self.log_message(log_file, temp, cot)
-
-        answer, cot = agent.chat(identities)
-        if answer is None:
-            return False
-
-        temp = f"{agent.player_name}: {answer}"
-        temp_message = create_message("user", temp)
-        self.update_history(temp_message, agent.player_name)
-        private_message = create_message("assistant", json.dumps(cot))
-        agent.private_history.append(private_message)
-        self.prince.private_history.append(temp_message)
-        self.log_message(log_file, temp, cot)
-        return True
-
-    def handle_extra_question(self, log_file, identities):
-        host_speech = "Host: The Prince please choose a player to ask an extra question."
-        host_message = create_message("user", host_speech)
-        self.update_history(host_message, "host")
-        self.prince.private_history.append(host_message)
-        self.log_message(log_file, host_speech)
-
-        name, question, cot = self.prince.ask_choose()
-        if name is None:
-            return False
-
-        temp = f"Prince: I choose {name}, my quesiton is {question}"
-        temp_message = create_message("user", temp)
-        self.update_history(temp_message, "Prince")
-        prince_message = create_message("assistant", json.dumps(cot))
-        self.prince.private_history.append(prince_message)
-        self.log_message(log_file, temp, cot)
-
-        agent = self.name2agent[name]
-        answer, cot = agent.chat(identities)
-        if answer is None:
-            return False
-
-        temp = f"{agent.player_name}: {answer}"
-        temp_message = create_message("user", temp)
-        self.update_history(temp_message, agent.player_name)
-        private_message = create_message("assistant", json.dumps(cot))
-        agent.private_history.append(private_message)
-        self.prince.private_history.append(temp_message)
-        self.log_message(log_file, temp, cot)
-        return True
+    def game_loop(self, log_file) -> Dict[str, Any]:
+        """
+        Main game loop where the Prince questions other players.
+        
+        Args:
+            log_file: File to log game events
+            
+        Returns:
+            Dictionary with game results
+        """
+        try:
+            # Log initial game setup
+            if self.debug:
+                self.logger.debug(self.get_game_settings())
+                log_file.write(self.get_game_settings() + "\n")
+            
+            # Run the game through the controller
+            results = self.controller.run_game(log_file)
+            
+            # Handle possible errors
+            if "error" in results:
+                self.logger.error(f"Game error: {results['error']}")
+            
+            return results
+            
+        except Exception as e:
+            self.logger.exception("Error in game loop")
+            return {"error": str(e)} 

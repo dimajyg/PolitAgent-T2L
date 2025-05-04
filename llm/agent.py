@@ -1,7 +1,7 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from langchain_core.language_models.base import BaseLanguageModel
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.runnables import RunnableSequence
 
 class BaseAgent:
     """
@@ -15,7 +15,8 @@ class BaseAgent:
     Attributes:
         name (str): Имя агента.
         llm (BaseLanguageModel): Языковая модель.
-        chain (LLMChain): Цепочка LangChain для генерации действий.
+        prompt (ChatPromptTemplate): Шаблон для промпта.
+        chain (RunnableSequence): Цепочка LangChain для генерации действий.
     """
 
     def __init__(
@@ -27,7 +28,8 @@ class BaseAgent:
         self.name = name
         self.llm = llm
         self.prompt = ChatPromptTemplate.from_template(prompt_template)
-        self.chain = LLMChain(llm=self.llm, prompt=self.prompt)
+        # Используем современный pipeline вместо устаревшего LLMChain
+        self.chain = self.prompt | self.llm
 
     def act(self, observation: Dict[str, Any]) -> str:
         """
@@ -39,7 +41,21 @@ class BaseAgent:
         Returns:
             str: Сгенерированное действие.
         """
-        return self.chain.run(observation)
+        response = self.chain.invoke(observation)
+        # Извлекаем содержимое из ответа LangChain
+        return response.content if hasattr(response, 'content') else str(response)
+    
+    def chat(self, messages: List[Dict[str, str]]) -> str:
+        """
+        Отправить сообщения LLM и получить ответ.
+
+        Args:
+            messages (List[Dict[str, str]]): Сообщения в формате [{"role": "system", "content": "..."}, ...]
+
+        Returns:
+            str: Ответ от модели
+        """
+        return self.llm.invoke(messages).content
 
     def __repr__(self) -> str:
         return f"BaseAgent(name={self.name})"
