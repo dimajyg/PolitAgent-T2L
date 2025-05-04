@@ -6,11 +6,13 @@ PolitAgent Benchmark is a unified framework for evaluating and benchmarking Larg
 
 - [Project Structure](#project-structure)
 - [Installation](#installation)
+- [Supported Models](#supported-models)
 - [Supported Games](#supported-games)
 - [How It Works](#how-it-works)
 - [Running Benchmarks](#running-benchmarks)
 - [Analyzing Results](#analyzing-results)
 - [Adding a New Game](#adding-a-new-game)
+- [Adding a New Model](#adding-a-new-model)
 - [License](#license)
 
 ## Project Structure
@@ -27,6 +29,11 @@ PolitAgent-environments/
 │ ├── askguess/ # AskGuess game environment
 │ └── tofukingdom/ # TofuKingdom game environment
 ├── llm/ # Unified LLM interface and agent wrappers
+│ ├── models.py # Model registry and unified interface
+│ ├── base_chat.py # Base chat interface
+│ ├── openai_chat.py # OpenAI implementation
+│ ├── mistral_chat.py # Mistral implementation
+│ └── agent.py # Agent abstractions
 ├── configs/ # Experiment configuration files (YAML)
 ├── benchmark_results/ # Output directory for benchmark results
 └── README.md
@@ -65,6 +72,17 @@ This will create a virtual environment and install all required packages, includ
 poetry shell
 ```
 
+## Supported Models
+
+PolitAgent uses a flexible model registry system to support multiple LLM providers:
+
+- **OpenAI**: GPT-3.5-Turbo, GPT-4, etc.
+- **Mistral AI**: Mistral-tiny, Mistral-small, Mistral-medium
+- **vLLM**: Both direct and OpenAI-compatible endpoint support
+- **Custom Models**: Easily add new models by implementing the base interface
+
+Each model provider can be configured with default settings or customized per experiment.
+
 ## Supported Games
 
 ### 1. Spyfall
@@ -81,10 +99,11 @@ A three-role game (prince, queen, spy) with asymmetric strategies and hidden inf
 
 ## How It Works
 
-- **Benchmarking**: The framework runs multiple games in parallel, assigning LLMs to different roles and collecting results for statistical analysis.
-- **Extensibility**: New games can be added as Python packages with minimal changes to the core.
-- **LLM Abstraction**: Easily switch between OpenAI, Mistral, or other providers via configuration.
-- **Structured Output**: Prompts and outputs are designed for robust parsing and evaluation.
+- **Model Registry**: Plugins register with a decorator system, making it easy to add new model providers.
+- **Benchmarking**: The framework runs multiple games in parallel, assigning LLMs to different roles and collecting results.
+- **Model Abstraction**: A unified interface allows seamless switching between OpenAI, Mistral, vLLM, or custom providers.
+- **Structured Output**: Support for Pydantic schemas to ensure consistent model responses.
+- **Fallback Mechanisms**: Graceful handling of model failures with fallback strategies.
 
 ## Running Benchmarks
 
@@ -102,11 +121,12 @@ python -m core.benchmark --models openai,mistral --games spyfall,askguess --work
 
 #### Common Arguments
 
-- `--models`: Comma-separated list of models (e.g., `openai,mistral`)
+- `--models`: Comma-separated list of models (e.g., `openai,mistral,vllm`)
 - `--games`: Comma-separated list of games (`spyfall,beast,askguess,tofukingdom`)
 - `--workers`: Number of parallel processes
 - `--runs_per_game`: Number of runs per game/phrase
 - `--debug`: Enable verbose logging
+- `--max_phrases`: Limit number of phrases/labels to process (useful for testing)
 
 #### Game-Specific Arguments
 
@@ -125,8 +145,9 @@ python -m core.benchmark --models openai,mistral --games spyfall,askguess --work
 
 **TofuKingdom:**
 - `--prince_model_name`: Model for prince
+- `--princess_model_name`: Model for princess
 - `--queen_model_name`: Model for queen
-- `--spy_model_name`: Model for spy
+- `--neutral_model_name`: Model for neutral character
 
 ## Analyzing Results
 
@@ -144,6 +165,32 @@ python -m core.benchmark_visualizer --results_dir benchmark_results/20240529_123
 2. Implement a game class with `init_game` and `game_loop` methods.
 3. Register your game in the `GAME_ENVIRONMENTS` dictionary in `core/benchmark.py`.
 4. Add any custom metrics to `create_performance_dataframe` in `core/benchmark_visualizer.py`.
+
+## Adding a New Model
+
+1. Create a new module in the `llm/` directory.
+2. Implement a class that follows the interface pattern of existing models.
+3. Use the `@register_model` decorator to register your model:
+
+```python
+from llm.models import register_model
+
+@register_model("your_model_name")
+class YourModelClass:
+    def __init__(self, **kwargs):
+        # Initialize your model
+        pass
+        
+    def invoke(self, messages, **kwargs):
+        # Implement the invocation logic
+        pass
+        
+    def with_structured_output(self, schema, **kwargs):
+        # Implement structured output support
+        pass
+```
+
+The model will automatically be discovered and available in benchmarks.
 
 ## License
 

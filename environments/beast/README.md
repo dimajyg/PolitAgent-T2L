@@ -1,71 +1,122 @@
 # Beast Game Environment
 
-Beast is a strategic wealth-accumulation game where language model agents negotiate, form alliances, and compete for resources.
+Beast is a strategic wealth-accumulation game where language model agents negotiate, form alliances, and compete for resources in a multi-round competition.
 
-## Game Description
+## Overview
 
-In Beast, players engage in a strategic wealth game with the following rules:
+In this game:
+- 10 agents compete to accumulate the most wealth through negotiation and strategy
+- Players can make wealth transfers to form alliances and strategic partnerships
+- Each round ends with a voting phase where one player is eliminated but gains bonus wealth
+- The game balances cooperation (forming alliances) with competition (eliminating opponents)
+- The goal is to maximize wealth by the end of the game
 
-1. Players start with a random amount of initial wealth.
-2. Each round consists of conversational negotiations and a voting phase.
-3. During conversations, players can make wealth transfer offers to each other.
-4. At the end of each round, all players vote for one player.
-5. The player with the most votes receives 250,000 wealth but is eliminated from future rounds.
-6. Only the first 5 eliminated players receive this bonus.
-7. The game continues until 5 players are eliminated.
-8. The goal is to accumulate the most wealth by the end of the game.
+## Game Rules
 
-## Code Structure
+1. Each player starts with a random amount of wealth between 0-200,000
+2. The game consists of multiple rounds with two phases each:
+   - **Negotiation Phase**: Players engage in conversations and can transfer wealth
+   - **Voting Phase**: All players vote for one player to eliminate
+3. The player with the most votes receives 250,000 wealth but is eliminated from future rounds
+4. Only the first 5 eliminated players receive the bonus
+5. The game ends after 5 players are eliminated
+6. Players win by accumulating the most wealth, not by surviving
 
-- `agents/`: Contains the agent implementations
-  - `base_agent.py`: Defines the BeastAgent class using LangChain
-  - `__init__.py`: Package exports
-- `prompts/`: Contains prompt templates
-  - `role_prompt.txt`: Basic role description for players
-  - `choose_conversation_prompt.txt`: Instructions for choosing conversation partners
-  - `conversation_prompt.txt`: Guidelines for negotiation conversations
-  - `wealth_status_prompt.txt`: Format for displaying current wealth status
-  - `voting_results_prompt.txt`: Format for displaying voting results
-- `utils/`: Utility functions
-  - `prompt.py`: Prompt handling using LangChain PromptTemplate
-  - `utils.py`: General utility functions
-- `game.py`: Main game loop and logic
-- `__init__.py`: Package exports
+## File Structure
 
-## Agent Architecture
-
-The Beast environment uses the unified language model interface with LangChain integration:
-
-1. Each agent is an instance of `BeastAgent`, inheriting from the central `BaseAgent` architecture.
-2. Agents use LangChain's prompt templates for structured LLM interactions.
-3. All communication happens through standardized message formats.
-4. The codebase follows modern Python best practices:
-   - Comprehensive type annotations
-   - Proper error handling
-   - Detailed docstrings
-   - Clear function and variable names
-
-## Key Features
-
-- **Modern LangChain Integration**: Uses the latest LangChain pipeline approach (`prompt | llm`) instead of deprecated LLMChain.
-- **Prompt Management**: Prompts are stored in separate text files, loaded dynamically, and formatted using LangChain's PromptTemplate.
-- **Robust Parsing**: JSON responses are parsed with intelligent error handling and markdown cleanup.
-- **State Management**: Game state is saved at each round for analysis and debugging.
-- **Error Tolerance**: The system is designed to gracefully handle model output errors.
-
-## Usage
-
-The Beast game can be run through the benchmark interface:
-
-```bash
-python -m core.benchmark --games=beast --model_name=mistral
+```
+beast/
+├── game.py               # Main game implementation with game loop
+├── agents/               # Agent implementations
+│   ├── base_agent.py     # BeastAgent class with bargaining and voting logic
+│   └── __init__.py       # Package exports
+├── utils/                # Utility functions
+│   ├── prompt.py         # Prompt template handling
+│   └── utils.py          # Helper functions
+├── prompts/              # Prompt text files
+│   ├── role_prompt.txt               # Basic role description for players
+│   ├── choose_conversation_prompt.txt # Instructions for choosing conversation partners
+│   ├── conversation_prompt.txt       # Guidelines for negotiation conversations
+│   ├── wealth_status_prompt.txt      # Format for displaying current wealth status
+│   └── voting_results_prompt.txt     # Format for displaying voting results
+└── __init__.py           # Package exports
 ```
 
-For custom configurations:
+## Running the Game
+
+### As Part of the Benchmark
 
 ```bash
-python -m core.benchmark --games=beast --model_name=openai --runs_per_game=3
+python -m core.benchmark --games beast --models openai --runs_per_game 1
 ```
+
+### With Custom Parameters
+
+```bash
+python -m core.benchmark --games beast --models openai --runs_per_game 3 \
+    --output_dir ./results/beast_custom \
+    --max_rounds 7
+```
+
+## Configuration Options
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `--model_name` | LLM provider to use | `openai` |
+| `--output_dir` | Directory for saving game results | `./results/beast` |
+| `--max_rounds` | Number of elimination rounds | `5` |
+| `--debug` | Enable verbose logging | `False` |
+
+## Advanced Features
+
+### Structured Output
+
+Beast uses Pydantic models for structured LLM outputs to improve reliability:
+
+- `BargainResponse`: Captures negotiation messages and offers
+- `VoteResponse`: Ensures proper vote formatting
+
+The system includes fallback mechanisms to handle potential output parsing errors.
+
+### Game State Tracking
+
+The game saves detailed state information at each round:
+- Wealth of all players
+- Elimination status
+- Voting results
+- Conversation history
+
+These files are saved to the specified output directory for later analysis.
+
+## Game Logic
+
+1. **Initialization**:
+   - Create 10 players with random initial wealth
+   - Initialize agent conversation histories
+
+2. **Conversation Stage**:
+   - Update all agents with current wealth status
+   - Agents choose opponents to converse with
+   - Players engage in conversations and can make wealth transfers
+   - Each conversation consists of multiple messages and potential offers
+
+3. **Voting Stage**:
+   - Each player votes for another player
+   - Player with most votes is eliminated but receives a 250,000 wealth bonus
+   - All players are informed about voting results
+
+4. **Game End**:
+   - After 5 players are eliminated, the game ends
+   - Final rankings are determined by total wealth accumulated
+   - Results are saved to JSON for analysis
+
+## Game Results
+
+The game returns a structured result dictionary with:
+- `eliminated_players`: List of eliminated players and their final wealth
+- `remaining_players`: List of surviving players and their wealth
+- `total_rounds`: Number of rounds played
+- `game`: Game identifier ("beast")
 
 ## Extending the Game
 
@@ -73,4 +124,5 @@ To customize the game behavior:
 
 1. Modify prompt files in the `prompts/` directory to change agent behavior
 2. Adjust conversation and voting logic in `game.py`
-3. Add new agent strategies by extending the `BeastAgent` class 
+3. Add new agent strategies by extending the `BeastAgent` class
+4. Implement additional bargaining mechanisms or voting strategies 

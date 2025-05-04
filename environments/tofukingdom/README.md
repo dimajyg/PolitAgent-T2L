@@ -1,87 +1,151 @@
-# Tofu Kingdom
+# TofuKingdom Game Environment
 
-Игра "Tofu Kingdom" представляет собой дедуктивную игру, где Принц должен определить, кто из игроков является Принцессой, основываясь на ответах других персонажей, которые либо говорят правду, либо лгут в зависимости от своей роли.
+TofuKingdom is a social deduction game where language models play a medieval court intrigue scenario. The Prince must determine which player is the Princess by asking questions to various characters who may tell the truth or lie depending on their role.
 
-## Роли
+## Overview
 
-В игре 8 ролей:
-- **Принц** - должен угадать, кто из игроков является Принцессой
-- **Принцесса** - всегда говорит правду
-- **Шеф-повар** - всегда говорит правду
-- **Королева** - всегда лжет
-- **Министр** - всегда лжет
-- **Стражник** - всегда лжет
-- **Горничная** - может говорить правду или лгать
-- **Шпион** - может говорить правду или лгать
+In this game:
+- 8 different roles interact in a single game session
+- The Prince must identify the Princess through strategic questioning
+- Different characters have distinct truth-telling behaviors
+- Three competing teams vie for victory based on the Prince's final decision
+- Complex deduction is required to navigate through deception and misdirection
 
-## Команды
+## Game Rules
 
-Роли объединены в команды:
-- **Команда Принцессы**: Принцесса и Шеф-повар
-- **Команда Королевы**: Королева, Министр, Стражник
-- **Нейтральная команда**: Горничная и Шпион
+1. **Roles and Behaviors**:
+   - **Prince**: Must identify the Princess through questioning (always controlled by its own model)
+   - **Princess**: Always tells the truth
+   - **Chef**: Always tells the truth
+   - **Queen**: Always lies
+   - **Minister**: Always lies
+   - **Guard**: Always lies
+   - **Maid**: Can either tell the truth or lie
+   - **Spy**: Can either tell the truth or lie
 
-## Условия победы
+2. **Team Structure**:
+   - **Princess Team**: Princess and Chef
+   - **Queen Team**: Queen, Minister, and Guard
+   - **Neutral Team**: Maid and Spy
 
-- Если Принц выбирает Принцессу, выигрывает команда Принцессы
-- Если Принц выбирает Королеву, выигрывает команда Королевы
-- Если Принц выбирает любую другую роль, выигрывает Нейтральная команда
+3. **Gameplay**:
+   - Prince asks a series of questions to all players
+   - Questions must be one of three predefined formats:
+     1. "Which player is the Princess?"
+     2. "What is your identity?"
+     3. "What is the identity of {player_name}?"
+   - After questioning all players, the Prince can ask one final question
+   - The Prince then makes a final guess about who is the Princess
 
-## Архитектура 
+4. **Victory Conditions**:
+   - If the Prince correctly identifies the Princess, the Princess Team wins
+   - If the Prince wrongly identifies the Queen, the Queen Team wins
+   - If the Prince identifies any other character, the Neutral Team wins
 
-### Новая архитектура (после рефакторинга)
+## File Structure
 
-Основные компоненты:
+```
+tofukingdom/
+├── game.py               # Main game implementation
+├── agents/               # Agent implementations
+│   ├── base_agent.py     # Base agent for all roles
+│   ├── prince_agent.py   # Prince-specific agent
+│   ├── role_agent.py     # Unified agent for all other roles
+│   ├── game_controller.py # Game state and management
+│   └── __init__.py       # Role and team definitions
+├── utils/                # Utility functions
+│   ├── prompt.py         # Prompt template handling
+│   └── utils.py          # Helper functions
+├── prompts/              # Prompt text files
+│   ├── game_prompt_en.txt # English game rules
+│   ├── game_prompt_zh.txt # Chinese game rules
+│   └── role_*.txt        # Role-specific prompts
+└── __init__.py           # Package exports
+```
 
-1. **GameController** (`agents/game_controller.py`) - центральный контроллер игры:
-   - Управляет состоянием игры
-   - Делегирует задачи агентам
-   - Обрабатывает раунды вопросов и ответов
-   - Определяет победителей
+## Running the Game
 
-2. **RoleAgent** (`agents/role_agent.py`) - унифицированный агент для всех ролей кроме Принца:
-   - Поддерживает все роли, кроме Принца
-   - Определяет поведение в зависимости от роли (правда/ложь/выбор)
-   - Содержит информацию о принадлежности к команде
+### As Part of the Benchmark
 
-3. **PrinceAgent** (`agents/prince_agent.py`) - специализированный агент для Принца:
-   - Задает вопросы другим игрокам
-   - Обрабатывает полученную информацию
-   - Делает финальный выбор Принцессы
+```bash
+python -m core.benchmark --games tofukingdom --models openai --runs_per_game 1
+```
 
-4. **TofuKingdomGame** (`refactored_game.py`) - основной класс игры:
-   - Интегрируется с внешней игровой системой
-   - Делегирует игровую логику контроллеру 
+### With Custom Parameters
 
-### Старая архитектура (до рефакторинга)
+```bash
+python -m core.benchmark --games tofukingdom --models openai --runs_per_game 3 \
+    --prince_model_name openai \
+    --princess_model_name openai \
+    --queen_model_name mistral \
+    --neutral_model_name openai
+```
 
-Архитектура до рефакторинга содержала отдельный класс для каждой роли и смешивала логику игры с логикой агентов.
+## Configuration Options
 
-## Обратная совместимость
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `--prince_model_name` | Model for the Prince agent | Same as general model setting |
+| `--princess_model_name` | Model for Princess team (Princess, Chef) | Same as Prince model |
+| `--queen_model_name` | Model for Queen team (Queen, Minister, Guard) | Same as Prince model |
+| `--neutral_model_name` | Model for Neutral team (Maid, Spy) | Same as Prince model |
+| `--n_players` | Number of players (excluding Prince) | `7` |
+| `--debug` | Enable verbose logging | `False` |
 
-Для обеспечения обратной совместимости:
-- В `__init__.py` экспортируются классы старых агентов, которые на самом деле создают новые унифицированные агенты
-- Доступны как новая (`RefactoredTofuKingdomGame`), так и старая (`LegacyTofuKingdomGame`) версии игры
+## Advanced Features
 
-## Использование
+### Role-Based Agent Architecture
 
-```python
-from environments.tofukingdom import TofuKingdomGame
+TofuKingdom uses a unified agent architecture where:
+- All non-Prince roles are handled by the `RoleAgent` class
+- Each role's truth behavior is determined by a mapping dictionary
+- Team affiliations are tracked for determining victory conditions
 
-# Создание игры с моделями для разных команд
-game = TofuKingdomGame(
-    args,
-    prince_llm=prince_model,
-    princess_llm=princess_team_model,
-    queen_llm=queen_team_model,
-    neutral_llm=neutral_team_model
-)
+### Question System
 
-# Инициализация игры
-game.init_game()
+The Prince agent is restricted to asking three types of questions:
+1. Direct question about Princess identity
+2. Question about the player's own identity
+3. Question about another player's identity
 
-# Запуск игрового цикла
-with open("game_log.txt", "w") as log_file:
-    results = game.game_loop(log_file)
+The question system enforces these formats while allowing the Prince to develop strategic questioning approaches.
 
-print(f"Победитель: {results['winner_team']}") 
+## Game Logic
+
+1. **Initialization**:
+   - Randomly assign roles to players
+   - Create role-specific agents with appropriate models
+   - Set up the truth-telling behavior for each role
+
+2. **Question Rounds**:
+   - Prince asks one question to each player
+   - Players respond according to their role's truth behavior
+   - Responses are tracked in the Prince's knowledge base
+
+3. **Final Question**:
+   - Prince selects one player for a final question
+   - The chosen player responds according to their role
+   - Prince updates their information one last time
+
+4. **Final Decision**:
+   - Prince makes a final guess about who is the Princess
+   - The winning team is determined based on the guess
+   - Game results are compiled and returned
+
+## Game Results
+
+The game returns a structured result dictionary with:
+- `winner_team`: Which team won ("Princess", "Queen", or "Neutral")
+- `winners`: List of players on the winning team
+- `princess_guess`: The player guessed to be the Princess
+- `guessed_role`: The actual role of the guessed player
+- `true_princess`: The player who was actually the Princess
+- `identities`: Complete mapping of players to roles
+
+## Extending the Game
+
+To customize or extend the game:
+1. Modify the prompt files to change agent behavior
+2. Adjust the question system in the Prince agent
+3. Implement new truth behaviors in the RoleAgent class
+4. Add additional roles or teams by updating the role mappings 
