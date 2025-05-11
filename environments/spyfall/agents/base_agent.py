@@ -3,8 +3,8 @@ import json
 import random
 
 from llm.base_chat import BaseChat
-from llm.openai_chat import OpenAIChat
-from llm.mistral_chat import MistralChat
+from llm.openai_chat import OpenAIChatModel
+from llm.mistral_chat import MistralChatModel
 
 from environments.spyfall.utils.prompt import (
     game_prompt_en, game_prompt_template, 
@@ -18,7 +18,7 @@ class BaseAgent:
     Базовый агент Spyfall, использующий LangChain-совместимый чат.
 
     Args:
-        chatbot (BaseChat): Объект чата (OpenAIChat, MistralChat и др.).
+        chatbot (BaseChat): Объект чата (OpenAIChatModel, MistralChatModel и др.).
         player_name (str): Имя игрока.
         players (List[str]): Список всех игроков.
         phrase (str): Слово/фраза для роли.
@@ -66,8 +66,8 @@ class BaseAgent:
         # Формируем историю сообщений для LLM
         messages = [
             {"role": "system", "content": game_prompt_en},
-            {"role": "user", "content": context},
-            *self.private_history,
+            {"role": "user", "content": context + "\n\nGame history so far:"},
+            *self.private_history,  # Complete dialogue history of the game
         ]
         
         try:
@@ -101,6 +101,8 @@ class BaseAgent:
         try:
             # Create a message format and use the invoke method
             messages = [{"role": "user", "content": prompt}]
+            # Add private history to the messages
+            messages.extend(self.private_history)
             response = self.chatbot.invoke(messages).content
             
             # Используем структурированный парсер вместо ручного парсинга JSON
@@ -140,6 +142,8 @@ class BaseAgent:
         try:
             # Create a message format and use the invoke method
             messages = [{"role": "user", "content": prompt}]
+            # Add private history to the messages
+            messages.extend(self.private_history)
             response = self.chatbot.invoke(messages).content
             
             # Используем структурированный парсер вместо ручного парсинга JSON
