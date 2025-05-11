@@ -132,8 +132,8 @@ class BeastAgent(BaseAgent):
         messages = self.private_history.copy()
         messages.append(create_message("user", conv_prompt))
         
-        # Use structured output for bargaining
-        structured_llm = self.llm.with_structured_output(BargainResponse)
+        # Use structured output for bargaining with explicit method
+        structured_llm = self.llm.with_structured_output(BargainResponse, method="function_calling")
         
         try:
             # Call the model with structured output
@@ -256,8 +256,8 @@ class BeastAgent(BaseAgent):
 
         messages.append(create_message("user", context))
         
-        # Use structured output for voting
-        structured_llm = self.llm.with_structured_output(VoteResponse)
+        # Use structured output for voting with explicit method
+        structured_llm = self.llm.with_structured_output(VoteResponse, method="function_calling")
         
         try:
             # Call the model with structured output

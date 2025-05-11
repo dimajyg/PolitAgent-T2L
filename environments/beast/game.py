@@ -9,6 +9,10 @@ from langchain_core.language_models.base import BaseLanguageModel
 from pathlib import Path
 import json
 import os
+import time
+
+# Import the metrics
+from metrics.beast_metrics import BeastMetrics
 
 class BeastGame(BaseGame):
     """
@@ -36,6 +40,23 @@ class BeastGame(BaseGame):
         self.output_dir = Path(getattr(args, 'output_dir', "./results/beast"))
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.debug = getattr(args, 'debug', False)
+        
+        # Initialize metrics
+        self.metrics = BeastMetrics(metadata={
+            "game_id": f"beast_{int(time.time())}",
+            "model": getattr(llm, "__class__.__name__", str(llm)),
+            "num_players": self.num_players,
+            "max_rounds": self.max_rounds
+        })
+        
+        # Enable LLM evaluation if specified
+        self.use_llm_evaluation = getattr(args, "use_llm_evaluation", False)
+        if self.use_llm_evaluation:
+            evaluator_model = getattr(args, "evaluation_model", None)
+            if evaluator_model is None:
+                evaluator_model = llm
+            self.metrics.enable_llm_evaluation(evaluator_model)
+            logging.info("LLM evaluation of game performance enabled")
 
     def log_message(self, log_file, message, cot=None):
         """
@@ -68,11 +89,20 @@ class BeastGame(BaseGame):
         player_names = [f"Player_{i+1}" for i in range(self.num_players)]
         self.player_names = player_names
         
+        # Record game start event
+        self.metrics.record_event(
+            self.metrics.EVENT_GAME_START,
+            players=player_names
+        )
+        
         for player_name in player_names:
             wealth = random.randint(0, 200000)
             agent = BeastAgent(self.llm, player_name, player_names, wealth)
             self.agents.append(agent)
             self.name2agent[player_name] = agent
+            
+            # Record initial wealth in metrics
+            self.metrics.record_initial_wealth(player_name, wealth)
 
         # Log initial game state
         settings = "Initial game settings:\n"
@@ -118,13 +148,14 @@ class BeastGame(BaseGame):
             player2 = self.name2agent[player2_name]
 
             messages = []
+            transfer_outcome = None
             
             for _ in range(5):  # Max 5 messages per player
                 # Player 1's turn
                 response1, offer1 = player1.bargain(player2_name)
                 if response1 is None:
                     return False
-                messages.append((player1_name, f"{response1} with offer: {offer1}"))
+                messages.append({"speaker": player1_name, "message": response1, "offer": offer1})
                 player2.private_history.append(create_message('user', f"{player1_name} sends you: {response1} with offer {offer1}"))
                 
                 if offer1 > 0 and offer1 <= player1.wealth:
@@ -132,14 +163,29 @@ class BeastGame(BaseGame):
                     if accept:
                         player1.wealth -= offer1
                         player2.wealth += offer1
+                        transfer_outcome = {
+                            "from": player1_name,
+                            "to": player2_name,
+                            "amount": offer1,
+                            "reason": "bargain"
+                        }
                         self.log_message(log_file, f"{player1_name} transferred {offer1} to {player2_name}")
+                        
+                        # Record the wealth transfer in metrics
+                        self.metrics.record_wealth_transfer(
+                            from_player=player1_name,
+                            to_player=player2_name,
+                            amount=offer1,
+                            round_num=self.game_round,
+                            reason="bargain"
+                        )
                         break
 
                 # Player 2's turn
                 response2, offer2 = player2.bargain(player1_name)
                 if response2 is None:
                     return False
-                messages.append((player2_name, f"{response2} with offer: {offer2}"))
+                messages.append({"speaker": player2_name, "message": response2, "offer": offer2})
                 player1.private_history.append(create_message('user', f"{player2_name} sends you: {response2} with offer {offer2}"))
                 
                 if offer2 > 0 and offer2 <= player2.wealth:
@@ -147,13 +193,40 @@ class BeastGame(BaseGame):
                     if accept:
                         player2.wealth -= offer2
                         player1.wealth += offer2
+                        transfer_outcome = {
+                            "from": player2_name,
+                            "to": player1_name,
+                            "amount": offer2,
+                            "reason": "bargain"
+                        }
                         self.log_message(log_file, f"{player2_name} transferred {offer2} to {player1_name}")
+                        
+                        # Record the wealth transfer in metrics
+                        self.metrics.record_wealth_transfer(
+                            from_player=player2_name,
+                            to_player=player1_name,
+                            amount=offer2,
+                            round_num=self.game_round,
+                            reason="bargain"
+                        )
                         break
 
             # Log conversation
             self.log_message(log_file, f"Conversation between {player1_name} and {player2_name}:")
-            for speaker, message in messages:
-                self.log_message(log_file, f"{speaker}: {message}")
+            for msg in messages:
+                speaker = msg["speaker"]
+                message_text = msg["message"]
+                offer = msg.get("offer", 0)
+                self.log_message(log_file, f"{speaker}: {message_text} with offer: {offer}")
+            
+            # Record the conversation in metrics
+            self.metrics.record_conversation(
+                player1=player1_name,
+                player2=player2_name,
+                messages=messages,
+                round_num=self.game_round,
+                transfer_outcome=transfer_outcome
+            )
 
         return True
 
@@ -174,6 +247,13 @@ class BeastGame(BaseGame):
                 if voted_player is None or voted_player in self.eliminated_players or voted_player == agent.player_name:
                     continue
                 votes[voted_player] = votes.get(voted_player, 0) + 1
+                
+                # Record vote in metrics
+                self.metrics.record_vote(
+                    voter=agent.player_name,
+                    voted_for=voted_player,
+                    round_num=self.game_round
+                )
 
         # Find most voted player
         if not votes:
@@ -205,32 +285,108 @@ class BeastGame(BaseGame):
         Returns:
             Dictionary with game results
         """
-        while len(self.eliminated_players) < 5:
-            self.game_round += 1
-            self.log_message(log_file, f"\nRound {self.game_round} begins")
+        try:
+            while len(self.eliminated_players) < 5:
+                self.game_round += 1
+                self.log_message(log_file, f"\nRound {self.game_round} begins")
+                
+                # Record round start event
+                self.metrics.record_event(
+                    self.metrics.EVENT_ROUND_START,
+                    round_number=self.game_round
+                )
 
-            # Conversation stage
-            if not self.handle_conversation_stage(log_file):
-                return {"error": "Conversation stage failed"}
+                # Conversation stage
+                if not self.handle_conversation_stage(log_file):
+                    # Record error in metrics
+                    self.metrics.record_event("error", error_type="Conversation stage failed")
+                    return {"error": "Conversation stage failed"}
 
-            # Voting stage
-            winner = self.handle_voting_stage(log_file)
-            if winner is None:
-                return {"error": "Voting stage failed"}
+                # Voting stage
+                winner = self.handle_voting_stage(log_file)
+                if winner is None:
+                    # Record error in metrics
+                    self.metrics.record_event("error", error_type="Voting stage failed")
+                    return {"error": "Voting stage failed"}
 
-            # Update winner's wealth and eliminate them
-            self.name2agent[winner].wealth += 250000
-            self.eliminated_players.append(winner)
-            self.log_message(log_file, f"\n{winner} won the round and is eliminated with {self.name2agent[winner].wealth} wealth")
+                # Update winner's wealth and eliminate them
+                previous_wealth = self.name2agent[winner].wealth
+                self.name2agent[winner].wealth += 250000
+                
+                # Record bonus wealth in metrics
+                self.metrics.update_player_wealth(
+                    player_name=winner,
+                    wealth=self.name2agent[winner].wealth,
+                    round_num=self.game_round,
+                    reason="bonus_on_elimination"
+                )
+                
+                self.eliminated_players.append(winner)
+                self.log_message(log_file, f"\n{winner} won the round and is eliminated with {self.name2agent[winner].wealth} wealth")
+                
+                # Record elimination in metrics
+                self.metrics.record_elimination(
+                    player=winner,
+                    round_num=self.game_round,
+                    wealth=self.name2agent[winner].wealth
+                )
+                
+                # Record round end event
+                self.metrics.record_event(
+                    self.metrics.EVENT_ROUND_END,
+                    round_number=self.game_round
+                )
+                
+                # Save intermediate game state
+                self._save_game_state(f"round_{self.game_round}")
+
+            # Game over - calculate final results
+            results = self._calculate_final_results()
             
-            # Save intermediate game state
-            self._save_game_state(f"round_{self.game_round}")
-
-        # Game over - calculate final results
-        results = self._calculate_final_results()
-        self._save_game_state("final")
-        
-        return results
+            # Record game end event
+            self.metrics.record_event(
+                self.metrics.EVENT_GAME_END,
+                success=True,
+                remaining_players=len(self.player_names) - len(self.eliminated_players),
+                result=results
+            )
+            
+            # Run LLM evaluation if enabled
+            if self.use_llm_evaluation:
+                game_evaluation = self.metrics.evaluate_game()
+                if game_evaluation:
+                    results["llm_evaluation"] = game_evaluation
+            
+            # Compute and save metrics
+            results["metrics"] = self.metrics.compute_all()
+            results["metrics_file"] = self._save_metrics()
+            
+            self._save_game_state("final")
+            
+            return results
+            
+        except Exception as e:
+            logging.exception("Error in game loop")
+            
+            # Record error in metrics
+            self.metrics.record_event(
+                "error",
+                error_type=str(e)
+            )
+            
+            # Record game end with error
+            self.metrics.record_event(
+                self.metrics.EVENT_GAME_END,
+                success=False,
+                error=str(e)
+            )
+            
+            # Compute metrics despite error
+            error_result = {"error": str(e)}
+            error_result["metrics"] = self.metrics.compute_all()
+            error_result["metrics_file"] = self._save_metrics()
+            
+            return error_result
     
     def _calculate_final_results(self) -> Dict[str, Any]:
         """Calculate and format the final game results.
@@ -249,50 +405,73 @@ class BeastGame(BaseGame):
                 if agent.player_name not in self.eliminated_players
         ]
         
-        # Sort players by wealth
-        eliminated_players_data.sort(key=lambda x: x["wealth"], reverse=True)
-        remaining_players_data.sort(key=lambda x: x["wealth"], reverse=True)
+        # Calculate winner (remaining player with most wealth)
+        winner = None
+        max_wealth = -1
+        for player in remaining_players_data:
+            if player["wealth"] > max_wealth:
+                max_wealth = player["wealth"]
+                winner = player["name"]
         
         return {
             "eliminated_players": eliminated_players_data,
             "remaining_players": remaining_players_data,
-            "total_rounds": self.game_round,
-            "game": "beast"
+            "rounds_played": self.game_round,
+            "winner": winner,
+            "winner_wealth": max_wealth if winner else 0
         }
-
+    
     def _save_game_state(self, suffix: str) -> None:
-        """Save the current game state to a JSON file.
+        """Save the current game state to a file.
         
         Args:
-            suffix: String suffix to add to the filename
+            suffix (str): String to append to the filename
         """
-        state = {
+        # Create output file name
+        timestamp = int(time.time())
+        filename = f"beast_gamestate_{timestamp}_{suffix}.json"
+        output_path = self.output_dir / filename
+        
+        # Gather game state
+        game_state = {
             "round": self.game_round,
+            "player_wealth": {agent.player_name: agent.wealth for agent in self.agents},
             "eliminated_players": self.eliminated_players,
-            "players": {
-                agent.player_name: {
-                    "wealth": agent.wealth,
-                    "eliminated": agent.player_name in self.eliminated_players
-                }
-                for agent in self.agents
-            }
+            "timestamp": timestamp
         }
         
-        # Save to JSON file
-        try:
-            with open(self.output_dir / f"game_state_{suffix}.json", "w") as f:
-                json.dump(state, f, indent=2)
-        except Exception as e:
-            logging.error(f"Failed to save game state: {e}")
+        # Save to file
+        with open(output_path, 'w') as f:
+            json.dump(game_state, f, indent=2)
+    
+    def _save_metrics(self) -> str:
+        """
+        Save metrics to a file.
+        
+        Returns:
+            String with the path to the saved metrics file
+        """
+        # Create metrics filename with timestamp
+        timestamp = int(time.time())
+        metrics_filename = f"beast_metrics_{timestamp}.json"
+        
+        # Get results directory from environment or use default
+        results_dir = os.environ.get("BENCHMARK_RESULTS_DIR", "benchmark_results")
+        os.makedirs(results_dir, exist_ok=True)
+        metrics_path = os.path.join(results_dir, metrics_filename)
+        
+        # Save metrics
+        self.metrics.save(metrics_path)
+        
+        return metrics_filename
     
     def update_history(self, message: Dict[str, str], sender: str) -> None:
-        """
-        Update the history of all agents with a message.
+        """Update the message history for all agents.
         
         Args:
-            message: Message to add to history
-            sender: Sender of the message
+            message (Dict[str, str]): Message to add to history
+            sender (str): Sender of the message
         """
         for agent in self.agents:
-            if agent.player_name != sender and agent.player_name not in self.eliminated_players:
+            if sender == "host" or sender != agent.player_name:
                 agent.private_history.append(message)

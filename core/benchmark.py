@@ -156,6 +156,13 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
         if model_name not in models:
             models[model_name] = get_model(model_name)
     
+    # Инициализируем модель для LLM-оценки, если она задана
+    if args_dict.get("use_llm_evaluation", False) and args_dict.get("evaluation_model") is not None:
+        evaluation_model_name = args_dict.get("evaluation_model")
+        if evaluation_model_name not in models:
+            models["evaluation_model"] = get_model(evaluation_model_name)
+            args.evaluation_model = models["evaluation_model"]
+    
     # Импортируем нужный модуль и класс игры
     game_module = importlib.import_module(game_info["module"])
     game_class = getattr(game_module, game_info["class"])
@@ -172,6 +179,9 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
         log_dir = f"{log_dir}/{phrase_str}"
     
     os.makedirs(log_dir, exist_ok=True)
+    
+    # Устанавливаем переменную окружения с путем к директории результатов
+    os.environ["BENCHMARK_RESULTS_DIR"] = log_dir
     
     # Создаем экземпляр игры в зависимости от типа
     if game_type == "spyfall":
@@ -347,6 +357,12 @@ def main():
     # Добавляем параметр max_phrases для ограничения количества фраз
     parser.add_argument('--max_phrases', type=int, default=None,
                         help="Максимальное количество фраз для игр с фразами (spyfall, askguess)")
+    
+    # Параметры для LLM-оценки
+    parser.add_argument('--use_llm_evaluation', type=bool, default=False,
+                        help="Включить оценку игрового процесса с помощью LLM")
+    parser.add_argument('--evaluation_model', type=str, default=None,
+                        help="Модель для оценки игрового процесса. По умолчанию используется основная модель игры.")
     
     # Аргументы для Spyfall
     parser.add_argument('--label_path', type=str, default="environments/spyfall/prompts/labels.txt",

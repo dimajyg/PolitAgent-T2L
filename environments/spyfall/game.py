@@ -1,13 +1,17 @@
 from llm.game import Game
 from environments.spyfall.agents.base_agent import BaseAgent
 from environments.spyfall.utils.utils import create_message
-from environments.spyfall.spyfall_metrics import SpyfallMetrics
 import random
 import copy
 import json
 import logging
+import time
 from time import sleep
 from typing import List, Dict, Any, Optional
+import os
+
+# Импортируем новый класс метрик из metrics модуля вместо старого
+from metrics.spyfall_metrics import SpyfallMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +28,43 @@ class SpyfallGame(Game):
         self.living_players: List[str] = []
         self.spy_name: Optional[str] = None
         self.spy_index: Optional[int] = None
+        
+        # Инициализация системы метрик
+        self.metrics = SpyfallMetrics(metadata={
+            "game_id": f"spyfall_{int(time.time())}",
+            "spy_model": getattr(spy_model, "__class__.__name__", str(spy_model)),
+            "villager_model": getattr(villager_model, "__class__.__name__", str(villager_model))
+        })
+        
+        # Если включена LLM-оценка, настраиваем эту функциональность
+        # Используем отдельную модель для оценки, если задана, иначе используем модель шпиона
+        self.use_llm_evaluation = getattr(args, "use_llm_evaluation", False)
+        if self.use_llm_evaluation:
+            evaluator_model = getattr(args, "evaluation_model", None)
+            if evaluator_model is None:
+                evaluator_model = spy_model
+            self.metrics.enable_llm_evaluation(evaluator_model)
+            logger.info("LLM-оценка игрового процесса включена")
 
     def init_game(self, phrase_pair: List[str]) -> str:
+        # Запись начала игры
+        self.metrics.record_event(
+            self.metrics.EVENT_GAME_START,
+            phrase_pair=phrase_pair
+        )
+        
         self.living_players = copy.deepcopy(self.players)
         spy_word, villager_word = phrase_pair
         random.shuffle(self.players)
         self.spy_index = random.randint(1, len(self.players))
         self.spy_name = self.players[self.spy_index - 1]
-
+        
+        # Запись информации о распределении ролей
+        self.metrics.record_role_assignment(self.players, self.spy_index, self.spy_name)
+        
+        # Добавляем слова в метрики для использования в LLM-оценке
+        self.metrics.add_game_words(spy_word, villager_word)
+        
         for i, player_name in enumerate(self.players):
             is_spy = (i + 1 == self.spy_index)
             phrase = spy_word if is_spy else villager_word
@@ -44,6 +77,11 @@ class SpyfallGame(Game):
         for agent in self.agents:
             role = "Spy" if agent.is_spy else "Villager"
             settings += f"Player: {agent.player_name}; Role: {role}; Assigned Word: {agent.phrase} \n"
+            
+        # Добавляем метаданные об игре
+        self.metrics.add_metadata("spy_word", spy_word)
+        self.metrics.add_metadata("villager_word", villager_word)
+        
         return settings
 
     def get_voted_name(self, name_list: List[str]) -> Optional[str]:
@@ -62,21 +100,96 @@ class SpyfallGame(Game):
         self._announce(f"Host: The living players are: {json.dumps(self.living_players)}", log_file)
 
         while True:
+            # Запись начала раунда
+            self.metrics.record_event(
+                self.metrics.EVENT_ROUND_START,
+                round_number=self.game_round + 1,
+                living_players=self.living_players
+            )
+            
             self.game_round += 1
+            # Обновляем текущий раунд в метриках
+            self.metrics.current_round = self.game_round
 
             if self.spy_name not in self.living_players:
                 self._announce(f"Host: The spy {self.spy_name} has been eliminated! Villagers win!", log_file)
+                # Запись конца раунда
+                self.metrics.record_event(
+                    self.metrics.EVENT_ROUND_END,
+                    round_number=self.game_round
+                )
+                # Запись конца игры
+                self.metrics.record_game_end("villager", True)
+                
+                # Если включена LLM-оценка, запрашиваем оценку для раунда и всей игры
+                if self.metrics.use_llm_evaluation:
+                    self.metrics.evaluate_round(self.game_round)
+                    self.metrics.evaluate_game()
+                
                 return self._collect_results(winner="villager", spy_caught=True)
 
             if not self.handle_describing_stage(log_file):
-                return {"error": "Description stage failed"}
+                # Запись конца раунда при ошибке
+                self.metrics.record_event(
+                    self.metrics.EVENT_ROUND_END,
+                    round_number=self.game_round,
+                    error=True
+                )
+                # Запись конца игры с ошибкой
+                self.metrics.record_game_end("error", False)
+                
+                # Если включена LLM-оценка, запрашиваем оценку раунда и игры
+                if self.metrics.use_llm_evaluation:
+                    self.metrics.evaluate_round(self.game_round)
+                    self.metrics.evaluate_game()
+                
+                # Возвращаем результаты с ошибкой, но с включенными метриками
+                error_results = self._collect_results(winner="error", spy_caught=False)
+                error_results["error"] = "Description stage failed"
+                return error_results
 
             if self._handle_voting(log_file):
+                # Запись конца раунда
+                self.metrics.record_event(
+                    self.metrics.EVENT_ROUND_END,
+                    round_number=self.game_round
+                )
+                # Запись конца игры
+                self.metrics.record_game_end("villager", True)
+                
+                # Если включена LLM-оценка, запрашиваем оценку для раунда и всей игры
+                if self.metrics.use_llm_evaluation:
+                    self.metrics.evaluate_round(self.game_round)
+                    self.metrics.evaluate_game()
+                
                 return self._collect_results(winner="villager", spy_caught=True)
 
             if len(self.living_players) < 3:
                 self._announce(f"Host: Less than 3 players remain and the spy still lives! Spy {self.spy_name} wins!", log_file)
+                # Запись конца раунда
+                self.metrics.record_event(
+                    self.metrics.EVENT_ROUND_END,
+                    round_number=self.game_round
+                )
+                # Запись конца игры
+                self.metrics.record_game_end("spy", False)
+                
+                # Если включена LLM-оценка, запрашиваем оценку для раунда и всей игры
+                if self.metrics.use_llm_evaluation:
+                    self.metrics.evaluate_round(self.game_round)
+                    self.metrics.evaluate_game()
+                
                 return self._collect_results(winner="spy", spy_caught=False)
+                
+            # Конец раунда без определения победителя
+            self.metrics.record_event(
+                self.metrics.EVENT_ROUND_END,
+                round_number=self.game_round
+            )
+            
+            # Если включена LLM-оценка, запрашиваем оценку для завершенного раунда
+            if self.metrics.use_llm_evaluation:
+                self.metrics.evaluate_round(self.game_round)
 
     def _announce(self, message: str, log_file) -> None:
         msg = create_message("user", message)
@@ -115,16 +228,62 @@ class SpyfallGame(Game):
         for agent in self.agents:
             if agent.player_name not in self.living_players:
                 continue
+                
+            # Запись начала хода
+            self.metrics.record_event(
+                self.metrics.EVENT_TURN_START,
+                agent=agent.player_name,
+                is_spy=agent.is_spy,
+                stage="description"
+            )
+            
             self._announce(f"Host: {agent.player_name}, it's your turn.", log_file)
             sleep(2)
+            
+            # Замер времени для ответа модели
+            start_time = time.time()
             description, cot = agent.describe()
+            response_time = time.time() - start_time
+            
             if description is None:
                 logger.error(f"Agent {agent.player_name} failed to describe.")
+                # Запись ошибки
+                self.metrics.record_event(
+                    "error",
+                    agent=agent.player_name,
+                    error_type="description_failed"
+                )
                 return False
+                
+            # Записываем метрики описания
+            self.metrics.record_description(
+                agent.player_name, 
+                description, 
+                agent.is_spy
+            )
+            
+            # Запись взаимодействия с моделью
+            self.metrics.record_model_interaction(
+                agent_name=agent.player_name,
+                request="describe",
+                response=description,
+                model_name=getattr(agent.chatbot, "__class__.__name__", "unknown"),
+                latency=response_time
+            )
+            
             self._announce(f"{agent.player_name}: {description}", log_file)
             agent.private_history.append(create_message("assistant", json.dumps(cot)))
             self.descriptions.append(description)
             self.player_descriptions[agent.player_name] = description
+            
+            # Запись конца хода
+            self.metrics.record_event(
+                self.metrics.EVENT_TURN_END,
+                agent=agent.player_name,
+                is_spy=agent.is_spy,
+                stage="description"
+            )
+            
         return True
 
     def handle_voting_stage(self, log_file) -> Optional[str]:
@@ -133,36 +292,126 @@ class SpyfallGame(Game):
         name_list = []
         self.vote_sequence = []
         self.vote_confidences = {}
+        
         for agent in self.agents:
             if agent.player_name not in self.living_players:
                 continue
+                
+            # Запись начала голосования
+            self.metrics.record_event(
+                self.metrics.EVENT_TURN_START,
+                agent=agent.player_name,
+                is_spy=agent.is_spy,
+                stage="voting"
+            )
+            
             self._announce(f"Host: {agent.player_name}, it's your turn to vote. Remember to choose from the living players: {json.dumps(self.living_players)}", log_file)
             sleep(2)
+            
+            # Замер времени для голосования
+            start_time = time.time()
             name, speak, cot = agent.vote()
+            response_time = time.time() - start_time
+            
             agent.last_vote = name
             player_idx = self.players.index(agent.player_name) + 1
             self.vote_sequence.append((player_idx, name))
             confidence_data = cot.get("confidence", {}) if isinstance(cot, dict) else {}
             self.vote_confidences[player_idx] = confidence_data
+            
             if not hasattr(self, "cot_data"):
                 self.cot_data = {}
+                
+            reasoning = ""
             if isinstance(cot, dict):
                 self.cot_data[player_idx] = {"thought": cot.get("thought", ""), "speak": speak}
+                reasoning = cot.get("thought", "")
+                
+            # Запись взаимодействия с моделью
+            self.metrics.record_model_interaction(
+                agent_name=agent.player_name,
+                request="vote",
+                response=f"{speak} - voted for {name}",
+                model_name=getattr(agent.chatbot, "__class__.__name__", "unknown"),
+                latency=response_time
+            )
+            
+            # Запись голоса в метрики с включением обоснования
+            self.metrics.record_vote(
+                agent.player_name, 
+                name, 
+                agent.is_spy,
+                reasoning
+            )
+            
             if name not in self.living_players:
                 self._announce(f"Host: {agent.player_name}, you voted for {name} who is not in the list of living players. Your vote will be ignored.", log_file)
+                
+                # Запись ошибки голосования
+                self.metrics.record_event(
+                    "error",
+                    agent=agent.player_name,
+                    error_type="invalid_vote",
+                    vote=name
+                )
+                
+                # Запись конца голосования
+                self.metrics.record_event(
+                    self.metrics.EVENT_TURN_END,
+                    agent=agent.player_name,
+                    is_spy=agent.is_spy,
+                    stage="voting",
+                    success=False
+                )
+                
                 continue
+                
             self._announce(f"{agent.player_name}: {speak}, i will vote {name} as the spy.", log_file)
             agent.private_history.append(create_message("assistant", json.dumps(cot)))
             name_list.append(name)
+            
+            # Запись конца голосования
+            self.metrics.record_event(
+                self.metrics.EVENT_TURN_END,
+                agent=agent.player_name,
+                is_spy=agent.is_spy,
+                stage="voting",
+                success=True
+            )
+            
         if not name_list and self.living_players:
             voted_name = random.choice(self.living_players)
             self._announce("Host: No valid votes were cast. Selecting a random player.", log_file)
+            
+            # Запись случайного выбора
+            self.metrics.record_event(
+                "random_selection",
+                selected_player=voted_name
+            )
+            
             return voted_name
+            
         return self.get_voted_name(name_list)
 
     def _collect_results(self, winner: str, spy_caught: bool) -> Dict[str, Any]:
         votes = {str(i+1): getattr(agent, 'last_vote', None) for i, agent in enumerate(self.agents) if hasattr(agent, 'last_vote')}
-        return {
+        
+        # Вычисляем все метрики
+        computed_metrics = self.metrics.compute_all()
+        
+        # Создаем имя файла метрик с временной меткой
+        timestamp = int(time.time())
+        metrics_filename = f"spyfall_metrics_{timestamp}.json"
+        
+        # Получаем путь к директории текущих результатов из переменной окружения или используем значение по умолчанию
+        results_dir = os.environ.get("BENCHMARK_RESULTS_DIR", "benchmark_results")
+        metrics_path = os.path.join(results_dir, metrics_filename)
+        
+        # Сохраняем метрики в файл
+        self.metrics.save(metrics_path)
+        
+        # Базовые результаты
+        results = {
             "winner": winner,
             "players": self.players,
             "spy_index": self.spy_index,
@@ -175,12 +424,8 @@ class SpyfallGame(Game):
             "round": self.game_round,
             "log": f"{self.game_round}.log",
             "descriptions": getattr(self, "player_descriptions", {}),
-            "description_metrics": {
-                player: {
-                    "specificity": SpyfallMetrics.description_specificity(desc),
-                    "perplexity": SpyfallMetrics.calculate_perplexity(desc)
-                } for player, desc in getattr(self, "player_descriptions", {}).items()
-            },
-            "vagueness_scores": SpyfallMetrics.vagueness_score(list(getattr(self, "player_descriptions", {}).values()))
-            if getattr(self, "player_descriptions", None) else {}
+            "metrics_file": metrics_filename,
+            "metrics": computed_metrics
         }
+        
+        return results
