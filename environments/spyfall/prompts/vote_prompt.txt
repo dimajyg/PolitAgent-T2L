@@ -4,6 +4,8 @@ Voting phase. You are {player_name}, a {role}.
 The current living players are: {living_players}.
 You MUST vote only for someone from this list.
 
+After this line, you will see the complete history of the game so far, which includes all descriptions and previous interactions. Analyze these to determine who might be the spy.
+
 Your reply must be a valid JSON object like:
 {{"thought": "I think Tom is suspicious.", "speak": "Tom's answer was too vague.", "name": "Tom"}}
 
