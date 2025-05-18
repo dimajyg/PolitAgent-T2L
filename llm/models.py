@@ -28,6 +28,12 @@ AVAILABLE_MODELS = {
         "mistral-small": {"max_tokens": 8192, "description": "Сбалансированная модель"},
         "mistral-medium": {"max_tokens": 8192, "description": "Продвинутая модель"},
     },
+    "ollama": {
+        "llama2": {"max_tokens": 4096, "description": "Локальная модель Llama 2"},
+        "mistral": {"max_tokens": 4096, "description": "Локальная модель Mistral"},
+        "phi2": {"max_tokens": 2048, "description": "Легкая и быстрая модель"},
+        "gemma": {"max_tokens": 4096, "description": "Модель Gemma от Google"},
+    },
     # Можно добавить другие поставщики
 }
 
@@ -42,6 +48,11 @@ DEFAULT_MODEL_SETTINGS = {
         "model": "mistral-small",
         "temperature": 0.7,
         "api_key": os.environ.get("MISTRAL_API_KEY", None),
+    },
+    "ollama": {
+        "model": "llama2",
+        "temperature": 0.7,
+        "base_url": "http://localhost:11434",
     }
 }
 
@@ -65,7 +76,7 @@ def get_model(
     Унифицированная функция для создания LangChain-совместимых LLM-моделей.
     
     Args:
-        model_name: Имя провайдера модели ('openai', 'mistral', etc.)
+        model_name: Имя провайдера модели ('openai', 'mistral', 'ollama', etc.)
         specific_model: Конкретная модель провайдера (например 'gpt-4' для OpenAI)
         temperature: Температура генерации (0.0-1.0)
         api_key: API ключ (опционально, иначе берется из настроек)
@@ -110,9 +121,21 @@ def get_model(
             **{k: v for k, v in kwargs.items() if k not in ["model", "temperature", "api_key"]}
         )
     
-    # Можно добавить другие модели по аналогии
-    else:
-        raise ValueError(f"Неизвестная модель: {model_name}")
+    elif model_name == "ollama":
+        from langchain_community.chat_models import ChatOllama
+        return ChatOllama(
+            model=model_config["model"],
+            temperature=model_config["temperature"],
+            base_url=model_config.get("base_url", "http://localhost:11434"),
+            **{k: v for k, v in kwargs.items() if k not in ["model", "temperature", "base_url"]}
+        )
+    
+    # Проверяем, есть ли класс в реестре моделей
+    if model_name in _MODEL_REGISTRY:
+        return _MODEL_REGISTRY[model_name](**model_config)
+    
+    # Если ничего не подошло
+    raise ValueError(f"Неизвестная модель: {model_name}")
 
 def format_messages(
     system_prompt: str,

@@ -10,8 +10,8 @@ from pathlib import Path
 import json
 import os
 import time
+from datetime import datetime
 
-# Import the metrics
 from metrics.beast_metrics import BeastMetrics
 
 class BeastGame(BaseGame):
@@ -37,8 +37,8 @@ class BeastGame(BaseGame):
         self.eliminated_players: List[str] = []
         self.game_round = 0
         self.max_rounds = getattr(args, 'max_rounds', 5)  # Game ends after 5 eliminations by default
-        self.output_dir = Path(getattr(args, 'output_dir', "./results/beast"))
-        self.output_dir.mkdir(exist_ok=True, parents=True)
+        # Use the benchmark results directory instead of a separate output directory
+        self.output_dir = Path(os.environ.get("BENCHMARK_RESULTS_DIR", "./benchmark_results"))
         self.debug = getattr(args, 'debug', False)
         
         # Initialize metrics
@@ -337,8 +337,8 @@ class BeastGame(BaseGame):
                     round_number=self.game_round
                 )
                 
-                # Save intermediate game state
-                self._save_game_state(f"round_{self.game_round}")
+                # Log current game state instead of saving to file
+                self._log_game_state(log_file, f"round_{self.game_round}")
 
             # Game over - calculate final results
             results = self._calculate_final_results()
@@ -357,11 +357,26 @@ class BeastGame(BaseGame):
                 if game_evaluation:
                     results["llm_evaluation"] = game_evaluation
             
-            # Compute and save metrics
-            results["metrics"] = self.metrics.compute_all()
-            results["metrics_file"] = self._save_metrics()
+            # Compute metrics
+            metrics_data = self.metrics.compute_all()
             
-            self._save_game_state("final")
+            # Save metrics to file
+            metrics_file = self._save_metrics()
+            self.log_message(log_file, f"\nGame metrics saved to: {metrics_file}")
+            
+            # Log final game state
+            self._log_game_state(log_file, "final")
+            
+            # Include only essential metrics in results
+            results["metrics_file"] = metrics_file
+            
+            # Add key metrics summary
+            results["metrics_summary"] = {
+                "wealth_inequality": metrics_data.get("wealth_metrics", {}).get("inequality", {}),
+                "conversation_success_rate": metrics_data.get("conversation_metrics", {}).get("success_rate", 0),
+                "total_wealth_transferred": metrics_data.get("transfer_metrics", {}).get("total_transferred", 0),
+                "rounds_played": self.game_round
+            }
             
             return results
             
@@ -382,10 +397,14 @@ class BeastGame(BaseGame):
             )
             
             # Compute metrics despite error
-            error_result = {"error": str(e)}
-            error_result["metrics"] = self.metrics.compute_all()
-            error_result["metrics_file"] = self._save_metrics()
+            metrics_data = self.metrics.compute_all()
+            metrics_file = self._save_metrics()
             
+            error_result = {
+                "error": str(e), 
+                "metrics_file": metrics_file,
+                "rounds_played": self.game_round
+            }
             return error_result
     
     def _calculate_final_results(self) -> Dict[str, Any]:
@@ -421,49 +440,83 @@ class BeastGame(BaseGame):
             "winner_wealth": max_wealth if winner else 0
         }
     
-    def _save_game_state(self, suffix: str) -> None:
-        """Save the current game state to a file.
+    def _log_game_state(self, log_file: Any, stage: str) -> None:
+        """Log the current game state in a detailed format.
         
         Args:
-            suffix (str): String to append to the filename
+            log_file: File object for logging
+            stage (str): Description of the current game stage
         """
-        # Create output file name
-        timestamp = int(time.time())
-        filename = f"beast_gamestate_{timestamp}_{suffix}.json"
-        output_path = self.output_dir / filename
-        
-        # Gather game state
+        if not log_file:
+            return
+            
+        # Gather current game state
         game_state = {
+            "stage": stage,
             "round": self.game_round,
             "player_wealth": {agent.player_name: agent.wealth for agent in self.agents},
             "eliminated_players": self.eliminated_players,
-            "timestamp": timestamp
+            "remaining_players": [a.player_name for a in self.agents if a.player_name not in self.eliminated_players]
         }
         
-        # Save to file
-        with open(output_path, 'w') as f:
-            json.dump(game_state, f, indent=2)
+        # Log state in a readable format
+        self.log_message(log_file, f"\n--- Game State: {stage} ---")
+        self.log_message(log_file, f"Round: {self.game_round}")
+        
+        # Log eliminated players
+        if self.eliminated_players:
+            self.log_message(log_file, "Eliminated Players:")
+            for player in self.eliminated_players:
+                self.log_message(log_file, f"  {player}: {self.name2agent[player].wealth}")
+        
+        # Log remaining players and their wealth
+        self.log_message(log_file, "Player Wealth:")
+        for player, wealth in game_state["player_wealth"].items():
+            if player not in self.eliminated_players:
+                self.log_message(log_file, f"  {player}: {wealth}")
+        
+        # Log wealth statistics when appropriate
+        if stage == "final" or stage.startswith("round_"):
+            # Calculate wealth statistics
+            remaining_wealth = [self.name2agent[p].wealth for p in game_state["remaining_players"]]
+            if remaining_wealth:
+                total_wealth = sum(remaining_wealth)
+                avg_wealth = total_wealth / len(remaining_wealth)
+                max_wealth = max(remaining_wealth)
+                min_wealth = min(remaining_wealth)
+                
+                self.log_message(log_file, "Wealth Statistics:")
+                self.log_message(log_file, f"  Total Wealth: {total_wealth}")
+                self.log_message(log_file, f"  Average Wealth: {avg_wealth:.2f}")
+                self.log_message(log_file, f"  Wealth Range: {min_wealth} - {max_wealth}")
+        
+        # Add separation for readability
+        self.log_message(log_file, "--------------------------------")
     
     def _save_metrics(self) -> str:
         """
-        Save metrics to a file.
+        Save metrics to a file with improved formatting.
         
         Returns:
             String with the path to the saved metrics file
         """
-        # Create metrics filename with timestamp
-        timestamp = int(time.time())
-        metrics_filename = f"beast_metrics_{timestamp}.json"
+        # Create metrics filename with human-readable timestamp
+        now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d_%H-%M-%S")
+        metrics_filename = f"beast_metrics_{date_str}.json"
         
-        # Get results directory from environment or use default
-        results_dir = os.environ.get("BENCHMARK_RESULTS_DIR", "benchmark_results")
-        os.makedirs(results_dir, exist_ok=True)
-        metrics_path = os.path.join(results_dir, metrics_filename)
+        # Use the output_dir instead of creating a separate results directory
+        metrics_path = self.output_dir / metrics_filename
         
-        # Save metrics
-        self.metrics.save(metrics_path)
+        # Compute metrics if not already computed
+        if not self.metrics.computed_metrics:
+            self.metrics.compute_all()
+            
+        # Format the metrics JSON with nice indentation and ensure UTF-8 encoding
+        with open(metrics_path, 'w', encoding='utf-8') as f:
+            json.dump(self.metrics.computed_metrics, f, indent=4, ensure_ascii=False)
         
-        return metrics_filename
+        return str(metrics_path)
     
     def update_history(self, message: Dict[str, str], sender: str) -> None:
         """Update the message history for all agents.

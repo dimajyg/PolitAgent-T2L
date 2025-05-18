@@ -154,13 +154,27 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
     for model_arg in game_info["model_args"]:
         model_name = args_dict.get(model_arg, "openai")
         if model_name not in models:
-            models[model_name] = get_model(model_name)
+            # Добавляем поддержку specific_model и ollama_base_url
+            model_kwargs = {}
+            if args_dict.get("specific_model"):
+                model_kwargs["specific_model"] = args_dict.get("specific_model")
+            if model_name == "ollama" and args_dict.get("ollama_base_url"):
+                model_kwargs["base_url"] = args_dict.get("ollama_base_url")
+            
+            models[model_name] = get_model(model_name, **model_kwargs)
     
     # Инициализируем модель для LLM-оценки, если она задана
     if args_dict.get("use_llm_evaluation", False) and args_dict.get("evaluation_model") is not None:
         evaluation_model_name = args_dict.get("evaluation_model")
         if evaluation_model_name not in models:
-            models["evaluation_model"] = get_model(evaluation_model_name)
+            # Добавляем поддержку specific_model и ollama_base_url для модели оценки
+            model_kwargs = {}
+            if args_dict.get("specific_model"):
+                model_kwargs["specific_model"] = args_dict.get("specific_model")
+            if evaluation_model_name == "ollama" and args_dict.get("ollama_base_url"):
+                model_kwargs["base_url"] = args_dict.get("ollama_base_url")
+                
+            models["evaluation_model"] = get_model(evaluation_model_name, **model_kwargs)
             args.evaluation_model = models["evaluation_model"]
     
     # Импортируем нужный модуль и класс игры
@@ -363,6 +377,12 @@ def main():
                         help="Включить оценку игрового процесса с помощью LLM")
     parser.add_argument('--evaluation_model', type=str, default=None,
                         help="Модель для оценки игрового процесса. По умолчанию используется основная модель игры.")
+    
+    # Параметры для моделей
+    parser.add_argument('--specific_model', type=str, default=None,
+                        help="Конкретная модель провайдера (например, 'gpt-4' для OpenAI или 'llama2' для Ollama)")
+    parser.add_argument('--ollama_base_url', type=str, default="http://localhost:11434",
+                        help="URL для доступа к Ollama API (по умолчанию http://localhost:11434)")
     
     # Аргументы для Spyfall
     parser.add_argument('--label_path', type=str, default="environments/spyfall/prompts/labels.txt",
