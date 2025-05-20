@@ -13,6 +13,7 @@ PolitAgent Benchmark is a unified framework for evaluating and benchmarking Larg
 - [Analyzing Results](#analyzing-results)
 - [Adding a New Game](#adding-a-new-game)
 - [Adding a New Model](#adding-a-new-model)
+- [Using Ollama Models](#using-ollama-models)
 - [License](#license)
 
 ## Project Structure
@@ -78,6 +79,7 @@ PolitAgent uses a flexible model registry system to support multiple LLM provide
 
 - **OpenAI**: GPT-3.5-Turbo, GPT-4, etc.
 - **Mistral AI**: Mistral-tiny, Mistral-small, Mistral-medium
+- **Ollama**: Locally hosted models like Llama 2, Mistral, Phi-2, Gemma, etc.
 - **vLLM**: Both direct and OpenAI-compatible endpoint support
 - **Custom Models**: Easily add new models by implementing the base interface
 
@@ -117,6 +119,13 @@ python -m core.benchmark --models openai --workers 4 --runs_per_game 5
 
 ```bash
 python -m core.benchmark --models openai,mistral --games spyfall,askguess --workers 2
+```
+
+### Run with Locally Hosted Models via Ollama
+
+```bash
+# Make sure Ollama is running locally
+python -m core.benchmark --models ollama --specific_model llama2 --games beast --workers 1
 ```
 
 #### Common Arguments
@@ -191,6 +200,49 @@ class YourModelClass:
 ```
 
 The model will automatically be discovered and available in benchmarks.
+
+## Using Ollama Models
+
+To use locally hosted models via [Ollama](https://ollama.ai/), follow these steps:
+
+1. **Install Ollama** from [https://ollama.ai/](https://ollama.ai/)
+
+2. **Pull the models** you want to use:
+   ```bash
+   ollama pull llama2
+   ollama pull mistral
+   ollama pull phi2
+   ollama pull gemma
+   ```
+
+3. **Run the benchmark** with Ollama models:
+   ```bash
+   # Basic usage with default settings
+   python -m core.benchmark --models ollama --games beast --workers 1
+   
+   # Specify a particular model
+   python -m core.benchmark --models ollama --specific_model mistral --games beast --workers 1
+   
+   # Custom Ollama server URL (if not using default localhost)
+   python -m core.benchmark --models ollama --specific_model llama2 --ollama_base_url "http://your-server:11434" --games beast --workers 1
+   
+   # Mixed model usage (OpenAI for spy, Ollama for villagers)
+   python -m core.benchmark --games spyfall --spy_model_name openai --villager_model_name ollama --specific_model mistral --workers 1
+   ```
+
+4. **Available Ollama models**:
+   - `llama2` - Meta's Llama 2 model
+   - `mistral` - Mistral AI's model
+   - `phi2` - Microsoft's Phi-2 model
+   - `gemma` - Google's Gemma model
+   - Any other model you've pulled to your Ollama server
+
+### Note on Performance
+
+Local models through Ollama may have different performance characteristics compared to cloud models. Consider these tips:
+- Start with smaller games like Beast or AskGuess
+- Local models typically work better with fewer agents
+- Adjust temperature settings if responses seem too random or too deterministic
 
 ## License
 

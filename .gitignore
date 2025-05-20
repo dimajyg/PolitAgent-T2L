@@ -5,3 +5,4 @@ venv/
 .vscode/
 .env
 benchmark_results/
+.DS_Store

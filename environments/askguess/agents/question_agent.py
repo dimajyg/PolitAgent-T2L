@@ -46,6 +46,25 @@ class QuestionAgent(BaseAgent):
         messages = self.private_history.copy()
         response = super().chat(messages)
         return response
+    
+    def play_with_thinking(self) -> Tuple[str, Optional[str]]:
+        """
+        Генерирует ход агента на основе текущей истории и возвращает
+        как сам вопрос, так и рассуждения (thinking) агента.
+        
+        Returns:
+            Tuple[str, Optional[str]]: Вопрос и рассуждения (если доступны)
+        """
+        messages = self.private_history.copy()
+        # Добавляем инструкцию для генерации рассуждений
+        thinking_message = create_message("user", "Before you ask your next question, please think through your strategy. What information do you already have? What would be most useful to know next? (This thinking won't be shared with the answerer)")
+        thinking_response = super().chat(messages + [thinking_message])
+        
+        # Теперь генерируем сам вопрос
+        question_message = create_message("user", "Now, ask your next question based on your reasoning.")
+        question_response = super().chat(messages + [thinking_message, create_message("assistant", thinking_response), question_message])
+        
+        return question_response, thinking_response
         
     def update_history(self, message: Dict[str, str]) -> None:
         """Добавляет сообщение в историю диалога."""

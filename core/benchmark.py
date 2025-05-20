@@ -83,6 +83,17 @@ GAME_ENVIRONMENTS = {
         },
         "requires_phrases": False,
         "model_args": ["prince_model_name", "princess_model_name", "queen_model_name", "neutral_model_name"]
+    },
+    "diplomacy": {
+        "module": "environments.diplomacy_game.game",
+        "class": "DiplomacyGame",
+        "default_args": {
+            "max_rounds": 5,
+            "debug": True,
+            "diplomacy_model_name": "openai"
+        },
+        "requires_phrases": False,
+        "model_args": ["diplomacy_model_name"]
     }
 }
 
@@ -154,7 +165,28 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
     for model_arg in game_info["model_args"]:
         model_name = args_dict.get(model_arg, "openai")
         if model_name not in models:
-            models[model_name] = get_model(model_name)
+            # Добавляем поддержку specific_model и ollama_base_url
+            model_kwargs = {}
+            if args_dict.get("specific_model"):
+                model_kwargs["specific_model"] = args_dict.get("specific_model")
+            if model_name == "ollama" and args_dict.get("ollama_base_url"):
+                model_kwargs["base_url"] = args_dict.get("ollama_base_url")
+            
+            models[model_name] = get_model(model_name, **model_kwargs)
+    
+    # Инициализируем модель для LLM-оценки, если она задана
+    if args_dict.get("use_llm_evaluation", False) and args_dict.get("evaluation_model") is not None:
+        evaluation_model_name = args_dict.get("evaluation_model")
+        if evaluation_model_name not in models:
+            # Добавляем поддержку specific_model и ollama_base_url для модели оценки
+            model_kwargs = {}
+            if args_dict.get("specific_model"):
+                model_kwargs["specific_model"] = args_dict.get("specific_model")
+            if evaluation_model_name == "ollama" and args_dict.get("ollama_base_url"):
+                model_kwargs["base_url"] = args_dict.get("ollama_base_url")
+                
+            models["evaluation_model"] = get_model(evaluation_model_name, **model_kwargs)
+            args.evaluation_model = models["evaluation_model"]
     
     # Импортируем нужный модуль и класс игры
     game_module = importlib.import_module(game_info["module"])
@@ -172,6 +204,9 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
         log_dir = f"{log_dir}/{phrase_str}"
     
     os.makedirs(log_dir, exist_ok=True)
+    
+    # Устанавливаем переменную окружения с путем к директории результатов
+    os.environ["BENCHMARK_RESULTS_DIR"] = log_dir
     
     # Создаем экземпляр игры в зависимости от типа
     if game_type == "spyfall":
@@ -198,6 +233,10 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
         neutral_model = models.get(args.neutral_model_name, prince_model)
         
         game = game_class(args, prince_model, princess_model, queen_model, neutral_model)
+        settings = game.init_game()
+    
+    elif game_type == "diplomacy":
+        game = game_class(args, models[args.diplomacy_model_name])
         settings = game.init_game()
     
     else:
@@ -348,6 +387,18 @@ def main():
     parser.add_argument('--max_phrases', type=int, default=None,
                         help="Максимальное количество фраз для игр с фразами (spyfall, askguess)")
     
+    # Параметры для LLM-оценки
+    parser.add_argument('--use_llm_evaluation', type=bool, default=False,
+                        help="Включить оценку игрового процесса с помощью LLM")
+    parser.add_argument('--evaluation_model', type=str, default=None,
+                        help="Модель для оценки игрового процесса. По умолчанию используется основная модель игры.")
+    
+    # Параметры для моделей
+    parser.add_argument('--specific_model', type=str, default=None,
+                        help="Конкретная модель провайдера (например, 'gpt-4' для OpenAI или 'llama2' для Ollama)")
+    parser.add_argument('--ollama_base_url', type=str, default="http://localhost:11434",
+                        help="URL для доступа к Ollama API (по умолчанию http://localhost:11434)")
+    
     # Аргументы для Spyfall
     parser.add_argument('--label_path', type=str, default="environments/spyfall/prompts/labels.txt",
                         help="Путь к файлу с фразами для Spyfall")
@@ -383,6 +434,10 @@ def main():
                         help="Модель для королевы в TofuKingdom")
     parser.add_argument('--neutral_model_name', type=str, default=None,
                         help="Модель для нейтрального персонажа в TofuKingdom")
+    
+    # Аргументы для Diplomacy
+    parser.add_argument('--diplomacy_model_name', type=str, default=None,
+                        help="Модель для игроков в Diplomacy")
     
     args = parser.parse_args()
     

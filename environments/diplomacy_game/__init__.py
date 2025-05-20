@@ -1,0 +1,1 @@
+# Diplomacy game module for PolitAgent-environments 

@@ -1,17 +1,14 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 import json
 import random
 
 from llm.base_chat import BaseChat
-from llm.openai_chat import OpenAIChatModel
-from llm.mistral_chat import MistralChatModel
 
 from environments.spyfall.utils.prompt import (
     game_prompt_en, game_prompt_template, 
     describe_prompt_template, vote_prompt_template,
     describe_parser, vote_parser
 )
-from environments.spyfall.utils.utils import create_message
 
 class BaseAgent:
     """
