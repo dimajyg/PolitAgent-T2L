@@ -14,11 +14,11 @@ import seaborn as sns
 from typing import Dict, List, Any, Optional, Tuple
 import logging
 
-# Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
 logger = logging.getLogger("benchmark_visualizer")
 
 def load_results(results_dir: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:

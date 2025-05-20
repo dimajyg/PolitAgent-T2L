@@ -83,6 +83,17 @@ GAME_ENVIRONMENTS = {
         },
         "requires_phrases": False,
         "model_args": ["prince_model_name", "princess_model_name", "queen_model_name", "neutral_model_name"]
+    },
+    "diplomacy": {
+        "module": "environments.diplomacy_game.game",
+        "class": "DiplomacyGame",
+        "default_args": {
+            "max_rounds": 5,
+            "debug": True,
+            "diplomacy_model_name": "openai"
+        },
+        "requires_phrases": False,
+        "model_args": ["diplomacy_model_name"]
     }
 }
 
@@ -222,6 +233,10 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
         neutral_model = models.get(args.neutral_model_name, prince_model)
         
         game = game_class(args, prince_model, princess_model, queen_model, neutral_model)
+        settings = game.init_game()
+    
+    elif game_type == "diplomacy":
+        game = game_class(args, models[args.diplomacy_model_name])
         settings = game.init_game()
     
     else:
@@ -419,6 +434,10 @@ def main():
                         help="Модель для королевы в TofuKingdom")
     parser.add_argument('--neutral_model_name', type=str, default=None,
                         help="Модель для нейтрального персонажа в TofuKingdom")
+    
+    # Аргументы для Diplomacy
+    parser.add_argument('--diplomacy_model_name', type=str, default=None,
+                        help="Модель для игроков в Diplomacy")
     
     args = parser.parse_args()
     
