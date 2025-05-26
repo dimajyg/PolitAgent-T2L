@@ -2,9 +2,28 @@
 Module for loading and providing prompts for the Beast game using LangChain PromptTemplate.
 """
 from pathlib import Path
-from langchain_core.prompts import PromptTemplate
 from typing import List, Dict, Any, Optional, Union
 import logging
+
+# Import compatibility layer for different LangChain versions
+try:
+    from langchain_core.prompts import PromptTemplate
+except ImportError:
+    try:
+        from langchain.prompts import PromptTemplate
+    except ImportError:
+        # Fallback for very old versions or when langchain is not available
+        class PromptTemplate:
+            def __init__(self, template: str, input_variables: List[str] = None):
+                self.template = template
+                self.input_variables = input_variables or []
+            
+            @classmethod
+            def from_template(cls, template: str):
+                return cls(template)
+            
+            def format(self, **kwargs):
+                return self.template.format(**kwargs)
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 
@@ -71,6 +90,16 @@ def get_voting_results_template() -> PromptTemplate:
     """
     template = load_prompt("voting_results_prompt.txt")
     return PromptTemplate.from_template(template)
+
+def get_voting_results_prompt_template() -> PromptTemplate:
+    """Returns PromptTemplate for displaying voting results.
+    
+    Alias for get_voting_results_template() for compatibility.
+
+    Returns:
+        PromptTemplate: The voting results prompt template.
+    """
+    return get_voting_results_template()
 
 def format_prompt(prompt_template: Union[PromptTemplate, str], **kwargs: Any) -> str:
     """Format a prompt template with the given variables.

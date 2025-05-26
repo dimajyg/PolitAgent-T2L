@@ -1,7 +1,13 @@
 from typing import Any, Dict, Optional, List
-from langchain_core.language_models.base import BaseLanguageModel
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableSequence
+try:
+    from langchain_core.language_models.base import BaseLanguageModel
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.runnables import RunnableSequence
+except ImportError:
+    # Fallback for older langchain versions
+    from langchain.llms.base import BaseLLM as BaseLanguageModel
+    from langchain.prompts import ChatPromptTemplate
+    RunnableSequence = None
 
 class BaseAgent:
     """
@@ -27,9 +33,16 @@ class BaseAgent:
     ) -> None:
         self.name = name
         self.llm = llm
-        self.prompt = ChatPromptTemplate.from_template(prompt_template)
-        # Используем современный pipeline вместо устаревшего LLMChain
-        self.chain = self.prompt | self.llm
+        try:
+            self.prompt = ChatPromptTemplate.from_template(prompt_template)
+            # Используем современный pipeline если доступен
+            if RunnableSequence:
+                self.chain = self.prompt | self.llm
+            else:
+                self.chain = None
+        except:
+            self.prompt = None
+            self.chain = None
 
     def act(self, observation: Dict[str, Any]) -> str:
         """
@@ -41,9 +54,16 @@ class BaseAgent:
         Returns:
             str: Сгенерированное действие.
         """
-        response = self.chain.invoke(observation)
-        # Извлекаем содержимое из ответа LangChain
-        return response.content if hasattr(response, 'content') else str(response)
+        try:
+            if self.chain:
+                response = self.chain.invoke(observation)
+                # Извлекаем содержимое из ответа LangChain
+                return response.content if hasattr(response, 'content') else str(response)
+            else:
+                # Fallback для старых версий
+                return self.llm(str(observation))
+        except Exception as e:
+            return f"Error generating action: {e}"
     
     def chat(self, messages: List[Dict[str, str]]) -> str:
         """
@@ -55,7 +75,16 @@ class BaseAgent:
         Returns:
             str: Ответ от модели
         """
-        return self.llm.invoke(messages).content
+        try:
+            if hasattr(self.llm, 'invoke'):
+                result = self.llm.invoke(messages)
+                return result.content if hasattr(result, 'content') else str(result)
+            else:
+                # Fallback для старых версий
+                combined = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+                return self.llm(combined)
+        except Exception as e:
+            return f"Error in chat: {e}"
 
     def __repr__(self) -> str:
         return f"BaseAgent(name={self.name})"

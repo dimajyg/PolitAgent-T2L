@@ -1,0 +1,54 @@
+🤝 SECRET ALLIANCE FORMATION - Round {current_round}
+
+⏰ TIME LIMIT: 5 minutes - Build your power base quickly!
+
+🎯 ALLIANCE STRATEGY:
+Form alliances of up to 3 players total. These are SECRET agreements that give you:
+- Shared information about other players
+- Coordinated voting power
+- Protection from elimination
+- Resource sharing opportunities
+
+🔒 ALLIANCE TYPES:
+1. **True Alliance**: Genuine partnership for mutual survival
+   - Share real information and resources
+   - Coordinate votes and strategies
+   - High trust, high reward
+
+2. **False Alliance**: Deceptive partnership to gain information
+   - Pretend loyalty while planning betrayal
+   - Extract information from targets
+   - Use them as shields while you advance
+
+3. **Temporary Alliance**: Short-term cooperation
+   - Alliance only for this round
+   - Mutual protection against immediate threats
+   - No long-term commitments
+
+🧠 STRATEGIC CONSIDERATIONS:
+
+**Who to Ally With:**
+- Players with complementary skills/roles
+- Those who trust you but aren't too powerful
+- Vulnerable players who need protection
+- Information sources you want to access
+
+**Who to Avoid:**
+- Players who are likely to betray you
+- Overly powerful players who don't need you
+- Those who know too much about your secrets
+- Players targeting your allies
+
+⚠️ BETRAYAL MECHANICS:
+- Betraying an alliance severely damages trust ratings
+- But well-timed betrayals can eliminate major threats
+- Consider the timing: early betrayal vs. late-game necessity
+- Betrayal is most effective when it's unexpected
+
+🎭 DECEPTION TACTICS:
+- Promise protection while planning their elimination
+- Share false information as "trust building"
+- Appear vulnerable to make them feel secure
+- Create fake emergencies to test their loyalty
+
+Remember: Every alliance is temporary. The question is not IF you'll betray them, but WHEN. 

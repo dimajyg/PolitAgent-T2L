@@ -45,7 +45,7 @@ GAME_ENVIRONMENTS = {
         "module": "environments.beast.game",
         "class": "BeastGame",
         "default_args": {
-            "max_rounds": 5,
+            "max_rounds": 8,
             "debug": True,
             "output_dir": "./results/beast",
             "model_name": "openai"
