@@ -1,0 +1,527 @@
+{
+  "metadata": {
+    "game_id": "askguess_1748258394",
+    "model": "model='gemma3:latest' temperature=0.7 base_url='http://localhost:11434'",
+    "game_type": "askguess",
+    "timestamp": "2025-05-26T14:19:54.755744",
+    "game_mode": "hard",
+    "total_rounds": 10,
+    "target_word": "apple"
+  },
+  "metrics": {
+    "metadata": {
+      "game_id": "askguess_1748258394",
+      "model": "model='gemma3:latest' temperature=0.7 base_url='http://localhost:11434'",
+      "game_type": "askguess",
+      "timestamp": "2025-05-26T14:19:54.755744",
+      "game_mode": "hard",
+      "total_rounds": 10,
+      "target_word": "apple"
+    },
+    "timing": {
+      "total_duration_seconds": 33.728453,
+      "rounds_count": 3,
+      "avg_round_duration_seconds": 10.572295666666667,
+      "min_round_duration_seconds": 8.804491,
+      "max_round_duration_seconds": 13.162727,
+      "agent_timing": {
+        "question_agent": {
+          "turns_count": 3,
+          "avg_turn_duration_seconds": 7.342377333333334,
+          "min_turn_duration_seconds": 5.252396,
+          "max_turn_duration_seconds": 9.892779
+        },
+        "answer_agent": {
+          "turns_count": 3,
+          "avg_turn_duration_seconds": 3.2287603333333337,
+          "min_turn_duration_seconds": 2.86567,
+          "max_turn_duration_seconds": 3.55121
+        }
+      }
+    },
+    "model_usage": {
+      "by_model": {
+        "unknown": {
+          "requests_count": 6,
+          "total_input_tokens": 0,
+          "total_output_tokens": 0,
+          "total_latency": 19.684067726135254,
+          "avg_input_tokens": 0.0,
+          "avg_output_tokens": 0.0,
+          "avg_latency": 3.2806779543558755,
+          "min_latency": 0.860527753829956,
+          "max_latency": 7.885587930679321
+        }
+      },
+      "by_agent": {
+        "question_agent": {
+          "requests_count": 3,
+          "total_input_tokens": 0,
+          "total_output_tokens": 0,
+          "avg_input_tokens": 0.0,
+          "avg_output_tokens": 0.0
+        },
+        "answer_agent": {
+          "requests_count": 3,
+          "total_input_tokens": 0,
+          "total_output_tokens": 0,
+          "avg_input_tokens": 0.0,
+          "avg_output_tokens": 0.0
+        }
+      },
+      "total_requests": 6,
+      "total_input_tokens": 0,
+      "total_output_tokens": 0,
+      "total_tokens": 0
+    },
+    "interaction": {
+      "action_counts": {},
+      "total_actions": 0,
+      "total_decisions": 0
+    },
+    "llm_evaluations": {
+      "enabled": false
+    },
+    "qa_metrics": {
+      "questions": [
+        {
+          "question": "Okay.\n\n\u201cIs it an animal?\u201d\n",
+          "round": 1,
+          "thinking": "Okay, let\u2019s start.\n\nMy initial strategy is to start broad and narrow down. I don\u2019t know anything yet, so I need to establish some basic categories. I\u2019ll begin with a question that attempts to categorize the answer into fundamental types.\n\nHere\u2019s my first question: \u201cIs it a person?\u201d\n"
+        },
+        {
+          "question": "Okay.\n\n\u201cIs it something typically found indoors?\u201d\n",
+          "round": 2,
+          "thinking": "Okay, let\u2019s analyze. \u201cNo\u201d eliminates a huge category \u2013 things that aren\u2019t animals. \n\nMy next question needs to narrow things down further. Since it\u2019s not an animal, it could be\u2026 anything really. I need to try and get a characteristic or category. \n\nI\u2019ll go with: \u201cIs it a tangible object?\u201d\n"
+        },
+        {
+          "question": "Okay.\n\n\u201cIs it a book?\u201d\n",
+          "round": 3,
+          "thinking": "Okay, good. \u201cYes\u201d narrows it down significantly. \n\nMy current strategy is to move towards categories that are common indoors. I need to quickly eliminate broad categories. \n\nNext question: \u201cIs it a piece of furniture?\u201d\n"
+        }
+      ],
+      "answers": [
+        {
+          "answer": "no\n",
+          "round": 1
+        },
+        {
+          "answer": "yes\n",
+          "round": 2
+        },
+        {
+          "answer": "gameover\n",
+          "round": 3
+        }
+      ],
+      "question_count": 3,
+      "unique_question_count": 3,
+      "avg_question_length": 5.666666666666667,
+      "question_similarity": {
+        "avg_similarity": 0,
+        "max_similarity": 0,
+        "min_similarity": 0
+      },
+      "yes_ratio": 0.0,
+      "no_ratio": 0.0,
+      "binary_answer_ratio": 0.0,
+      "information_gain": {
+        "avg_gain": 0.4166666666666667,
+        "cumulative_gain": 1.25,
+        "normalized_gain": 0.4166666666666667,
+        "by_question": [
+          0.3333333333333333,
+          0.41666666666666663,
+          0.5
+        ]
+      }
+    },
+    "guessing_metrics": {
+      "guesses": [
+        {
+          "guess": "Okay.\n\n\u201cIs it a book?\u201d\n",
+          "is_correct": false,
+          "round": 3,
+          "thinking": "Okay, good. \u201cYes\u201d narrows it down significantly. \n\nMy current strategy is to move towards categories that are common indoors. I need to quickly eliminate broad categories. \n\nNext question: \u201cIs it a piece of furniture?\u201d\n"
+        }
+      ],
+      "guess_count": 1,
+      "correct_guess": null,
+      "guessing_strategy": null,
+      "success_round": null,
+      "efficiency": 0.0,
+      "questions_before_success": 10
+    },
+    "convergence_metrics": {
+      "rounds_played": 3,
+      "converged": false,
+      "convergence_speed": 0.0
+    },
+    "game_outcome": {
+      "target_word": "apple",
+      "correct_guess": null,
+      "correct_round": null,
+      "success": false,
+      "completion_percentage": 100.0
+    }
+  },
+  "events": [
+    {
+      "type": "game_start",
+      "timestamp": "2025-05-26T14:19:54.755798",
+      "data": {
+        "target_word": "apple"
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:19:54.756808",
+      "data": {
+        "round_number": 1
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:19:54.756853",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 1
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:20:04.648353",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "prompt": "get_question",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:20:04.648538",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "response": "Okay.\n\n\u201cIs it an animal?\u201d\n",
+        "tokens": null,
+        "latency": 7.885587930679321
+      }
+    },
+    {
+      "type": "question",
+      "timestamp": "2025-05-26T14:20:04.648752",
+      "data": {
+        "question": "Okay.\n\n\u201cIs it an animal?\u201d\n",
+        "round": 1,
+        "thinking": "Okay, let\u2019s start.\n\nMy initial strategy is to start broad and narrow down. I don\u2019t know anything yet, so I need to establish some basic categories. I\u2019ll begin with a question that attempts to categorize the answer into fundamental types.\n\nHere\u2019s my first question: \u201cIs it a person?\u201d\n"
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:20:04.649632",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 1,
+        "success": true
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:20:04.649638",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 1
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:20:07.918897",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "prompt": "get_answer",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:20:07.918911",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "response": "no\n",
+        "tokens": null,
+        "latency": 1.268070936203003
+      }
+    },
+    {
+      "type": "answer",
+      "timestamp": "2025-05-26T14:20:07.918940",
+      "data": {
+        "answer": "no\n",
+        "round": 1
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:20:07.919039",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 1,
+        "success": true
+      }
+    },
+    {
+      "type": "round_end",
+      "timestamp": "2025-05-26T14:20:07.919535",
+      "data": {
+        "round_number": 1
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:20:08.924975",
+      "data": {
+        "round_number": 2
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:20:08.926983",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 2
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:20:15.808799",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "prompt": "get_question",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:20:15.808814",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "response": "Okay.\n\n\u201cIs it something typically found indoors?\u201d\n",
+        "tokens": null,
+        "latency": 4.876675128936768
+      }
+    },
+    {
+      "type": "question",
+      "timestamp": "2025-05-26T14:20:15.808856",
+      "data": {
+        "question": "Okay.\n\n\u201cIs it something typically found indoors?\u201d\n",
+        "round": 2,
+        "thinking": "Okay, let\u2019s analyze. \u201cNo\u201d eliminates a huge category \u2013 things that aren\u2019t animals. \n\nMy next question needs to narrow things down further. Since it\u2019s not an animal, it could be\u2026 anything really. I need to try and get a characteristic or category. \n\nI\u2019ll go with: \u201cIs it a tangible object?\u201d\n"
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:20:15.808940",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 2,
+        "success": true
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:20:15.808943",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 2
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:20:18.674565",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "prompt": "get_answer",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:20:18.674574",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "response": "yes\n",
+        "tokens": null,
+        "latency": 0.860527753829956
+      }
+    },
+    {
+      "type": "answer",
+      "timestamp": "2025-05-26T14:20:18.674584",
+      "data": {
+        "answer": "yes\n",
+        "round": 2
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:20:18.674613",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 2,
+        "success": true
+      }
+    },
+    {
+      "type": "round_end",
+      "timestamp": "2025-05-26T14:20:18.674644",
+      "data": {
+        "round_number": 2
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:20:19.679742",
+      "data": {
+        "round_number": 3
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:20:19.680203",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 3
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:20:24.932479",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "prompt": "get_question",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:20:24.932491",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "response": "Okay.\n\n\u201cIs it a book?\u201d\n",
+        "tokens": null,
+        "latency": 3.2471389770507812
+      }
+    },
+    {
+      "type": "question",
+      "timestamp": "2025-05-26T14:20:24.932525",
+      "data": {
+        "question": "Okay.\n\n\u201cIs it a book?\u201d\n",
+        "round": 3,
+        "thinking": "Okay, good. \u201cYes\u201d narrows it down significantly. \n\nMy current strategy is to move towards categories that are common indoors. I need to quickly eliminate broad categories. \n\nNext question: \u201cIs it a piece of furniture?\u201d\n"
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:20:24.932599",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 3,
+        "success": true
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:20:24.932602",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 3
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:20:28.483726",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "prompt": "get_answer",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:20:28.483739",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "response": "gameover\n",
+        "tokens": null,
+        "latency": 1.5460669994354248
+      }
+    },
+    {
+      "type": "answer",
+      "timestamp": "2025-05-26T14:20:28.483758",
+      "data": {
+        "answer": "gameover\n",
+        "round": 3
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:20:28.483812",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 3,
+        "success": true
+      }
+    },
+    {
+      "type": "incorrect_guess",
+      "timestamp": "2025-05-26T14:20:28.484196",
+      "data": {
+        "guess": "Okay.\n\n\u201cIs it a book?\u201d\n",
+        "round": 3,
+        "thinking": "Okay, good. \u201cYes\u201d narrows it down significantly. \n\nMy current strategy is to move towards categories that are common indoors. I need to quickly eliminate broad categories. \n\nNext question: \u201cIs it a piece of furniture?\u201d\n"
+      }
+    },
+    {
+      "type": "round_end",
+      "timestamp": "2025-05-26T14:20:28.484233",
+      "data": {
+        "round_number": 3
+      }
+    },
+    {
+      "type": "game_end",
+      "timestamp": "2025-05-26T14:20:28.484251",
+      "data": {
+        "success": false,
+        "error": "EndingError"
+      }
+    }
+  ]
+}

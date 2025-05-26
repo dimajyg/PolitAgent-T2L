@@ -21,16 +21,16 @@ def get_negotiation_prompt(current_power_name: str, opponent_power_name: str, ga
 Current game state:
 {game_state_str}
 
-Consider your current position, your goals, and the game state when crafting your negotiation messages. 
-Think about what you want to achieve from this negotiation with {opponent_power_name}.
+IMPORTANT: Keep your negotiation message BRIEF and CONCISE (maximum 3-4 sentences). 
+Focus on one clear proposal or response.
 
-You may want to:
+Consider your goals and be strategic. You may:
 - Propose alliances or non-aggression pacts
 - Request or offer support for specific moves
-- Share (true or false) intelligence about other powers
+- Share intelligence about other powers
 - Make territorial agreements
 
-Be strategic in your communication. Remember that in Diplomacy, words are as important as actions."""
+Be direct and to the point. This is a benchmark environment - avoid long diplomatic speeches."""
 
 def get_strategic_decision_prompt(power_name: str, game_state: Dict[str, Any]) -> str:
     """Prompt to guide strategic decision making."""
@@ -54,22 +54,27 @@ Formulate a coherent strategy that will guide your specific orders."""
 
 def get_orders_prompt(power_name: str, game_state: Dict[str, Any]) -> str:
     """Prompt to guide order generation."""
-    game_state_str = json.dumps(game_state, indent=2)
     
     return f"""You are {power_name}.
 
-Current game state:
-{game_state_str}
+CRITICAL: You can ONLY give orders to YOUR OWN units. Do not try to command units belonging to other powers.
 
-Based on your strategic assessment and the current game state, formulate your orders for this turn.
+Based on your strategic assessment, formulate orders for THIS TURN only.
 
-Your orders should:
-- Advance your strategic goals
-- Be valid according to Diplomacy rules
-- Take into account expected moves from allies and enemies
+IMPORTANT RULES:
+1. You MUST give exactly ONE order per unit you control
+2. Use the EXACT unit format shown in "YOUR UNITS" section 
+3. Return ONLY a valid JSON array of strings
+4. Each order must start with the exact unit designation (like "A VIE" or "F LON")
 
-IMPORTANT: You MUST provide your final orders as a JSON list of strings, using proper Diplomacy notation.
-For example: ["A VIE-TYR", "F TRI-ADR", "A BUD S A VIE-TYR"]"""
+Common order types:
+- Hold: "A VIE" (Army in Vienna holds position)
+- Movement: "A VIE-TYR" (Army from Vienna to Tyrolia) 
+- Support: "A BUD S A VIE-TYR" (Army in Budapest supports Vienna to Tyrolia)
+
+REQUIRED FORMAT EXAMPLE: ["A VIE", "F TRI", "A BUD"]
+
+Your orders:"""
 
 def get_game_status_prompt(game_state: Dict[str, Any]) -> str:
     """Prompt to summarize the game status for all players."""

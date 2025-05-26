@@ -1,0 +1,335 @@
+{
+  "metadata": {
+    "game_id": "tofukingdom_1748258631",
+    "prince_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+    "princess_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+    "queen_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+    "neutral_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+    "game_type": "tofukingdom",
+    "timestamp": "2025-05-26T14:23:51.625011",
+    "player_roles": {
+      "Jack": "Minister",
+      "Tom": "Spy",
+      "Edward": "Chef",
+      "Nancy": "Princess",
+      "Robert": "Queen",
+      "Rose": "Maid",
+      "Cindy": "Guard"
+    },
+    "team_assignments": {
+      "Jack": "Queen",
+      "Tom": "Neutral",
+      "Edward": "Princess",
+      "Nancy": "Princess",
+      "Robert": "Queen",
+      "Rose": "Neutral",
+      "Cindy": "Queen"
+    }
+  },
+  "metrics": {
+    "metadata": {
+      "game_id": "tofukingdom_1748258631",
+      "prince_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+      "princess_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+      "queen_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+      "neutral_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+      "game_type": "tofukingdom",
+      "timestamp": "2025-05-26T14:23:51.625011",
+      "player_roles": {
+        "Jack": "Minister",
+        "Tom": "Spy",
+        "Edward": "Chef",
+        "Nancy": "Princess",
+        "Robert": "Queen",
+        "Rose": "Maid",
+        "Cindy": "Guard"
+      },
+      "team_assignments": {
+        "Jack": "Queen",
+        "Tom": "Neutral",
+        "Edward": "Princess",
+        "Nancy": "Princess",
+        "Robert": "Queen",
+        "Rose": "Neutral",
+        "Cindy": "Queen"
+      }
+    },
+    "timing": {
+      "total_duration_seconds": 0.004082
+    },
+    "model_usage": {
+      "by_model": {},
+      "by_agent": {},
+      "total_requests": 0,
+      "total_input_tokens": 0,
+      "total_output_tokens": 0,
+      "total_tokens": 0
+    },
+    "interaction": {
+      "action_counts": {},
+      "total_actions": 0,
+      "total_decisions": 0
+    },
+    "llm_evaluations": {
+      "enabled": false
+    },
+    "question_metrics": {
+      "count": 0
+    },
+    "answer_metrics": {
+      "count": 0
+    },
+    "team_metrics": {
+      "team_counts": {
+        "Princess": 2,
+        "Queen": 3,
+        "Neutral": 2
+      },
+      "team_questions": {
+        "Princess": 0,
+        "Queen": 0,
+        "Neutral": 0
+      },
+      "team_answers": {
+        "Princess": 0,
+        "Queen": 0,
+        "Neutral": 0
+      },
+      "winning_team": null
+    },
+    "prince_performance": {
+      "success": false
+    },
+    "game_outcome": {
+      "winner_team": null,
+      "princess_found": false,
+      "teams": {
+        "Princess": {
+          "members": [
+            "Edward",
+            "Nancy"
+          ]
+        },
+        "Queen": {
+          "members": [
+            "Jack",
+            "Robert",
+            "Cindy"
+          ]
+        },
+        "Neutral": {
+          "members": [
+            "Tom",
+            "Rose"
+          ]
+        }
+      }
+    }
+  },
+  "events": [
+    {
+      "type": "player_assigned",
+      "timestamp": "2025-05-26T14:23:51.627676",
+      "data": {
+        "player": "Jack",
+        "role": "Minister",
+        "team": "Queen"
+      }
+    },
+    {
+      "type": "player_assigned",
+      "timestamp": "2025-05-26T14:23:51.627681",
+      "data": {
+        "player": "Tom",
+        "role": "Spy",
+        "team": "Neutral"
+      }
+    },
+    {
+      "type": "player_assigned",
+      "timestamp": "2025-05-26T14:23:51.627683",
+      "data": {
+        "player": "Edward",
+        "role": "Chef",
+        "team": "Princess"
+      }
+    },
+    {
+      "type": "player_assigned",
+      "timestamp": "2025-05-26T14:23:51.627684",
+      "data": {
+        "player": "Nancy",
+        "role": "Princess",
+        "team": "Princess"
+      }
+    },
+    {
+      "type": "player_assigned",
+      "timestamp": "2025-05-26T14:23:51.627686",
+      "data": {
+        "player": "Robert",
+        "role": "Queen",
+        "team": "Queen"
+      }
+    },
+    {
+      "type": "player_assigned",
+      "timestamp": "2025-05-26T14:23:51.627688",
+      "data": {
+        "player": "Rose",
+        "role": "Maid",
+        "team": "Neutral"
+      }
+    },
+    {
+      "type": "player_assigned",
+      "timestamp": "2025-05-26T14:23:51.627690",
+      "data": {
+        "player": "Cindy",
+        "role": "Guard",
+        "team": "Queen"
+      }
+    },
+    {
+      "type": "game_start",
+      "timestamp": "2025-05-26T14:23:51.627692",
+      "data": {
+        "players": [
+          "Nancy",
+          "Tom",
+          "Cindy",
+          "Jack",
+          "Rose",
+          "Edward",
+          "Robert"
+        ],
+        "identities": {
+          "Jack": "Minister",
+          "Tom": "Spy",
+          "Edward": "Chef",
+          "Nancy": "Princess",
+          "Robert": "Queen",
+          "Rose": "Maid",
+          "Cindy": "Guard"
+        }
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:23:51.628600",
+      "data": {
+        "round_number": 1
+      }
+    },
+    {
+      "type": "game_end",
+      "timestamp": "2025-05-26T14:23:51.631774",
+      "data": {
+        "success": true,
+        "result": {
+          "error": "model \"gemma:latest\" not found, try pulling it first (status code: 404)",
+          "metrics": {
+            "metadata": {
+              "game_id": "tofukingdom_1748258631",
+              "prince_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+              "princess_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+              "queen_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+              "neutral_model": "model='gemma:latest' temperature=0.7 base_url='http://localhost:11434'",
+              "game_type": "tofukingdom",
+              "timestamp": "2025-05-26T14:23:51.625011",
+              "player_roles": {
+                "Jack": "Minister",
+                "Tom": "Spy",
+                "Edward": "Chef",
+                "Nancy": "Princess",
+                "Robert": "Queen",
+                "Rose": "Maid",
+                "Cindy": "Guard"
+              },
+              "team_assignments": {
+                "Jack": "Queen",
+                "Tom": "Neutral",
+                "Edward": "Princess",
+                "Nancy": "Princess",
+                "Robert": "Queen",
+                "Rose": "Neutral",
+                "Cindy": "Queen"
+              }
+            },
+            "timing": {
+              "total_duration_seconds": 0.004082
+            },
+            "model_usage": {
+              "by_model": {},
+              "by_agent": {},
+              "total_requests": 0,
+              "total_input_tokens": 0,
+              "total_output_tokens": 0,
+              "total_tokens": 0
+            },
+            "interaction": {
+              "action_counts": {},
+              "total_actions": 0,
+              "total_decisions": 0
+            },
+            "llm_evaluations": {
+              "enabled": false
+            },
+            "question_metrics": {
+              "count": 0
+            },
+            "answer_metrics": {
+              "count": 0
+            },
+            "team_metrics": {
+              "team_counts": {
+                "Princess": 2,
+                "Queen": 3,
+                "Neutral": 2
+              },
+              "team_questions": {
+                "Princess": 0,
+                "Queen": 0,
+                "Neutral": 0
+              },
+              "team_answers": {
+                "Princess": 0,
+                "Queen": 0,
+                "Neutral": 0
+              },
+              "winning_team": null
+            },
+            "prince_performance": {
+              "success": false
+            },
+            "game_outcome": {
+              "winner_team": null,
+              "princess_found": false,
+              "teams": {
+                "Princess": {
+                  "members": [
+                    "Edward",
+                    "Nancy"
+                  ]
+                },
+                "Queen": {
+                  "members": [
+                    "Jack",
+                    "Robert",
+                    "Cindy"
+                  ]
+                },
+                "Neutral": {
+                  "members": [
+                    "Tom",
+                    "Rose"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
