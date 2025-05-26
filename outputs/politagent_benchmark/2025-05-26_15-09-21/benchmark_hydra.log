@@ -1,0 +1,34 @@
+[2025-05-26 15:09:21,056][benchmark_hydra][INFO] - 🚀 Запуск PolitAgent Benchmark с Hydra
+[2025-05-26 15:09:21,056][benchmark_hydra][INFO] - Эксперимент: politagent_benchmark
+[2025-05-26 15:09:21,056][benchmark_hydra][INFO] - Описание: Benchmarking LLM agents in game environments
+[2025-05-26 15:09:21,056][benchmark_hydra][INFO] - Модель: ollama (gemma3:latest)
+[2025-05-26 15:09:21,059][benchmark_hydra][INFO] - Конфигурация сохранена в /Users/nikitakalinin/Documents/knowledge/Универ/course_3/Курсовая/code/PolitAgent-environments/outputs/politagent_benchmark/2025-05-26_15-09-21/experiment_config.yaml
+[2025-05-26 15:09:21,059][benchmark_hydra][INFO] - Подготовлено 1 задач для выполнения
+[2025-05-26 15:09:21,147][benchmark_hydra][INFO] - Запуск в последовательном режиме
+[2025-05-26 15:09:21,147][root][INFO] - Инициализация модели: ollama (gemma3:latest)
+[2025-05-26 15:09:21,388][environments.diplomacy_game.game][INFO] - Diplomacy Game Initialized (using 'diplomacy' library):
+Initialization time: 0.04 seconds
+ENGLAND: Agent created
+GERMANY: Agent created
+ITALY: Agent created
+FRANCE: Agent created
+TURKEY: Agent created
+AUSTRIA: Agent created
+RUSSIA: Agent created
+Game will run for max 5 rounds
+
+[2025-05-26 15:09:25,748][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:09:38,246][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:09:55,359][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:10:15,204][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:10:39,014][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:10:59,718][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:11:24,267][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:11:40,362][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:12:05,588][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:12:26,128][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:12:40,202][environments.diplomacy_game.agents.diplomacy_agent][INFO] - ENGLAND: История сообщений усечена до 6 сообщений
+[2025-05-26 15:12:47,562][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:13:16,225][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:13:43,235][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:14:06,127][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"

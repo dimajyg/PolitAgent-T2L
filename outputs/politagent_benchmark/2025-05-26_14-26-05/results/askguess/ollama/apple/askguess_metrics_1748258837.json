@@ -1,0 +1,890 @@
+{
+  "metadata": {
+    "game_id": "askguess_1748258767",
+    "model": "model='gemma3:latest' temperature=0.7 base_url='http://localhost:11434'",
+    "game_type": "askguess",
+    "timestamp": "2025-05-26T14:26:07.187271",
+    "game_mode": "hard",
+    "total_rounds": 10,
+    "target_word": "apple"
+  },
+  "metrics": {
+    "metadata": {
+      "game_id": "askguess_1748258767",
+      "model": "model='gemma3:latest' temperature=0.7 base_url='http://localhost:11434'",
+      "game_type": "askguess",
+      "timestamp": "2025-05-26T14:26:07.187271",
+      "game_mode": "hard",
+      "total_rounds": 10,
+      "target_word": "apple"
+    },
+    "timing": {
+      "total_duration_seconds": 70.728738,
+      "rounds_count": 6,
+      "avg_round_duration_seconds": 10.950942333333332,
+      "min_round_duration_seconds": 9.75586,
+      "max_round_duration_seconds": 13.676116,
+      "agent_timing": {
+        "question_agent": {
+          "turns_count": 6,
+          "avg_turn_duration_seconds": 7.843214500000001,
+          "min_turn_duration_seconds": 6.889143,
+          "max_turn_duration_seconds": 10.319772
+        },
+        "answer_agent": {
+          "turns_count": 6,
+          "avg_turn_duration_seconds": 3.107211,
+          "min_turn_duration_seconds": 2.766439,
+          "max_turn_duration_seconds": 3.459705
+        }
+      }
+    },
+    "model_usage": {
+      "by_model": {
+        "unknown": {
+          "requests_count": 12,
+          "total_input_tokens": 0,
+          "total_output_tokens": 0,
+          "total_latency": 41.64968752861023,
+          "avg_input_tokens": 0.0,
+          "avg_output_tokens": 0.0,
+          "avg_latency": 3.4708072940508523,
+          "min_latency": 0.761267900466919,
+          "max_latency": 8.314921855926514
+        }
+      },
+      "by_agent": {
+        "question_agent": {
+          "requests_count": 6,
+          "total_input_tokens": 0,
+          "total_output_tokens": 0,
+          "avg_input_tokens": 0.0,
+          "avg_output_tokens": 0.0
+        },
+        "answer_agent": {
+          "requests_count": 6,
+          "total_input_tokens": 0,
+          "total_output_tokens": 0,
+          "avg_input_tokens": 0.0,
+          "avg_output_tokens": 0.0
+        }
+      },
+      "total_requests": 12,
+      "total_input_tokens": 0,
+      "total_output_tokens": 0,
+      "total_tokens": 0
+    },
+    "interaction": {
+      "action_counts": {},
+      "total_actions": 0,
+      "total_decisions": 0
+    },
+    "llm_evaluations": {
+      "enabled": false
+    },
+    "qa_metrics": {
+      "questions": [
+        {
+          "question": "Okay, let\u2019s see the answer.\n\n\u201cIs it a place?\u201d\n",
+          "round": 1,
+          "thinking": "Okay, let\u2019s start.\n\nMy initial strategy is to focus on broad categories and characteristics. I\u2019ll begin with questions designed to narrow down the possibilities quickly. I\u2019m assuming the answerer knows the word/phrase. My first question will be about the *type* of thing it is.\n\nOkay, here\u2019s my first question:\n\n\u201cIs it a person?\u201d\n"
+        },
+        {
+          "question": "Okay, based on \u201cno\u201d to \u201cIs it a living thing?\u201d, I need to shift my focus.\n\n\u201cIs it something you can see?\u201d\n",
+          "round": 2,
+          "thinking": "Okay, \u201cno\u201d is helpful. It rules out a location. \n\nMy next question needs to narrow down the possibilities significantly. I\u2019ll focus on characteristics that are more concrete than just a location.\n\nI need to ask about something that can be definitively answered with \u201cyes\u201d or \u201cno\u201d.\n\nOkay, my question is: \u201cIs it a living thing?\u201d\n"
+        },
+        {
+          "question": "Okay, based on \u201cno\u201d to \u201cIs it a natural object?\u201d, let\u2019s dig deeper into what *can* be seen.\n\n\u201cIs it man-made?\u201d\n",
+          "round": 3,
+          "thinking": "Okay, \u201cyes\u201d to \u201cIs it something you can see?\u201d \u2013 that narrows it down significantly. It must be visible. \n\nMy current strategy is to start categorizing visible things. I need to move beyond just \u201cyes\u201d or \u201cno\u201d and try to get a sense of *what kind* of thing it is. \n\nNext question: \u201cIs it a natural object?\u201d\n"
+        },
+        {
+          "question": "Okay, based on the \u201cno\u201d to \u201cIs it typically found indoors?\u201d, let\u2019s refine the possibilities.\n\n\u201cIs it a building?\u201d\n",
+          "round": 4,
+          "thinking": "Okay, let\u2019s analyze. We know it\u2019s something man-made that can be seen. That narrows it down significantly. It\u2019s likely an object or structure. \n\nTo proceed efficiently, I need to try and categorize it. The next question needs to help me determine *what kind* of man-made thing it is. \n\nI\u2019ll ask: \u201cIs it typically found indoors?\u201d\n"
+        },
+        {
+          "question": "Okay, based on the \u201cno\u201d to \u201cIs it a color?\u201d, I need to consider what can be seen that isn't a color. \n\n\u201cIs it an animal?\u201d\n",
+          "round": 5,
+          "thinking": "Okay, \u201cno\u201d to \u201cIs it a building\u201d is a key piece of information. That rules out structures like houses, offices, etc. \n\nI now know it\u2019s *not* a man-made structure. \n\nMy next question needs to narrow down what *can* be seen that isn\u2019t a building. It needs to be something that could be a natural element, but isn\u2019t a landscape feature like a mountain or river. \n\nI think I need to focus on something that might be a *part* of a larger scene. \n\nLet\u2019s go with: \u201cIs it a color?\u201d"
+        },
+        {
+          "question": "Okay, let\u2019s see the answer.\n\n\u201cIs it a vehicle?\u201d\n",
+          "round": 6,
+          "thinking": "Okay, let\u2019s analyze. We know it\u2019s man-made, not an animal, and not a place. This significantly narrows it down. It must be an object.  I need to figure out *what kind* of object. \n\nThe next question needs to help me differentiate between, say, a tool and a piece of furniture.  I\u2019ll go with something that suggests a function or purpose.\n\n\u201cIs it used for transportation?\u201d\n"
+        }
+      ],
+      "answers": [
+        {
+          "answer": "no\n",
+          "round": 1
+        },
+        {
+          "answer": "yes\n",
+          "round": 2
+        },
+        {
+          "answer": "yes\n",
+          "round": 3
+        },
+        {
+          "answer": "no\n",
+          "round": 4
+        },
+        {
+          "answer": "no\n",
+          "round": 5
+        },
+        {
+          "answer": "gameover\n",
+          "round": 6
+        }
+      ],
+      "question_count": 6,
+      "unique_question_count": 6,
+      "avg_question_length": 17.666666666666668,
+      "question_similarity": {
+        "avg_similarity": 0,
+        "max_similarity": 0,
+        "min_similarity": 0
+      },
+      "yes_ratio": 0.0,
+      "no_ratio": 0.0,
+      "binary_answer_ratio": 0.0,
+      "information_gain": {
+        "avg_gain": 0.3958333333333333,
+        "cumulative_gain": 2.375,
+        "normalized_gain": 0.3958333333333333,
+        "by_question": [
+          0.2916666666666667,
+          0.3333333333333333,
+          0.375,
+          0.41666666666666663,
+          0.45833333333333337,
+          0.5
+        ]
+      }
+    },
+    "guessing_metrics": {
+      "guesses": [
+        {
+          "guess": "Okay, let\u2019s see the answer.\n\n\u201cIs it a vehicle?\u201d\n",
+          "is_correct": false,
+          "round": 6,
+          "thinking": "Okay, let\u2019s analyze. We know it\u2019s man-made, not an animal, and not a place. This significantly narrows it down. It must be an object.  I need to figure out *what kind* of object. \n\nThe next question needs to help me differentiate between, say, a tool and a piece of furniture.  I\u2019ll go with something that suggests a function or purpose.\n\n\u201cIs it used for transportation?\u201d\n"
+        }
+      ],
+      "guess_count": 1,
+      "correct_guess": null,
+      "guessing_strategy": null,
+      "success_round": null,
+      "efficiency": 0.0,
+      "questions_before_success": 10
+    },
+    "convergence_metrics": {
+      "rounds_played": 6,
+      "converged": false,
+      "convergence_speed": 0.0
+    },
+    "game_outcome": {
+      "target_word": "apple",
+      "correct_guess": null,
+      "correct_round": null,
+      "success": false,
+      "completion_percentage": 100.0
+    }
+  },
+  "events": [
+    {
+      "type": "game_start",
+      "timestamp": "2025-05-26T14:26:07.187320",
+      "data": {
+        "target_word": "apple"
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:26:07.188244",
+      "data": {
+        "round_number": 1
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:26:07.188287",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 1
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:26:14.331221",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "prompt": "get_question",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:26:14.331239",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "response": "Okay, let\u2019s see the answer.\n\n\u201cIs it a place?\u201d\n",
+        "tokens": null,
+        "latency": 5.137715816497803
+      }
+    },
+    {
+      "type": "question",
+      "timestamp": "2025-05-26T14:26:14.331295",
+      "data": {
+        "question": "Okay, let\u2019s see the answer.\n\n\u201cIs it a place?\u201d\n",
+        "round": 1,
+        "thinking": "Okay, let\u2019s start.\n\nMy initial strategy is to focus on broad categories and characteristics. I\u2019ll begin with questions designed to narrow down the possibilities quickly. I\u2019m assuming the answerer knows the word/phrase. My first question will be about the *type* of thing it is.\n\nOkay, here\u2019s my first question:\n\n\u201cIs it a person?\u201d\n"
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:26:14.331414",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 1,
+        "success": true
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:26:14.331420",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 1
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:26:17.097768",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "prompt": "get_answer",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:26:17.097786",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "response": "no\n",
+        "tokens": null,
+        "latency": 0.761267900466919
+      }
+    },
+    {
+      "type": "answer",
+      "timestamp": "2025-05-26T14:26:17.097813",
+      "data": {
+        "answer": "no\n",
+        "round": 1
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:26:17.097859",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 1,
+        "success": true
+      }
+    },
+    {
+      "type": "round_end",
+      "timestamp": "2025-05-26T14:26:17.098040",
+      "data": {
+        "round_number": 1
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:26:18.103100",
+      "data": {
+        "round_number": 2
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:26:18.103472",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 2
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:26:24.992579",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "prompt": "get_question",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:26:24.992586",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "response": "Okay, based on \u201cno\u201d to \u201cIs it a living thing?\u201d, I need to shift my focus.\n\n\u201cIs it something you can see?\u201d\n",
+        "tokens": null,
+        "latency": 4.886720895767212
+      }
+    },
+    {
+      "type": "question",
+      "timestamp": "2025-05-26T14:26:24.992590",
+      "data": {
+        "question": "Okay, based on \u201cno\u201d to \u201cIs it a living thing?\u201d, I need to shift my focus.\n\n\u201cIs it something you can see?\u201d\n",
+        "round": 2,
+        "thinking": "Okay, \u201cno\u201d is helpful. It rules out a location. \n\nMy next question needs to narrow down the possibilities significantly. I\u2019ll focus on characteristics that are more concrete than just a location.\n\nI need to ask about something that can be definitively answered with \u201cyes\u201d or \u201cno\u201d.\n\nOkay, my question is: \u201cIs it a living thing?\u201d\n"
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:26:24.992615",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 2,
+        "success": true
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:26:24.992624",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 2
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:26:27.858868",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "prompt": "get_answer",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:26:27.858887",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "response": "yes\n",
+        "tokens": null,
+        "latency": 0.8611941337585449
+      }
+    },
+    {
+      "type": "answer",
+      "timestamp": "2025-05-26T14:26:27.858893",
+      "data": {
+        "answer": "yes\n",
+        "round": 2
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:26:27.858938",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 2,
+        "success": true
+      }
+    },
+    {
+      "type": "round_end",
+      "timestamp": "2025-05-26T14:26:27.858960",
+      "data": {
+        "round_number": 2
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:26:28.864063",
+      "data": {
+        "round_number": 3
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:26:28.864700",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 3
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:26:36.247057",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "prompt": "get_question",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:26:36.247078",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "response": "Okay, based on \u201cno\u201d to \u201cIs it a natural object?\u201d, let\u2019s dig deeper into what *can* be seen.\n\n\u201cIs it man-made?\u201d\n",
+        "tokens": null,
+        "latency": 5.377252101898193
+      }
+    },
+    {
+      "type": "question",
+      "timestamp": "2025-05-26T14:26:36.247092",
+      "data": {
+        "question": "Okay, based on \u201cno\u201d to \u201cIs it a natural object?\u201d, let\u2019s dig deeper into what *can* be seen.\n\n\u201cIs it man-made?\u201d\n",
+        "round": 3,
+        "thinking": "Okay, \u201cyes\u201d to \u201cIs it something you can see?\u201d \u2013 that narrows it down significantly. It must be visible. \n\nMy current strategy is to start categorizing visible things. I need to move beyond just \u201cyes\u201d or \u201cno\u201d and try to get a sense of *what kind* of thing it is. \n\nNext question: \u201cIs it a natural object?\u201d\n"
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:26:36.247191",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 3,
+        "success": true
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:26:36.247198",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 3
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:26:39.291428",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "prompt": "get_answer",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:26:39.291450",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "response": "yes\n",
+        "tokens": null,
+        "latency": 1.0391337871551514
+      }
+    },
+    {
+      "type": "answer",
+      "timestamp": "2025-05-26T14:26:39.291479",
+      "data": {
+        "answer": "yes\n",
+        "round": 3
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:26:39.291528",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 3,
+        "success": true
+      }
+    },
+    {
+      "type": "round_end",
+      "timestamp": "2025-05-26T14:26:39.291561",
+      "data": {
+        "round_number": 3
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:26:40.295174",
+      "data": {
+        "round_number": 4
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:26:40.295717",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 4
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:26:47.825364",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "prompt": "get_question",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:26:47.825371",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "response": "Okay, based on the \u201cno\u201d to \u201cIs it typically found indoors?\u201d, let\u2019s refine the possibilities.\n\n\u201cIs it a building?\u201d\n",
+        "tokens": null,
+        "latency": 5.524576187133789
+      }
+    },
+    {
+      "type": "question",
+      "timestamp": "2025-05-26T14:26:47.825384",
+      "data": {
+        "question": "Okay, based on the \u201cno\u201d to \u201cIs it typically found indoors?\u201d, let\u2019s refine the possibilities.\n\n\u201cIs it a building?\u201d\n",
+        "round": 4,
+        "thinking": "Okay, let\u2019s analyze. We know it\u2019s something man-made that can be seen. That narrows it down significantly. It\u2019s likely an object or structure. \n\nTo proceed efficiently, I need to try and categorize it. The next question needs to help me determine *what kind* of man-made thing it is. \n\nI\u2019ll ask: \u201cIs it typically found indoors?\u201d\n"
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:26:47.825412",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 4,
+        "success": true
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:26:47.825414",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 4
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:26:50.976092",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "prompt": "get_answer",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:26:50.976108",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "response": "no\n",
+        "tokens": null,
+        "latency": 1.1471569538116455
+      }
+    },
+    {
+      "type": "answer",
+      "timestamp": "2025-05-26T14:26:50.976114",
+      "data": {
+        "answer": "no\n",
+        "round": 4
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:26:50.976160",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 4,
+        "success": true
+      }
+    },
+    {
+      "type": "round_end",
+      "timestamp": "2025-05-26T14:26:50.976204",
+      "data": {
+        "round_number": 4
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:26:51.979522",
+      "data": {
+        "round_number": 5
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:26:51.980092",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 5
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:27:02.299744",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "prompt": "get_question",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:27:02.299752",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "response": "Okay, based on the \u201cno\u201d to \u201cIs it a color?\u201d, I need to consider what can be seen that isn't a color. \n\n\u201cIs it an animal?\u201d\n",
+        "tokens": null,
+        "latency": 8.314921855926514
+      }
+    },
+    {
+      "type": "question",
+      "timestamp": "2025-05-26T14:27:02.299780",
+      "data": {
+        "question": "Okay, based on the \u201cno\u201d to \u201cIs it a color?\u201d, I need to consider what can be seen that isn't a color. \n\n\u201cIs it an animal?\u201d\n",
+        "round": 5,
+        "thinking": "Okay, \u201cno\u201d to \u201cIs it a building\u201d is a key piece of information. That rules out structures like houses, offices, etc. \n\nI now know it\u2019s *not* a man-made structure. \n\nMy next question needs to narrow down what *can* be seen that isn\u2019t a building. It needs to be something that could be a natural element, but isn\u2019t a landscape feature like a mountain or river. \n\nI think I need to focus on something that might be a *part* of a larger scene. \n\nLet\u2019s go with: \u201cIs it a color?\u201d"
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:27:02.299864",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 5,
+        "success": true
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:27:02.299867",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 5
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:27:05.655513",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "prompt": "get_answer",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:27:05.655521",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "response": "no\n",
+        "tokens": null,
+        "latency": 1.3505709171295166
+      }
+    },
+    {
+      "type": "answer",
+      "timestamp": "2025-05-26T14:27:05.655559",
+      "data": {
+        "answer": "no\n",
+        "round": 5
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:27:05.655599",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 5,
+        "success": true
+      }
+    },
+    {
+      "type": "round_end",
+      "timestamp": "2025-05-26T14:27:05.655638",
+      "data": {
+        "round_number": 5
+      }
+    },
+    {
+      "type": "round_start",
+      "timestamp": "2025-05-26T14:27:06.660703",
+      "data": {
+        "round_number": 6
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:27:06.661230",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 6
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:27:14.456171",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "prompt": "get_question",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:27:14.456178",
+      "data": {
+        "agent": "question_agent",
+        "model": "unknown",
+        "response": "Okay, let\u2019s see the answer.\n\n\u201cIs it a vehicle?\u201d\n",
+        "tokens": null,
+        "latency": 5.794572114944458
+      }
+    },
+    {
+      "type": "question",
+      "timestamp": "2025-05-26T14:27:14.456220",
+      "data": {
+        "question": "Okay, let\u2019s see the answer.\n\n\u201cIs it a vehicle?\u201d\n",
+        "round": 6,
+        "thinking": "Okay, let\u2019s analyze. We know it\u2019s man-made, not an animal, and not a place. This significantly narrows it down. It must be an object.  I need to figure out *what kind* of object. \n\nThe next question needs to help me differentiate between, say, a tool and a piece of furniture.  I\u2019ll go with something that suggests a function or purpose.\n\n\u201cIs it used for transportation?\u201d\n"
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:27:14.456289",
+      "data": {
+        "stage": "question",
+        "agent": "question_agent",
+        "round": 6,
+        "success": true
+      }
+    },
+    {
+      "type": "turn_start",
+      "timestamp": "2025-05-26T14:27:14.456291",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 6
+      }
+    },
+    {
+      "type": "model_request",
+      "timestamp": "2025-05-26T14:27:17.915952",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "prompt": "get_answer",
+        "tokens": null
+      }
+    },
+    {
+      "type": "model_response",
+      "timestamp": "2025-05-26T14:27:17.915963",
+      "data": {
+        "agent": "answer_agent",
+        "model": "unknown",
+        "response": "gameover\n",
+        "tokens": null,
+        "latency": 1.4546048641204834
+      }
+    },
+    {
+      "type": "answer",
+      "timestamp": "2025-05-26T14:27:17.915973",
+      "data": {
+        "answer": "gameover\n",
+        "round": 6
+      }
+    },
+    {
+      "type": "turn_end",
+      "timestamp": "2025-05-26T14:27:17.915996",
+      "data": {
+        "stage": "answer",
+        "agent": "answer_agent",
+        "round": 6,
+        "success": true
+      }
+    },
+    {
+      "type": "incorrect_guess",
+      "timestamp": "2025-05-26T14:27:17.916038",
+      "data": {
+        "guess": "Okay, let\u2019s see the answer.\n\n\u201cIs it a vehicle?\u201d\n",
+        "round": 6,
+        "thinking": "Okay, let\u2019s analyze. We know it\u2019s man-made, not an animal, and not a place. This significantly narrows it down. It must be an object.  I need to figure out *what kind* of object. \n\nThe next question needs to help me differentiate between, say, a tool and a piece of furniture.  I\u2019ll go with something that suggests a function or purpose.\n\n\u201cIs it used for transportation?\u201d\n"
+      }
+    },
+    {
+      "type": "round_end",
+      "timestamp": "2025-05-26T14:27:17.916057",
+      "data": {
+        "round_number": 6
+      }
+    },
+    {
+      "type": "game_end",
+      "timestamp": "2025-05-26T14:27:17.916058",
+      "data": {
+        "success": false,
+        "error": "EndingError"
+      }
+    }
+  ]
+}

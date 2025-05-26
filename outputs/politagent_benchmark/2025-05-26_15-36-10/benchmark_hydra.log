@@ -1,0 +1,112 @@
+[2025-05-26 15:36:10,499][benchmark_hydra][INFO] - 🚀 Запуск PolitAgent Benchmark с Hydra
+[2025-05-26 15:36:10,499][benchmark_hydra][INFO] - Эксперимент: politagent_benchmark
+[2025-05-26 15:36:10,499][benchmark_hydra][INFO] - Описание: Benchmarking LLM agents in game environments
+[2025-05-26 15:36:10,499][benchmark_hydra][INFO] - Модель: ollama (gemma3:latest)
+[2025-05-26 15:36:10,501][benchmark_hydra][INFO] - Конфигурация сохранена в /Users/nikitakalinin/Documents/knowledge/Универ/course_3/Курсовая/code/PolitAgent-environments/outputs/politagent_benchmark/2025-05-26_15-36-10/experiment_config.yaml
+[2025-05-26 15:36:10,501][benchmark_hydra][INFO] - Подготовлено 1 задач для выполнения
+[2025-05-26 15:36:10,587][benchmark_hydra][INFO] - Запуск в последовательном режиме
+[2025-05-26 15:36:10,587][root][INFO] - Инициализация модели: ollama (gemma3:latest)
+[2025-05-26 15:36:10,837][environments.diplomacy_game.game][INFO] - Diplomacy Game Initialized (using 'diplomacy' library):
+Initialization time: 0.05 seconds
+ENGLAND: Agent created
+GERMANY: Agent created
+ITALY: Agent created
+FRANCE: Agent created
+TURKEY: Agent created
+AUSTRIA: Agent created
+RUSSIA: Agent created
+Game will run for max 3 rounds
+
+[2025-05-26 15:36:15,210][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:36:21,775][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:36:28,737][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:36:35,215][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:36:41,466][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:36:47,400][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:36:54,102][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:37:00,574][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:37:06,184][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:37:13,943][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:37:22,287][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:37:40,846][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:37:41,549][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A VIE' for ENGLAND involves unit not owned by this power
+[2025-05-26 15:37:41,549][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'F TRI' for ENGLAND involves unit not owned by this power
+[2025-05-26 15:37:41,549][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A BUD' for ENGLAND involves unit not owned by this power
+[2025-05-26 15:37:45,788][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:37:56,741][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:37:57,270][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A VIE' for GERMANY involves unit not owned by this power
+[2025-05-26 15:37:57,270][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'F TRI' for GERMANY involves unit not owned by this power
+[2025-05-26 15:37:57,270][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A BUD' for GERMANY involves unit not owned by this power
+[2025-05-26 15:38:01,981][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:38:11,081][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:38:11,868][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F NAP-CON' for ITALY, trying fallback
+[2025-05-26 15:38:11,868][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F NAP-SMY' for ITALY, trying fallback
+[2025-05-26 15:38:11,868][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A VEN' for ITALY, trying fallback
+[2025-05-26 15:38:16,780][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:38:29,222][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:38:29,767][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A BRE' for FRANCE, trying fallback
+[2025-05-26 15:38:29,767][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A PAR' for FRANCE, trying fallback
+[2025-05-26 15:38:29,767][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F BRE' for FRANCE, trying fallback
+[2025-05-26 15:38:34,457][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:38:42,639][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:38:43,693][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A SMY' for TURKEY, trying fallback
+[2025-05-26 15:38:43,694][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F ANK-CON' for TURKEY, trying fallback
+[2025-05-26 15:38:43,694][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A BUD S A VIE' for TURKEY involves unit not owned by this power
+[2025-05-26 15:38:48,971][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:39:00,566][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:39:01,674][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F TRI-VEN' for AUSTRIA, trying fallback
+[2025-05-26 15:39:01,675][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A BUD-NAP' for AUSTRIA, trying fallback
+[2025-05-26 15:39:01,675][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A VIE' for AUSTRIA, trying fallback
+[2025-05-26 15:39:06,366][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:39:14,588][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:39:15,342][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A VIE' for RUSSIA involves unit not owned by this power
+[2025-05-26 15:39:15,342][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F SEV' for RUSSIA, trying fallback
+[2025-05-26 15:39:15,342][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A BUD S A VIE' for RUSSIA involves unit not owned by this power
+[2025-05-26 15:39:21,935][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:39:30,957][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:39:33,793][environments.diplomacy_game.agents.diplomacy_agent][INFO] - ENGLAND: История сообщений усечена до 6 сообщений
+[2025-05-26 15:39:38,297][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:39:47,106][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:39:54,770][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:40:03,226][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:40:11,397][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:40:21,280][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:40:32,036][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:40:40,976][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:40:48,998][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:41:07,102][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:41:08,230][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A LVP-LYMP' for ENGLAND, trying fallback
+[2025-05-26 15:41:08,231][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F EDI-CHAN' for ENGLAND, trying fallback
+[2025-05-26 15:41:08,231][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A BUD-BUD' for ENGLAND involves unit not owned by this power
+[2025-05-26 15:41:15,458][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:41:32,551][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:41:33,396][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F KIE-STP' for GERMANY, trying fallback
+[2025-05-26 15:41:33,396][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A MUN' for GERMANY, trying fallback
+[2025-05-26 15:41:33,397][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A BUD S A VIE' for GERMANY involves unit not owned by this power
+[2025-05-26 15:41:41,812][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:41:56,265][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:41:57,203][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F NAP-ADI' for ITALY, trying fallback
+[2025-05-26 15:41:57,203][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A VEN-NAP' for ITALY, trying fallback
+[2025-05-26 15:41:57,204][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A VIE-NAP' for ITALY involves unit not owned by this power
+[2025-05-26 15:41:57,206][environments.diplomacy_game.agents.diplomacy_agent][INFO] - FRANCE: История сообщений усечена до 6 сообщений
+[2025-05-26 15:42:03,010][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:42:14,390][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:42:14,970][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A MAR' for FRANCE, trying fallback
+[2025-05-26 15:42:14,970][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F BRE' for FRANCE, trying fallback
+[2025-05-26 15:42:14,970][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A PAR' for FRANCE, trying fallback
+[2025-05-26 15:42:21,454][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:42:31,932][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:42:33,023][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'A BUD S A VIE-TYR' for TURKEY involves unit not owned by this power
+[2025-05-26 15:42:33,024][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A ANK S TRI-ADR' for TURKEY, trying fallback
+[2025-05-26 15:42:33,024][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A SMY' for TURKEY, trying fallback
+[2025-05-26 15:42:39,830][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:42:53,756][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:42:54,571][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A VIE' for AUSTRIA, trying fallback
+[2025-05-26 15:42:54,571][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'F TRI-ADR' for AUSTRIA, trying fallback
+[2025-05-26 15:42:54,571][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A BUD S A VIE' for AUSTRIA, trying fallback
+[2025-05-26 15:43:00,810][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:43:11,190][httpx][INFO] - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+[2025-05-26 15:43:12,164][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A WAR HOLD' for RUSSIA, trying fallback
+[2025-05-26 15:43:12,165][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A SEV HOLD' for RUSSIA, trying fallback
+[2025-05-26 15:43:12,165][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Invalid order 'A MOS HOLD' for RUSSIA, trying fallback
+[2025-05-26 15:43:12,165][environments.diplomacy_game.agents.diplomacy_agent][WARNING] - Order 'F TRI HOLD' for RUSSIA involves unit not owned by this power

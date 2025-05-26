@@ -13,18 +13,16 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 import importlib
 import random
+import traceback
 
-# Заменяем импорт на унифицированный интерфейс моделей
 from llm.models import get_model, get_available_models
 
-# Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("benchmark")
 
-# Настройки игровых сред
 GAME_ENVIRONMENTS = {
     "spyfall": {
         "module": "environments.spyfall.game",
@@ -88,7 +86,7 @@ GAME_ENVIRONMENTS = {
         "module": "environments.diplomacy_game.game",
         "class": "DiplomacyGame",
         "default_args": {
-            "max_rounds": 5,
+            "max_rounds": 3,  # Сокращаем с 5 до 3 раундов для бенчмарка
             "debug": True,
             "diplomacy_model_name": "openai"
         },
@@ -97,7 +95,6 @@ GAME_ENVIRONMENTS = {
     }
 }
 
-# Доступные модели из унифицированного интерфейса
 AVAILABLE_MODELS = list(get_available_models().keys())
 
 def setup_results_dir() -> str:
@@ -112,35 +109,29 @@ def load_phrases(game_type: str, args: argparse.Namespace) -> List[Any]:
     if game_type == "spyfall":
         with open(args.label_path, 'r') as f:
             phrases = [line.strip().split(",") for line in f.readlines()]
-            # Если указан параметр max_phrases, ограничиваем количество фраз
             if hasattr(args, 'max_phrases') and args.max_phrases is not None:
                 return phrases[:args.max_phrases]
             return phrases
     elif game_type == "askguess":
         with open(args.label_path, 'r') as f:
             try:
-                # Пытаемся загрузить как JSON
                 all_phrases = json.load(f)
-                # Проверяем, является ли результат списком или словарем
                 if isinstance(all_phrases, list):
-                    # Если список, ограничиваем количество элементов при необходимости
                     if hasattr(args, 'max_phrases') and args.max_phrases is not None:
                         return all_phrases[:args.max_phrases]
                     return all_phrases
                 else:
-                    # Если словарь, обрабатываем как раньше
                     if hasattr(args, 'max_phrases') and args.max_phrases is not None:
                         keys = list(all_phrases.keys())[:args.max_phrases]
                         return {k: all_phrases[k] for k in keys}
                     return all_phrases
             except json.JSONDecodeError:
-                # В случае ошибки декодирования JSON, пытаемся прочитать как простой текстовый файл
                 f.seek(0)
                 phrases = [line.strip() for line in f.readlines()]
                 if hasattr(args, 'max_phrases') and args.max_phrases is not None:
                     return phrases[:args.max_phrases]
                 return phrases
-    return [None]  # Для игр без фраз
+    return [None] 
 
 def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
     """
@@ -153,19 +144,14 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
         Dict с результатами игры
     """
     game_type, args_dict, phrase, run_id, results_dir = game_config
-    
-    # Преобразуем словарь аргументов обратно в Namespace
     args = argparse.Namespace(**args_dict)
-    
-    # Получаем информацию о среде
+
     game_info = GAME_ENVIRONMENTS[game_type]
     
-    # Инициализируем модели
     models = {}
     for model_arg in game_info["model_args"]:
         model_name = args_dict.get(model_arg, "openai")
         if model_name not in models:
-            # Добавляем поддержку specific_model и ollama_base_url
             model_kwargs = {}
             if args_dict.get("specific_model"):
                 model_kwargs["specific_model"] = args_dict.get("specific_model")
@@ -174,11 +160,9 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
             
             models[model_name] = get_model(model_name, **model_kwargs)
     
-    # Инициализируем модель для LLM-оценки, если она задана
     if args_dict.get("use_llm_evaluation", False) and args_dict.get("evaluation_model") is not None:
         evaluation_model_name = args_dict.get("evaluation_model")
         if evaluation_model_name not in models:
-            # Добавляем поддержку specific_model и ollama_base_url для модели оценки
             model_kwargs = {}
             if args_dict.get("specific_model"):
                 model_kwargs["specific_model"] = args_dict.get("specific_model")
@@ -188,11 +172,9 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
             models["evaluation_model"] = get_model(evaluation_model_name, **model_kwargs)
             args.evaluation_model = models["evaluation_model"]
     
-    # Импортируем нужный модуль и класс игры
     game_module = importlib.import_module(game_info["module"])
     game_class = getattr(game_module, game_info["class"])
     
-    # Создаем директорию для логов
     model_names = "_".join([args_dict.get(arg, "default") for arg in game_info["model_args"]])
     log_dir = f"{results_dir}/{game_type}/{model_names}"
     
@@ -205,10 +187,8 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
     
     os.makedirs(log_dir, exist_ok=True)
     
-    # Устанавливаем переменную окружения с путем к директории результатов
     os.environ["BENCHMARK_RESULTS_DIR"] = log_dir
     
-    # Создаем экземпляр игры в зависимости от типа
     if game_type == "spyfall":
         spy_model = models[args.spy_model_name]
         villager_model = models[args.villager_model_name]
@@ -227,7 +207,6 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
     elif game_type == "tofukingdom":
         prince_model = models[args.prince_model_name]
         
-        # Get other models, defaulting to prince model if not specified
         princess_model = models.get(args.princess_model_name, prince_model)
         queen_model = models.get(args.queen_model_name, prince_model)
         neutral_model = models.get(args.neutral_model_name, prince_model)
@@ -243,7 +222,6 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
         logger.error(f"Неизвестный тип игры: {game_type}")
         return {"error": f"Неизвестный тип игры: {game_type}"}
     
-    # Запускаем игру и записываем логи
     with open(f"{log_dir}/{run_id}.log", "w") as f:
         f.write(f"Game: {game_type}\n")
         f.write(f"Models: {model_names}\n")
@@ -258,11 +236,9 @@ def run_game(game_config: Tuple[str, Dict, Any, int, str]) -> Dict[str, Any]:
             result["model"] = model_names
             result["timestamp"] = datetime.now().isoformat()
             
-            # Записываем результат в отдельный файл
             with open(f"{log_dir}/{run_id}_result.json", "w") as rf:
                 json.dump(result, rf, indent=2)
                 
-            # Добавляем в общий файл результатов
             with open(f"{results_dir}/all_results.jsonl", "a") as arf:
                 arf.write(json.dumps(result) + "\n")
     
@@ -274,20 +250,16 @@ def run_benchmark(args: argparse.Namespace) -> None:
     results_dir = setup_results_dir()
     logger.info(f"Результаты будут сохранены в {results_dir}")
     
-    # Сохраняем конфигурацию запуска
     with open(f"{results_dir}/config.json", "w") as f:
         json.dump(vars(args), f, indent=2)
     
-    # Определяем, какие игры запускать
     games_to_run = args.games.split(",") if args.games else list(GAME_ENVIRONMENTS.keys())
     
-    # Проверяем валидность игр
     for game in games_to_run:
         if game not in GAME_ENVIRONMENTS:
             logger.error(f"Неизвестная игра: {game}. Доступные игры: {', '.join(GAME_ENVIRONMENTS.keys())}")
             return
     
-    # Проверяем валидность моделей
     if args.models:
         models = args.models.split(",")
         for model in models:
@@ -295,47 +267,36 @@ def run_benchmark(args: argparse.Namespace) -> None:
                 logger.error(f"Неизвестная модель: {model}. Доступные модели: {', '.join(AVAILABLE_MODELS)}")
                 return
     
-    # Формируем задания для запуска
     tasks = []
     
     for game_type in games_to_run:
-        # Получаем информацию о среде
         game_info = GAME_ENVIRONMENTS[game_type]
         
-        # Создаем копию аргументов для конкретной игры
         game_args = vars(args).copy()
         
-        # Обновляем значения по умолчанию из конфигурации игры
         for key, value in game_info["default_args"].items():
             if key not in game_args or game_args[key] is None:
                 game_args[key] = value
             elif key == "label_path" and game_type == "askguess" and game_args[key] == "environments/spyfall/prompts/labels.txt":
-                # Исправление: не используем путь от spyfall для askguess
                 game_args[key] = game_info["default_args"][key]
         
-        # Если установлены общие модели, применяем их для всех модельных аргументов
         if args.models:
             models_list = args.models.split(",")
             for model_arg in game_info["model_args"]:
                 if len(models_list) > 1:
-                    # Используем разные модели для разных ролей, если их указано несколько
                     game_args[model_arg] = random.choice(models_list)
                 else:
-                    # Иначе используем одну модель для всех ролей
                     game_args[model_arg] = models_list[0]
         
-        # Загружаем фразы, если требуется
         if game_info["requires_phrases"]:
             phrases = load_phrases(game_type, argparse.Namespace(**game_args))
         else:
             phrases = [None]
         
-        # Формируем задания для каждой фразы и прогона
         for phrase in phrases:
             for run_id in range(args.runs_per_game):
                 tasks.append((game_type, game_args, phrase, run_id, results_dir))
     
-    # Запускаем задания
     logger.info(f"Запуск {len(tasks)} игровых сессий с использованием {args.workers} рабочих процессов")
     
     if args.workers > 1:
@@ -366,6 +327,15 @@ def run_benchmark(args: argparse.Namespace) -> None:
     
     logger.info(f"Бенчмарк завершен. Всего запущено {len(tasks)} игр, успешно завершено {summary['completed_games']}.")
     logger.info(f"Результаты доступны в {results_dir}")
+
+def add_benchmark_args(parser):
+    """Add benchmark-specific arguments to the parser."""
+    parser.add_argument(
+        '--evaluation_model',
+        type=str,
+        default='',
+        help='Model to use for evaluating game results (LLM as judge)'
+    )
 
 def main():
     """Точка входа программы."""

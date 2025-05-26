@@ -1,0 +1,23 @@
+# @package game
+
+name: "diplomacy"
+type: "strategy"
+
+# Параметры игры
+settings:
+  max_rounds: 3  # Сокращаем для бенчмарка
+  debug: true
+  diplomacy_model_name: ${model.name}
+
+# Роли
+roles:
+  diplomacy_model_name: ${model.name}
+
+# Оценка
+evaluation:
+  metrics:
+    - "rounds_played"
+    - "supply_centers"
+    - "winner"
+    - "strategic_decisions"
+    - "negotiation_effectiveness" 

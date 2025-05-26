@@ -91,89 +91,32 @@ class DiplomacyGame(Game):
         return settings
 
     def handle_negotiation_phase(self, log_file) -> None:
-        """Orchestrate negotiation between powers."""
-        self.log_message(log_file, "\nNegotiation Phase Begins")
-        powers_to_negotiate = [agent.power_name for agent in self.agents]
-
-        negotiation_pairs = []
-        for i in range(len(powers_to_negotiate)):
-            for j in range(i + 1, len(powers_to_negotiate)):
-                negotiation_pairs.append((powers_to_negotiate[i], powers_to_negotiate[j]))
-
-        for power1_name, power2_name in negotiation_pairs:
-            agent1 = None
-            agent2 = None
-            for agent in self.agents:
-                if agent.power_name == power1_name:
-                    agent1 = agent
-                if agent.power_name == power2_name:
-                    agent2 = agent
-            if not agent1 or not agent2:
-                continue
-
-            self.log_message(log_file, f"\nNegotiation between {power1_name} and {power2_name}:")
-
-            # Limit negotiation to 3 turns to save resources in benchmark
-            for turn in range(3):
-                self.log_message(log_file, f"\nNegotiation Turn {turn + 1} between {power1_name} and {power2_name}:")
-
-                # Power 1 initiates/responds
-                message_p1_to_p2 = agent1.negotiate(power2_name, self.game_state)
-                self.log_message(log_file, f"{power1_name} to {power2_name}: {message_p1_to_p2}")
-                agent2.private_history.append(create_message('assistant', f"Negotiation message from {power1_name} (Turn {turn + 1}): {message_p1_to_p2}"))
-
-                # Power 2 responds/initiates
-                message_p2_to_p1 = agent2.negotiate(power1_name, self.game_state)
-                self.log_message(log_file, f"{power2_name} to {power1_name}: {message_p2_to_p1}")
-                agent1.private_history.append(create_message('assistant', f"Negotiation message from {power2_name} (Turn {turn + 1}): {message_p2_to_p1}"))
+        """Obsolete method, use _handle_negotiation_phase_with_metrics instead."""
+        self._handle_negotiation_phase_with_metrics(log_file)
 
     def handle_action_phase(self, log_file) -> None:
-        """Collect and process actions from agents and submit to the diplomacy game."""
-        self.log_message(log_file, "\nAction Phase Begins")
-        orders = {}
-        for agent in self.agents:
-            power_name = agent.power_name
-            power_orders = agent.get_orders(self.game_state)
-            
-            orders[power_name] = power_orders
-            self.log_message(log_file, f"{power_name} orders: {power_orders}")
-
-            # Submit orders to the diplomacy library game
-            try:
-                self.diplomacy_game.set_orders(power_name, power_orders)
-            except Exception as e:
-                self.log_message(log_file, f"Error setting orders for {power_name}: {e}")
-
-        # Process the turn in the diplomacy library
-        try:
-            self.diplomacy_game.process()
-        except Exception as e:
-            self.log_message(log_file, f"Error processing turn: {e}")
-
-        # Update the game state
-        self.update_game_state(orders, log_file)
-        self.game_state["phase"] = "Negotiation"  # Reset phase for next round
+        """Obsolete method, use _handle_action_phase_with_metrics instead."""
+        self._handle_action_phase_with_metrics(log_file)
 
     def _update_game_state_from_lib(self) -> None:
         """Updates self.game_state from the diplomacy_game library instance."""
+        # Split phase string to get phase and year
         phase_parts = str(self.diplomacy_game.phase).split()
         self.game_state["phase"] = phase_parts[0]  # Spring, Fall, etc.
         self.game_state["year"] = int(phase_parts[1]) if len(phase_parts) > 1 else 1901
 
-        # Update supply centers
+        # Update supply centers - используем более компактное представление
+        centers_by_power = self.diplomacy_game.get_centers()
         self.game_state["supply_centers"] = {}
-        supply_centers_by_power = self.diplomacy_game.get_centers()
-        for power_name, centers in supply_centers_by_power.items():
-            for center in centers:
-                self.game_state["supply_centers"][center] = power_name
+        for power_name, centers in centers_by_power.items():
+            self.game_state["supply_centers"][power_name] = centers
 
-        # Update unit positions
-        current_units = {}
+        # Update unit positions - используем более компактное представление
+        self.game_state["units"] = {}
         for power_name in self.powers:
-            current_units[power_name] = []
-            for unit in self.diplomacy_game.get_units(power_name):
-                current_units[power_name].append(str(unit))
-        self.game_state["units"] = current_units
+            units = [str(unit) for unit in self.diplomacy_game.get_units(power_name)]
+            if units:  # Добавляем только если есть юниты
+                self.game_state["units"][power_name] = units
 
     def update_game_state(self, orders: Dict[str, List[str]], log_file) -> None:
         """Update game state based on the diplomacy library's state."""
@@ -211,6 +154,9 @@ class DiplomacyGame(Game):
             
         # Track game start time
         game_start_time = time.time()
+        
+        # Добавляем данные для метрик
+        rounds_data = []
 
         try:
             while not self.check_game_end():
@@ -218,6 +164,9 @@ class DiplomacyGame(Game):
                 round_start_time = time.time()
                 
                 self.log_message(log_file, f"\nRound {self.game_round} begins, Year: {self.game_state.get('year', 'Unknown')}, Phase: {self.game_state.get('phase', 'Initial')}")
+                
+                # Сохраняем состояние перед ходом
+                territories_before = self._get_territories_state()
 
                 # Game status update for all agents
                 game_status = get_game_status_prompt(self.game_state)
@@ -225,12 +174,32 @@ class DiplomacyGame(Game):
                 for agent in self.agents:
                     agent.private_history.append(status_message)
                 self.log_message(log_file, f"\nCurrent Game Status shared with all agents")
-
-                self.handle_negotiation_phase(log_file)
+                
+                # Сохраняем переговоры для метрик
+                negotiations = self._handle_negotiation_phase_with_metrics(log_file)
                 
                 # Handle action phase
                 self.game_state["phase"] = "Action"
-                self.handle_action_phase(log_file)
+                orders = self._handle_action_phase_with_metrics(log_file)
+                
+                # Сохраняем состояние после хода
+                territories_after = self._get_territories_state()
+                
+                # Анализируем атаки для метрик
+                attacks_received = self._analyze_attacks(orders)
+                
+                # Собираем данные раунда для метрик
+                round_data = {
+                    "round": self.game_round,
+                    "year": self.game_state.get("year", 0),
+                    "phase": self.game_state.get("phase", ""),
+                    "territories_before": territories_before,
+                    "territories_after": territories_after,
+                    "negotiations": negotiations,
+                    "orders": orders,
+                    "attacks_received": attacks_received
+                }
+                rounds_data.append(round_data)
                 
                 round_time = time.time() - round_start_time
                 self.log_message(log_file, f"Round {self.game_round} completed in {round_time:.2f} seconds")
@@ -240,10 +209,11 @@ class DiplomacyGame(Game):
 
             # Calculate game play time
             game_time = time.time() - game_start_time
-                
+            
             # Get final results
             results = self.get_game_results()
             results["game_time"] = game_time
+            results["rounds_data"] = rounds_data  # Добавляем данные раундов для метрик
             
             self.log_message(log_file, f"\nGame ended after {self.game_round} rounds in {game_time:.2f} seconds")
             self.log_message(log_file, f"Final state: {json.dumps(results, indent=2)}")
@@ -289,3 +259,188 @@ class DiplomacyGame(Game):
             "final_year": self.game_state.get("year")
         }
         return results
+
+    def _handle_negotiation_phase_with_metrics(self, log_file) -> Dict[str, Any]:
+        """Orchestrate negotiation between powers and collect data for metrics."""
+        self.log_message(log_file, "\nNegotiation Phase Begins")
+        powers_to_negotiate = [agent.power_name for agent in self.agents]
+        negotiations = {}  # Структура для хранения переговоров
+        
+        # ИСПРАВЛЕНИЕ: Ограничиваем количество переговорных пар для бенчмарка
+        max_negotiation_pairs = 5  # Максимум 5 пар вместо всех 21
+        
+        negotiation_pairs = []
+        for i in range(len(powers_to_negotiate)):
+            for j in range(i + 1, len(powers_to_negotiate)):
+                negotiation_pairs.append((powers_to_negotiate[i], powers_to_negotiate[j]))
+        
+        # Ограничиваем количество пар для бенчмарка
+        if len(negotiation_pairs) > max_negotiation_pairs:
+            negotiation_pairs = random.sample(negotiation_pairs, max_negotiation_pairs)
+            self.log_message(log_file, f"Limiting negotiations to {max_negotiation_pairs} pairs for benchmark efficiency")
+        
+        for power1_name, power2_name in negotiation_pairs:
+            agent1 = None
+            agent2 = None
+            for agent in self.agents:
+                if agent.power_name == power1_name:
+                    agent1 = agent
+                if agent.power_name == power2_name:
+                    agent2 = agent
+            if not agent1 or not agent2:
+                continue
+            
+            if power1_name not in negotiations:
+                negotiations[power1_name] = {}
+            if power2_name not in negotiations:
+                negotiations[power2_name] = {}
+            
+            self.log_message(log_file, f"\nNegotiation between {power1_name} and {power2_name}:")
+            
+            # ИСПРАВЛЕНИЕ: Ограничиваем переговоры до 1 раунда вместо 3 для бенчмарка
+            max_negotiation_turns = 1  # Сокращаем с 3 до 1 раунда
+            for turn in range(max_negotiation_turns):
+                self.log_message(log_file, f"\nNegotiation Turn {turn + 1} between {power1_name} and {power2_name}:")
+                
+                # Power 1 initiates/responds
+                message_p1_to_p2 = agent1.negotiate(power2_name, self.game_state)
+                self.log_message(log_file, f"{power1_name} to {power2_name}: {message_p1_to_p2}")
+                agent2.private_history.append(create_message('assistant', f"Negotiation message from {power1_name} (Turn {turn + 1}): {message_p1_to_p2}"))
+                
+                # Сохраняем для метрик
+                if power2_name not in negotiations[power1_name]:
+                    negotiations[power1_name][power2_name] = {}
+                negotiations[power1_name][power2_name][str(turn)] = message_p1_to_p2
+                
+                # Power 2 responds/initiates
+                message_p2_to_p1 = agent2.negotiate(power1_name, self.game_state)
+                self.log_message(log_file, f"{power2_name} to {power1_name}: {message_p2_to_p1}")
+                agent1.private_history.append(create_message('assistant', f"Negotiation message from {power2_name} (Turn {turn + 1}): {message_p2_to_p1}"))
+                
+                # Сохраняем для метрик
+                if power1_name not in negotiations[power2_name]:
+                    negotiations[power2_name][power1_name] = {}
+                negotiations[power2_name][power1_name][str(turn)] = message_p2_to_p1
+        
+        return negotiations
+
+    def _handle_action_phase_with_metrics(self, log_file) -> Dict[str, List[str]]:
+        """Collect and process actions from agents and submit to the diplomacy game."""
+        self.log_message(log_file, "\nAction Phase Begins")
+        orders = {}
+        
+        for agent in self.agents:
+            power_name = agent.power_name
+            try:
+                power_orders = agent.get_orders(self.game_state)
+                
+                # Проверяем, что приказы не пустые
+                if not power_orders:
+                    # Создаем hold приказы для всех юнитов
+                    my_units = self.diplomacy_game.get_units(power_name)
+                    power_orders = []
+                    for unit in my_units:
+                        unit_str = str(unit)
+                        unit_parts = unit_str.split()
+                        if len(unit_parts) >= 2:
+                            hold_order = f"{unit_parts[0]} {unit_parts[1]}"
+                            power_orders.append(hold_order)
+                    self.log_message(log_file, f"Generated fallback hold orders for {power_name}: {power_orders}")
+                
+                orders[power_name] = power_orders
+                self.log_message(log_file, f"{power_name} orders: {power_orders}")
+                
+                # Submit orders to the diplomacy library game
+                if power_orders:
+                    try:
+                        self.diplomacy_game.set_orders(power_name, power_orders)
+                        self.log_message(log_file, f"Successfully set orders for {power_name}")
+                    except Exception as e:
+                        self.log_message(log_file, f"Error setting orders for {power_name}: {e}")
+                        # Пытаемся установить пустой список приказов
+                        try:
+                            self.diplomacy_game.set_orders(power_name, [])
+                            self.log_message(log_file, f"Set empty orders for {power_name} as fallback")
+                        except Exception as e2:
+                            self.log_message(log_file, f"Failed to set even empty orders for {power_name}: {e2}")
+                else:
+                    self.log_message(log_file, f"No orders to set for {power_name}")
+                    
+            except Exception as e:
+                self.log_message(log_file, f"Error getting orders from {power_name}: {e}")
+                orders[power_name] = []
+        
+        # Process the turn in the diplomacy library
+        try:
+            self.log_message(log_file, "Processing turn...")
+            self.diplomacy_game.process()
+            self.log_message(log_file, "Turn processed successfully")
+        except Exception as e:
+            self.log_message(log_file, f"Error processing turn: {e}")
+            # Не прерываем игру, продолжаем
+        
+        # Update the game state
+        try:
+            self.update_game_state(orders, log_file)
+            self.game_state["phase"] = "Negotiation"  # Reset phase for next round
+        except Exception as e:
+            self.log_message(log_file, f"Error updating game state: {e}")
+            # Принудительно обновляем состояние
+            self._update_game_state_from_lib()
+        
+        return orders
+
+    def _get_territories_state(self) -> Dict[str, List[str]]:
+        """Get the current state of territories for all powers."""
+        territories = {}
+        # Получаем данные из game_state вместо diplomacy_game напрямую
+        centers_by_power = self.game_state.get("supply_centers", {})
+        units_by_power = self.game_state.get("units", {})
+        
+        for power in self.powers:
+            territories[power] = []
+            
+            # Добавляем контролируемые центры снабжения
+            if power in centers_by_power:
+                territories[power].extend(centers_by_power[power])
+                
+            # Добавляем территории с юнитами
+            if power in units_by_power:
+                for unit_str in units_by_power[power]:
+                    # Извлекаем территорию из строки юнита (формат "F LON", "A PAR" и т.д.)
+                    parts = unit_str.split()
+                    if len(parts) > 1:
+                        territory = parts[-1]
+                        if territory not in territories[power]:
+                            territories[power].append(territory)
+                            
+        return territories
+
+    def _analyze_attacks(self, orders: Dict[str, List[str]]) -> Dict[str, List[str]]:
+        """Analyze which territories are being attacked by whom."""
+        attacks_received = {power: [] for power in self.powers}
+        
+        # Получаем текущий state территорий
+        territories_state = self._get_territories_state()
+        
+        # Для каждой державы анализируем приказы
+        for attacker, attacker_orders in orders.items():
+            for order in attacker_orders:
+                # Ищем приказы на движение (они обычно содержат "-")
+                if " - " in order.upper() or " TO " in order.upper():
+                    # Извлекаем целевую территорию
+                    parts = order.split()
+                    if len(parts) >= 3:
+                        target_territory = parts[-1]
+                        
+                        # Определяем, какой державе принадлежит территория
+                        for defender, territories in territories_state.items():
+                            if target_territory in territories:
+                                attacks_received[defender].append({
+                                    "from": attacker,
+                                    "target": target_territory,
+                                    "order": order
+                                })
+                                break
+        
+        return attacks_received

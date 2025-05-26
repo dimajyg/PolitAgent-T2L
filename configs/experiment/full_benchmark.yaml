@@ -1,0 +1,35 @@
+# @package experiment
+
+name: "full_benchmark"
+description: "Comprehensive benchmark across all games"
+
+# Параметры эксперимента
+runs_per_game: 3
+workers: 2
+max_phrases: 20
+debug: false
+
+# Все игры для полного тестирования
+games:
+  - askguess
+  - spyfall
+  - beast
+  - tofukingdom
+
+# Расширенная оценка
+use_llm_evaluation: true
+evaluation_model: "openai"
+
+# Отслеживание
+tracking:
+  enabled: true
+  log_params: true
+  log_metrics: true
+  log_artifacts: true
+  save_model_outputs: true
+
+# Теги
+tags:
+  - "comprehensive"
+  - "multi_game"
+  - "production" 
