@@ -1,3 +1,39 @@
-Voting results:
-{voting_results}
-Consider these results when planning your strategy for the next round. 
+⚡ ELIMINATION RESULTS - Round {current_round}
+
+🗳️ THE VOTES HAVE BEEN CAST...
+
+💀 ELIMINATED: {eliminated_player}
+📊 Vote Count: {vote_breakdown}
+
+{elimination_twist_text}
+
+💰 WEALTH REDISTRIBUTION:
+- {eliminated_player} final wealth: {final_wealth}
+- Wealth effects: {wealth_effects}
+
+🔥 TRUST IMPACT:
+{trust_changes}
+
+⚠️ ALLIANCE FALLOUT:
+{alliance_betrayals}
+
+🎯 SURVIVING PLAYERS: {remaining_players}
+
+💡 REVEALED INFORMATION:
+{revealed_secrets}
+
+---
+
+🧠 STRATEGIC ANALYSIS:
+- Who voted with whom reveals potential alliances
+- Surprise votes indicate hidden agendas or betrayals  
+- Vote patterns show power dynamics and desperation levels
+- The eliminated player's final words may contain valuable intel
+
+⏰ NEXT ROUND PREVIEW: Round {next_round}
+- Pressure level: {pressure_escalation}
+- Expected challenge type: {hint_next_challenge}
+- Time until final elimination: {rounds_remaining}
+
+🎮 The game continues... but trust has been shattered and new alliances must be forged.
+Who will be next to fall? 

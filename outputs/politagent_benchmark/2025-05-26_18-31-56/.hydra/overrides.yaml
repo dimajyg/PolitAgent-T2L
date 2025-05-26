@@ -1,0 +1,6 @@
+- experiment=default
+- model=ollama
+- model.default_model=gemma3:latest
+- experiment.runs_per_game=1
+- experiment.workers=1
+- experiment.games=[beast]

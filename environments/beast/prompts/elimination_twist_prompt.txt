@@ -1,0 +1,71 @@
+🎭 ELIMINATION TWIST ACTIVATED!
+
+⚡ TWIST TYPE: {twist_type}
+
+---
+
+🔄 **IMMUNITY CHALLENGE** (if twist_type == "immunity_challenge")
+Before elimination, all players must compete in a quick strategic challenge!
+
+Challenge: {challenge_description}
+⏰ Time Limit: 2 minutes to decide
+🎯 Winner: Gains immunity from elimination this round
+💡 Strategy: Others must change their votes to avoid wasting them
+
+---
+
+💔 **DOUBLE ELIMINATION** (if twist_type == "double_elimination")
+⚠️ SHOCK ANNOUNCEMENT: TWO players will be eliminated this round!
+
+🎯 Voting Rules:
+- First player with most votes is eliminated
+- Second player with second-most votes is also eliminated
+- Ties are broken randomly
+- All remaining players split the eliminated wealth
+
+This changes EVERYTHING. Alliances must adapt immediately!
+
+---
+
+🎲 **RANDOM SAVE** (if twist_type == "random_save")
+🎪 SURPRISE! The eliminated player draws a SAVE CARD!
+
+Possible outcomes:
+- 🛡️ IMMUNITY: Complete protection, elimination canceled
+- 💰 WEALTH INSURANCE: Keep half wealth, still eliminated  
+- 🔄 REVERSE CARD: The player who voted for them gets eliminated instead
+- 👥 ALLY PROTECTION: Choose one ally to save them (if any allies exist)
+
+The card will be revealed after votes are cast...
+
+---
+
+🗳️ **VOTE REVEAL** (if twist_type == "vote_reveal")
+📊 TRANSPARENCY MODE: All votes will be PUBLIC this round!
+
+⚠️ Consequences:
+- Everyone will see exactly who voted for whom
+- Alliance betrayals will be exposed immediately
+- Trust levels will shift dramatically after results
+- Future alliances may be impossible with certain players
+
+Think carefully - your vote will be remembered FOREVER.
+
+---
+
+💀 **ELIMINATION CHALLENGE** (if twist_type == "elimination_challenge")
+🎯 The player with most votes must survive a FINAL CHALLENGE to avoid elimination!
+
+Challenge Options:
+- 🎭 **LAST PLEA**: Convince one ally to change their vote (60 seconds)
+- 💰 **WEALTH GAMBLE**: Risk half your wealth on a coin flip to stay
+- 🤝 **ALLIANCE SACRIFICE**: An ally can volunteer to be eliminated instead
+- 🎪 **SKILL CHALLENGE**: Complete a strategic puzzle to earn salvation
+
+Choose your survival strategy wisely - this is your FINAL CHANCE!
+
+---
+
+⚡ PRESSURE INTENSIFIES: Whatever happens, the game will never be the same after this round.
+🎮 Adaptation is survival. Hesitation is elimination.
+💀 Someone's game ends tonight - make sure it's not yours! 

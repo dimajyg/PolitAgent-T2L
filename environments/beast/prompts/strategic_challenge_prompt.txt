@@ -1,0 +1,73 @@
+⚔️ STRATEGIC CHALLENGE - Round {current_round}
+
+🎮 CHALLENGE TYPE: {challenge_type}
+
+⏰ TIME LIMIT: Varies by challenge - Think fast, act faster!
+
+---
+
+📋 **RESOURCE AUCTION** (if challenge_type == "auction")
+🎯 Items available for bidding:
+- IMMUNITY IDOL: Protects from elimination this round
+- INTELLIGENCE REPORT: Learn 2 secrets about any player
+- WEALTH BOOST: Gain 50,000 in hidden wealth
+- INFLUENCE POWER: Gain 2 influence points for special actions
+
+💰 Bidding Rules:
+- Use your hidden wealth to bid
+- Highest bidder wins, but overpaying weakens you
+- Others will learn your approximate wealth from your bids
+- Strategic overbidding can mislead opponents about your resources
+
+---
+
+🤝 **PRISONER'S DILEMMA** (if challenge_type == "dilemma")
+🎯 Scenario: Choose COOPERATE or DEFECT with your alliance partners
+
+Outcomes:
+- ALL COOPERATE: Everyone gains 30,000 wealth
+- ALL DEFECT: Everyone loses 20,000 wealth  
+- MIXED: Defectors gain 50,000, Cooperators lose 30,000
+
+💡 Strategic considerations:
+- Test alliance loyalty under pressure
+- Defection can provide massive advantage
+- But betrayal destroys trust permanently
+- What would others expect you to do?
+
+---
+
+🎭 **TRUST TEST** (if challenge_type == "trust")
+🎯 Choose: REVEAL TRUTH or STRATEGIC LIE about your situation
+
+Truth rewards: Gain trust with other players, but reveal vulnerabilities
+Lie rewards: Maintain deception, but risk being caught and losing credibility
+
+Examples:
+- Claim false alliance memberships
+- Exaggerate or downplay your wealth
+- Pretend to have different information than you do
+- Act more confident or vulnerable than you are
+
+---
+
+💀 **SACRIFICE CHOICE** (if challenge_type == "sacrifice")
+🎯 The group must choose one player to lose significant resources for everyone else to benefit
+
+Options:
+- Volunteer yourself: Gain massive trust but lose resources
+- Target an enemy: Potentially eliminate a threat
+- Target an ally: Break trust but maintain strategic advantage
+- Force a vote: Create chaos and expose alliances
+
+⚠️ CRITICAL THINKING:
+- What does this challenge reveal about other players?
+- How can you use this to advance your position?
+- What will others expect you to do?
+- How can you surprise them with your choice?
+- What are the long-term consequences beyond this round?
+
+🧠 META-STRATEGY:
+Remember: These challenges are not just about the immediate rewards. They're intelligence gathering opportunities, trust tests, and chances to position yourself for the endgame. What you learn about others' choices may be more valuable than what you win.
+
+Choose carefully - your decision reveals as much about you as it gains you advantage. 

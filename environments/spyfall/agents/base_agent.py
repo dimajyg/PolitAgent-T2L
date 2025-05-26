@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional, Tuple
 import json
 import random
+import re
 
 from llm.base_chat import BaseChat
 
@@ -80,20 +81,28 @@ class BaseAgent:
 
     def describe(self) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
         """
-        Генерирует описание для текущей роли, используя структурированный вывод.
+        Генерирует описание для текущей роли, используя обычное JSON парсирование.
 
         Returns:
             Tuple[Optional[str], Optional[Dict[str, Any]]]: Описание и цепочка рассуждений.
         """
-        # Используем LangChain PromptTemplate со структурированным выводом
         role = "spy" if self.is_spy else "villager"
-        prompt = describe_prompt_template.format(
-            game_prompt=game_prompt_en,
-            players=json.dumps(self.players),
-            player_name=self.player_name,
-            role=role,
-            phrase=self.phrase
-        )
+        prompt = f"""
+        {game_prompt_en}
+        
+        Players: {json.dumps(self.players)}
+        Your name: {self.player_name}
+        Your role: {role}
+        Your phrase: {self.phrase}
+        
+        Generate a description about your word/phrase without directly saying it.
+        
+        Respond with a JSON object in this exact format:
+        {{
+            "thought": "Private reasoning about the strategy and role",
+            "speak": "Public statement about the word without directly saying it"
+        }}
+        """
         
         try:
             # Create a message format and use the invoke method
@@ -102,39 +111,60 @@ class BaseAgent:
             messages.extend(self.private_history)
             response = self.chatbot.invoke(messages).content
             
-            # Используем структурированный парсер вместо ручного парсинга JSON
-            parsed_output = describe_parser.parse(response)
-            # Преобразуем Pydantic модель в dict для совместимости
-            res = parsed_output.model_dump()
-            speak = res.get("speak")
-            return speak, res
+            # Add small delay to simulate thinking time
+            import time
+            time.sleep(0.1)
+            
+            # Try to parse JSON response
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                parsed_output = json.loads(json_str)
+                speak = parsed_output.get("speak", "")
+                return speak, parsed_output
+            
+            # If JSON parsing fails, extract speak content from response
+            speak = response.strip()
+            if len(speak) > 200:  # If too long, truncate
+                speak = speak[:200] + "..."
+            
+            return speak, {"thought": "Could not parse JSON", "speak": speak}
+            
         except Exception as e:
             print(f"Error parsing describe response: {e}")
-            # Пробуем резервный метод в случае ошибки
-            try:
-                response = self._strip_json_markers(response)
-                res = json.loads(response)
-                speak = res.get("speak")
-                return speak, res
-            except Exception:
-                return None, None
+            # Fallback description
+            if self.is_spy:
+                speak = "It's something you might encounter in daily life."
+            else:
+                speak = f"It's related to {self.phrase[0] if self.phrase else 'something familiar'}."
+            return speak, {"thought": "Error in processing", "speak": speak}
 
     def vote(self) -> Tuple[str, str, Optional[Dict[str, Any]]]:
         """
-        Генерирует голос агента, используя структурированный вывод.
+        Генерирует голос агента, используя обычное JSON парсирование.
 
         Returns:
             Tuple[str, str, Optional[Dict[str, Any]]]: Имя выбранного игрока, речь, цепочка рассуждений.
         """
-        # Используем LangChain PromptTemplate со структурированным выводом
         role = "spy" if self.is_spy else "villager"
         living_players = self._extract_living_players_from_history()
-        prompt = vote_prompt_template.format(
-            game_prompt=game_prompt_en,
-            player_name=self.player_name,
-            role=role,
-            living_players=json.dumps(living_players)
-        )
+        
+        prompt = f"""
+        {game_prompt_en}
+        
+        Your name: {self.player_name}
+        Your role: {role}
+        Living players: {json.dumps(living_players)}
+        
+        Vote for who you think is the spy. You must choose from the living players.
+        
+        Respond with a JSON object in this exact format:
+        {{
+            "thought": "Private reasoning about who might be the spy",
+            "speak": "Public statement explaining vote",
+            "name": "Name of player being voted for (must be in living_players)"
+        }}
+        """
         
         try:
             # Create a message format and use the invoke method
@@ -143,47 +173,60 @@ class BaseAgent:
             messages.extend(self.private_history)
             response = self.chatbot.invoke(messages).content
             
-            # Используем структурированный парсер вместо ручного парсинга JSON
-            parsed_output = vote_parser.parse(response)
-            # Преобразуем Pydantic модель в dict для совместимости
-            res = parsed_output.model_dump()
-            thought = res.get("thought")
-            speak = res.get("speak")
-            name = res.get("name")
+            # Add small delay to simulate thinking time
+            import time
+            time.sleep(0.1)
             
-            # Проверка валидности голоса
-            if living_players and name not in living_players:
-                name = random.choice(living_players)
-                thought = (thought or "") + f" [NOTE: Original vote was invalid, randomly selected {name} from living players]"
-                res["name"] = name
-                res["thought"] = thought
+            # Try to parse JSON response
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                parsed_output = json.loads(json_str)
+                
+                thought = parsed_output.get("thought", "")
+                speak = parsed_output.get("speak", "")
+                name = parsed_output.get("name", "")
+                
+                # Validate vote target
+                if name not in living_players and living_players:
+                    # Try to find a mentioned player in the response
+                    for player in living_players:
+                        if player.lower() in response.lower():
+                            name = player
+                            break
+                    else:
+                        name = random.choice(living_players)
+                        thought += f" [NOTE: Original vote was invalid, randomly selected {name}]"
+                
+                return name, speak, {"thought": thought, "speak": speak, "name": name}
             
-            return name, speak, res
+            # If JSON parsing fails, try to extract information from text
+            target = None
+            for player in living_players:
+                if player.lower() in response.lower():
+                    target = player
+                    break
+            
+            if not target and living_players:
+                target = random.choice(living_players)
+            
+            speak = response.strip()
+            if len(speak) > 100:
+                speak = speak[:100] + "..."
+            
+            thought = "Could not parse JSON response"
+            return target or "", speak, {"thought": thought, "speak": speak, "name": target}
+            
         except Exception as e:
             print(f"Error parsing vote response: {e}")
-            # Пробуем резервный метод в случае ошибки
-            try:
-                response = self._strip_json_markers(response)
-                res = json.loads(response)
-                thought = res.get("thought")
-                speak = res.get("speak")
-                name = res.get("name")
-                
-                # Проверка валидности голоса
-                if living_players and name not in living_players:
-                    name = random.choice(living_players)
-                    thought = (thought or "") + f" [NOTE: Original vote was invalid, randomly selected {name} from living players]"
-                
-                return name, speak, res
-            except Exception:
-                # В случае ошибки парсинга, если есть живые игроки, выбираем случайного
-                if living_players:
-                    name = random.choice(living_players)
-                    thought = f"Failed to parse my response, randomly selecting {name}"
-                    speak = f"I think {name} is suspicious"
-                    return name, speak, {"thought": thought, "speak": speak, "name": name}
-                else:
-                    return "", "", None
+            # Fallback vote
+            if living_players:
+                name = random.choice(living_players)
+                thought = f"Failed to parse response, randomly selecting {name}"
+                speak = f"I think {name} is suspicious"
+                return name, speak, {"thought": thought, "speak": speak, "name": name}
+            else:
+                return "", "", {"thought": "No living players", "speak": "", "name": ""}
 
     def _extract_living_players_from_history(self) -> List[str]:
         """
@@ -198,36 +241,42 @@ class BaseAgent:
                 try:
                     content = message["content"]
                     json_start = content.find('[')
-                    json_end = content.rfind(']') + 1
-                    if json_start >= 0 and json_end > json_start:
+                    if json_start != -1:
+                        json_end = content.find(']', json_start) + 1
                         json_str = content[json_start:json_end]
                         living_players = json.loads(json_str)
                         break
                 except Exception:
-                    living_players = self.players.copy()
-                    break
+                    continue
+        
+        # Fallback to all players except self if no living players found
         if not living_players:
-            living_players = self.players.copy()
+            living_players = [p for p in self.players if p != self.player_name]
+        
         return living_players
 
     @staticmethod
     def _strip_json_markers(text: str) -> str:
-        """Удаляет markdown-ограничители из json-ответа."""
-        if text.startswith('```json'):
-            text = text[7:]
-        if text.endswith('```'):
-            text = text[:-3]
-        return text.strip()
+        """
+        Удаляет маркеры JSON блоков из текста.
+
+        Args:
+            text (str): Исходный текст.
+
+        Returns:
+            str: Очищенный текст.
+        """
+        return text.replace('```json', '').replace('```', '').strip()
 
     @staticmethod
     def _messages_to_prompt(messages: List[Dict[str, str]]) -> str:
-        """Преобразует список сообщений в строку-промпт."""
-        prompt = ""
-        for message in messages:
-            if message["role"] == "system":
-                prompt += "system: " + message["content"] + "\n"
-            elif message["role"] == "assistant":
-                prompt += "assistant: " + message["content"] + "\n"
-            else:
-                prompt += message["content"] + "\n"
-        return prompt
+        """
+        Преобразует список сообщений в один промпт.
+
+        Args:
+            messages (List[Dict[str, str]]): Список сообщений.
+
+        Returns:
+            str: Объединенный промпт.
+        """
+        return "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])

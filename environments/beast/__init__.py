@@ -6,7 +6,16 @@ to accumulate the most wealth. The environment uses LangChain for all prompt
 templating and LLM interactions.
 """
 
-from environments.beast.game import BeastGame
-from environments.beast.agents.base_agent import BeastAgent
+from .game import run_beast_game, run_enhanced_beast_game, EnhancedBeastGame, BeastGame
+from .agents.base_agent import BeastAgent, SecretRole, ChallengeType, TrustLevel
 
-__all__ = ["BeastGame", "BeastAgent"]
+__all__ = [
+    "run_beast_game", 
+    "run_enhanced_beast_game",
+    "EnhancedBeastGame",
+    "BeastGame",
+    "BeastAgent", 
+    "SecretRole", 
+    "ChallengeType", 
+    "TrustLevel"
+]

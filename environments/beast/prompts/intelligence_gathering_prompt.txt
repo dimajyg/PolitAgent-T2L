@@ -1,0 +1,35 @@
+🔍 INTELLIGENCE GATHERING PHASE - Round {current_round}
+
+⏰ TIME LIMIT: 3 minutes - Choose wisely and quickly!
+
+You can investigate 2 other players to discover their secrets. Choose strategically based on:
+- Who seems to be hiding the most valuable information?
+- Who might be planning to eliminate you?
+- Who could be valuable allies or dangerous enemies?
+
+🎯 INVESTIGATION OPTIONS:
+For each player you investigate, you may discover:
+- Their approximate wealth level (rich/medium/poor)
+- Any secret alliances they've formed
+- Their planned elimination vote
+- Rumors they're spreading about others
+- Their secret role abilities (rare)
+
+🗣️ MISINFORMATION CAMPAIGN:
+You can also spread FALSE information about any player. Be creative:
+- Claim someone is much richer/poorer than they appear
+- Suggest fake alliances or betrayals
+- Plant suspicion about someone's role or intentions
+- Create false urgency or threats
+
+⚠️ RISK WARNING:
+If caught spreading lies, your trust rating with other players will decrease. But successful misinformation can eliminate threats and create chaos among your enemies.
+
+🧠 STRATEGIC CONSIDERATIONS:
+- Early rounds: Gather information, build trust
+- Middle rounds: Start spreading strategic misinformation
+- Late rounds: Use everything you know for survival
+
+Choose 2 players to investigate and decide what misinformation (if any) to spread.
+
+Remember: Information is power, but lies are weapons. Use both wisely! 

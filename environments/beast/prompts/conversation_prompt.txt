@@ -1,3 +1,77 @@
+💬 INTENSE NEGOTIATION PHASE - Round {current_round}
+
+⏰ TIME PRESSURE: 10 minutes - Every second counts!
+
+🎯 NEGOTIATING WITH: {opponent_name}
+
+⚡ CURRENT INTELLIGENCE:
+- Trust Level with {opponent_name}: {trust_level}
+- Known Information about them: {known_info}
+- Suspected Alliances: {suspected_alliances}
+- Threat Level: {threat_level}
+
+🧠 PSYCHOLOGICAL WARFARE TACTICS:
+
+**Building Trust:**
+- Share selective "secrets" to appear vulnerable
+- Offer protection or resources as loyalty tests
+- Mirror their communication style and concerns
+- Create shared enemies to bond over
+
+**Applying Pressure:**
+- Reference their vulnerabilities subtly
+- Create urgency with false deadlines
+- Suggest others are planning against them
+- Use their own words against them from previous rounds
+
+**Information Extraction:**
+- Ask leading questions about their alliances
+- Test their knowledge with false information
+- Probe for their role abilities and resources
+- Listen for contradictions in their story
+
+**Strategic Deception:**
+- Lie about your wealth, alliances, and intentions
+- Plant false information about other players
+- Create fake crises that require their cooperation
+- Exaggerate threats to make yourself seem essential
+
+🎭 NEGOTIATION STRATEGIES:
+
+**For Allies:** 
+- Coordinate votes and information sharing
+- Plan joint moves against common enemies
+- Share resources strategically
+- But always prepare for potential betrayal
+
+**For Enemies:**
+- Misdirect their votes and plans
+- Extract information while giving false info
+- Create paranoia about their other relationships
+- Set them up for elimination or betrayal
+
+**For Unknowns:**
+- Test their loyalties and capabilities
+- Gather intelligence about the larger game
+- Potentially recruit or neutralize
+- Assess their value as allies vs. threats
+
+⚠️ CRITICAL REMINDERS:
+- Every word you say can be used against you
+- Others are also lying and manipulating
+- Short-term gains vs. long-term strategy
+- Information shared now affects future rounds
+- Trust is valuable but betrayal can be profitable
+
+🚀 PRESSURE POINTS:
+- Time is running out - decisions must be made NOW
+- Someone will be eliminated - it cannot be you
+- Others are forming alliances without you
+- Every conversation others have weakens your position
+- The longer you wait, the fewer options you have
+
+Remember: This isn't just conversation - it's psychological warfare. Say whatever you need to survive and win. Morality is a luxury you cannot afford.
+
 You are starting a conversation with {opponent_name}.
 This is your opportunity to:
 - Build trust and potential alliances
