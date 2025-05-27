@@ -1,31 +1,24 @@
-# @package model
-
 name: "ollama"
 provider: "ollama"
 
-# Параметры подключения
 connection:
   base_url: "http://localhost:11434"
   timeout: 60
 
-# Настройки модели
 settings:
   temperature: 0.7
   max_tokens: 4096
   top_p: 0.9
   top_k: 40
 
-# Доступные модели
 available_models:
   - "gemma3:latest"
   - "llama3.1:latest"
   - "gemma:2b"
   - "gemma2:2b"
 
-# Модель по умолчанию
 default_model: "gemma3:latest"
 
-# Специфичные настройки для Ollama
 ollama_specific:
   stream: false
   format: "json"

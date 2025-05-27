@@ -1,9 +1,6 @@
-# @package game
-
 name: "spyfall"
 type: "social_deduction"
 
-# Параметры игры
 settings:
   label_path: "environments/spyfall/prompts/labels.txt"
   n: 10
@@ -11,12 +8,10 @@ settings:
   embedding_model_name: "text-embedding-3-large"
   perplexity_model: "auto"
 
-# Роли
 roles:
   spy_model_name: ${model.name}
   villager_model_name: ${model.name}
 
-# Оценка
 evaluation:
   metrics:
     - "spy_win_rate"

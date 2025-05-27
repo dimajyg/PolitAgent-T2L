@@ -1,5 +1,3 @@
-# @package experiment
-
 name: "model_comparison"
 description: "Сравнение производительности разных моделей"
 

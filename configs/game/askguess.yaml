@@ -1,23 +1,19 @@
-# @package game
 
 name: "askguess"
 type: "question_answer"
 
-# Параметры игры
 settings:
   label_path: "environments/askguess/test_labels.json"
   mode: "hard"
   max_rounds: 10
   n: 1
 
-# Оценка
 evaluation:
   metrics:
     - "success_rate"
     - "average_rounds"
     - "question_quality"
   
-# Специфичные настройки
 askguess_specific:
   difficulty_levels: ["easy", "medium", "hard"]
   categories: ["animals", "objects", "concepts"] 
