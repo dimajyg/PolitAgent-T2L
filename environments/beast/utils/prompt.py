@@ -2,17 +2,15 @@
 Module for loading and providing prompts for the Beast game using LangChain PromptTemplate.
 """
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Union
 import logging
 
-# Import compatibility layer for different LangChain versions
 try:
     from langchain_core.prompts import PromptTemplate
 except ImportError:
     try:
         from langchain.prompts import PromptTemplate
     except ImportError:
-        # Fallback for very old versions or when langchain is not available
         class PromptTemplate:
             def __init__(self, template: str, input_variables: List[str] = None):
                 self.template = template
@@ -38,7 +36,6 @@ def load_prompt(filename: str) -> str:
     """
     prompt_path = PROMPT_DIR / filename
     
-    # Check if file exists
     if not prompt_path.exists():
         logging.error(f"Prompt file '{filename}' not found in {PROMPT_DIR}")
         raise FileNotFoundError(f"Prompt file '{filename}' not found in {PROMPT_DIR}")
@@ -126,10 +123,8 @@ def get_current_wealth_prompt(wealth: Dict[str, int]) -> str:
     Returns:
         str: The formatted wealth prompt.
     """
-    # Format the wealth status as a string
     wealth_status = ''.join(f"{player} has {amount}\n" for player, amount in wealth.items())
     
-    # Use the template
     return format_prompt(get_wealth_status_template(), wealth_status=wealth_status)
 
 def get_voting_prompt(voting_results: Dict[str, int]) -> str:
@@ -141,9 +136,7 @@ def get_voting_prompt(voting_results: Dict[str, int]) -> str:
     Returns:
         str: The formatted voting results prompt.
     """
-    # Format the voting results as a string
     voting_results_str = ''.join(f"{player} has {votes}\n" for player, votes in voting_results.items())
     
-    # Use the template
     return format_prompt(get_voting_results_template(), voting_results=voting_results_str)
     

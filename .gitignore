@@ -6,3 +6,5 @@ venv/
 .env
 benchmark_results/
 .DS_Store
+outputs/
+results/

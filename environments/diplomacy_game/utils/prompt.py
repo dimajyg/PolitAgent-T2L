@@ -1,7 +1,6 @@
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 
-# Role-specific prompts
 def get_diplomacy_role_prompt(power_name: str) -> str:
     """Prompt to set the role of a Diplomacy power."""
     return f"""You are playing the game of Diplomacy as {power_name}. 

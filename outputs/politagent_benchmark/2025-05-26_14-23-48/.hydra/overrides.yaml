@@ -1,4 +1,0 @@
-- experiment=full_benchmark
-- model.default_model=gemma:latest
-- experiment.runs_per_game=1
-- experiment.max_phrases=2

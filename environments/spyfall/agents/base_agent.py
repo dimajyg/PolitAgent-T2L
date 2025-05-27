@@ -5,30 +5,26 @@ import re
 
 from llm.base_chat import BaseChat
 
-from environments.spyfall.utils.prompt import (
-    game_prompt_en, game_prompt_template, 
-    describe_prompt_template, vote_prompt_template,
-    describe_parser, vote_parser
-)
+from environments.spyfall.utils.prompt import game_prompt_en
 
 class BaseAgent:
     """
-    Базовый агент Spyfall, использующий LangChain-совместимый чат.
+    Base Spyfall agent using LangChain-compatible chat.
 
     Args:
-        chatbot (BaseChat): Объект чата (OpenAIChatModel, MistralChatModel и др.).
-        player_name (str): Имя игрока.
-        players (List[str]): Список всех игроков.
-        phrase (str): Слово/фраза для роли.
-        is_spy (bool): Является ли агент шпионом.
+        chatbot (BaseChat): Chat object (OpenAIChatModel, MistralChatModel, etc.).
+        player_name (str): Player name.
+        players (List[str]): List of all players.
+        phrase (str): Word/phrase for the role.
+        is_spy (bool): Whether the agent is a spy.
 
     Attributes:
-        chatbot (BaseChat): Чат-LLM.
-        player_name (str): Имя игрока.
-        players (List[str]): Список игроков.
-        phrase (str): Слово для роли.
-        is_spy (bool): Флаг шпиона.
-        private_history (List[Dict[str, str]]): Приватная история сообщений.
+        chatbot (BaseChat): Chat-LLM.
+        player_name (str): Player name.
+        players (List[str]): List of players.
+        phrase (str): Word for the role.
+        is_spy (bool): Spy flag.
+        private_history (List[Dict[str, str]]): Private message history.
     """
 
     def __init__(
@@ -47,32 +43,29 @@ class BaseAgent:
         self.private_history: List[Dict[str, str]] = []
 
     def get_role_description(self) -> str:
-        """Возвращает строку-описание роли."""
+        """Returns a string-description of the role."""
         role = "spy" if self.is_spy else "villager"
         return f"A {role} in the Spyfall game with the phrase: {self.phrase}"
 
     def chat(self, context: str) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
         """
-        Общение с LLM по текущему контексту.
+        Communicating with LLM on the current context.
 
         Args:
-            context (str): Контекст для LLM.
+            context (str): Context for LLM.
 
         Returns:
-            Tuple[Optional[str], Optional[Dict[str, Any]]]: Ответ и цепочка рассуждений.
+            Tuple[Optional[str], Optional[Dict[str, Any]]]: Response and reasoning chain.
         """
-        # Формируем историю сообщений для LLM
         messages = [
             {"role": "system", "content": game_prompt_en},
             {"role": "user", "content": context + "\n\nGame history so far:"},
-            *self.private_history,  # Complete dialogue history of the game
+            *self.private_history, 
         ]
         
         try:
-            # Use the invoke method consistently across all methods
             response = self.chatbot.invoke(messages).content
                 
-            # Парсим ответ как JSON
             cot = json.loads(response)
             return cot.get("answer", ""), cot
         except Exception as e:
@@ -81,10 +74,10 @@ class BaseAgent:
 
     def describe(self) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
         """
-        Генерирует описание для текущей роли, используя обычное JSON парсирование.
+        Generates a description for the current role, using regular JSON parsing.
 
         Returns:
-            Tuple[Optional[str], Optional[Dict[str, Any]]]: Описание и цепочка рассуждений.
+            Tuple[Optional[str], Optional[Dict[str, Any]]]: Description and reasoning chain.
         """
         role = "spy" if self.is_spy else "villager"
         prompt = f"""
@@ -105,17 +98,13 @@ class BaseAgent:
         """
         
         try:
-            # Create a message format and use the invoke method
             messages = [{"role": "user", "content": prompt}]
-            # Add private history to the messages
             messages.extend(self.private_history)
             response = self.chatbot.invoke(messages).content
             
-            # Add small delay to simulate thinking time
             import time
             time.sleep(0.1)
             
-            # Try to parse JSON response
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
             if json_match:
                 json_str = json_match.group(0)
@@ -123,31 +112,34 @@ class BaseAgent:
                 speak = parsed_output.get("speak", "")
                 return speak, parsed_output
             
-            # If JSON parsing fails, extract speak content from response
             speak = response.strip()
-            if len(speak) > 200:  # If too long, truncate
+            if len(speak) > 200:
                 speak = speak[:200] + "..."
             
             return speak, {"thought": "Could not parse JSON", "speak": speak}
             
         except Exception as e:
             print(f"Error parsing describe response: {e}")
-            # Fallback description
             if self.is_spy:
                 speak = "It's something you might encounter in daily life."
             else:
-                speak = f"It's related to {self.phrase[0] if self.phrase else 'something familiar'}."
+                first_letter = self.phrase[0] if self.phrase and len(self.phrase) > 0 else "i"
+                speak = f"It's related to something that starts with '{first_letter}'."
             return speak, {"thought": "Error in processing", "speak": speak}
 
     def vote(self) -> Tuple[str, str, Optional[Dict[str, Any]]]:
         """
-        Генерирует голос агента, используя обычное JSON парсирование.
+        Generates an agent's vote, using regular JSON parsing.
 
         Returns:
-            Tuple[str, str, Optional[Dict[str, Any]]]: Имя выбранного игрока, речь, цепочка рассуждений.
+            Tuple[str, str, Optional[Dict[str, Any]]]: Name of the chosen player, speech, reasoning chain.
         """
         role = "spy" if self.is_spy else "villager"
         living_players = self._extract_living_players_from_history()
+        
+        if not living_players and self.players:
+            living_players = self.players.copy()
+            print(f"Warning: No living players found in history for {self.player_name}. Using all players.")
         
         prompt = f"""
         {game_prompt_en}
@@ -156,7 +148,7 @@ class BaseAgent:
         Your role: {role}
         Living players: {json.dumps(living_players)}
         
-        Vote for who you think is the spy. You must choose from the living players.
+        Vote for who you think is the spy. You MUST choose from the living players list.
         
         Respond with a JSON object in this exact format:
         {{
@@ -166,74 +158,107 @@ class BaseAgent:
         }}
         """
         
-        try:
-            # Create a message format and use the invoke method
-            messages = [{"role": "user", "content": prompt}]
-            # Add private history to the messages
-            messages.extend(self.private_history)
-            response = self.chatbot.invoke(messages).content
-            
-            # Add small delay to simulate thinking time
-            import time
-            time.sleep(0.1)
-            
-            # Try to parse JSON response
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(0)
-                parsed_output = json.loads(json_str)
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                messages = [{"role": "system", "content": "You are playing Spyfall. Always respond with valid JSON."}, 
+                           {"role": "user", "content": prompt}]
                 
-                thought = parsed_output.get("thought", "")
-                speak = parsed_output.get("speak", "")
-                name = parsed_output.get("name", "")
+                if self.private_history:
+                    for msg in self.private_history[-5:]: 
+                        messages.append(msg)
                 
-                # Validate vote target
-                if name not in living_players and living_players:
-                    # Try to find a mentioned player in the response
-                    for player in living_players:
-                        if player.lower() in response.lower():
-                            name = player
-                            break
+                import time
+                start_time = time.time()
+                timeout = 20
+                
+                try:
+                    response = self.chatbot.invoke(messages).content
+                    elapsed = time.time() - start_time
+                    print(f"Vote response received in {elapsed:.2f}s")
+                except Exception as timeout_err:
+                    if attempt < max_retries:
+                        print(f"Timeout or error in vote attempt {attempt+1}, retrying: {timeout_err}")
+                        time.sleep(1)
+                        continue
                     else:
-                        name = random.choice(living_players)
-                        thought += f" [NOTE: Original vote was invalid, randomly selected {name}]"
+                        raise timeout_err
                 
-                return name, speak, {"thought": thought, "speak": speak, "name": name}
-            
-            # If JSON parsing fails, try to extract information from text
-            target = None
-            for player in living_players:
-                if player.lower() in response.lower():
-                    target = player
-                    break
-            
-            if not target and living_players:
-                target = random.choice(living_players)
-            
-            speak = response.strip()
-            if len(speak) > 100:
-                speak = speak[:100] + "..."
-            
-            thought = "Could not parse JSON response"
-            return target or "", speak, {"thought": thought, "speak": speak, "name": target}
-            
-        except Exception as e:
-            print(f"Error parsing vote response: {e}")
-            # Fallback vote
-            if living_players:
-                name = random.choice(living_players)
-                thought = f"Failed to parse response, randomly selecting {name}"
-                speak = f"I think {name} is suspicious"
-                return name, speak, {"thought": thought, "speak": speak, "name": name}
-            else:
-                return "", "", {"thought": "No living players", "speak": "", "name": ""}
+                json_match = re.search(r'\{.*\}', response, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(0)
+                    parsed_output = json.loads(json_str)
+                    
+                    thought = parsed_output.get("thought", "")
+                    speak = parsed_output.get("speak", "")
+                    name = parsed_output.get("name", "")
+                    
+                    if name not in living_players and living_players:
+                        for player in living_players:
+                            if player.lower() in response.lower():
+                                name = player
+                                break
+                        else:
+                            name = random.choice(living_players)
+                            thought += f" [NOTE: Original vote was invalid, randomly selected {name}]"
+                    
+                    return name, speak, {"thought": thought, "speak": speak, "name": name}
+                
+                target = None
+                for player in living_players:
+                    if player.lower() in response.lower():
+                        target = player
+                        break
+                
+                if not target and living_players:
+                    target = random.choice(living_players)
+                
+                speak = "I suspect " + target if target else "I'm not sure who to vote for"
+                if "suspicious" in response.lower():
+                    speak = f"I think {target} is suspicious"
+                
+                thought = "Could not parse JSON response"
+                return target or "", speak, {"thought": thought, "speak": speak, "name": target}
+                
+            except Exception as e:
+                if attempt < max_retries:
+                    print(f"Error in vote attempt {attempt+1}, retrying: {e}")
+                    time.sleep(1)
+                    continue
+                else:
+                    print(f"Error parsing vote response after {max_retries+1} attempts: {e}")
+                    if living_players:
+                        if self.is_spy:
+                            name = random.choice(living_players)
+                            thought = "As the spy, I'm randomly selecting someone to avoid suspicion"
+                            speak = f"I think {name} is acting very suspicious. Their description seemed off."
+                        else:
+                            suspicious_players = []
+                            for msg in self.private_history:
+                                content = msg.get("content", "")
+                                if "it's your turn" not in content.lower() and ":" in content:
+                                    parts = content.split(":", 1)
+                                    if len(parts) == 2 and parts[0] in living_players:
+                                        suspicious_players.append(parts[0])
+                            
+                            if suspicious_players:
+                                name = random.choice(suspicious_players)
+                            else:
+                                name = random.choice(living_players)
+                            
+                            thought = f"Failed to parse response. Selected {name} based on available information."
+                            speak = f"I think {name} is suspicious based on their vague description"
+                        
+                        return name, speak, {"thought": thought, "speak": speak, "name": name}
+                    else:
+                        return "", "I don't know who to vote for", {"thought": "No living players found", "speak": "I don't know who to vote for", "name": ""}
 
     def _extract_living_players_from_history(self) -> List[str]:
         """
-        Извлекает список живых игроков из истории сообщений.
+        Extracts a list of living players from the message history.
 
         Returns:
-            List[str]: Список живых игроков.
+            List[str]: List of living players.
         """
         living_players = []
         for message in reversed(self.private_history):
@@ -249,7 +274,6 @@ class BaseAgent:
                 except Exception:
                     continue
         
-        # Fallback to all players except self if no living players found
         if not living_players:
             living_players = [p for p in self.players if p != self.player_name]
         
@@ -258,25 +282,25 @@ class BaseAgent:
     @staticmethod
     def _strip_json_markers(text: str) -> str:
         """
-        Удаляет маркеры JSON блоков из текста.
+        Removes JSON block markers from the text.
 
         Args:
-            text (str): Исходный текст.
+            text (str): Original text.
 
         Returns:
-            str: Очищенный текст.
+            str: Cleaned text.
         """
         return text.replace('```json', '').replace('```', '').strip()
 
     @staticmethod
     def _messages_to_prompt(messages: List[Dict[str, str]]) -> str:
         """
-        Преобразует список сообщений в один промпт.
+        Converts a list of messages into a single prompt.
 
         Args:
-            messages (List[Dict[str, str]]): Список сообщений.
+            messages (List[Dict[str, str]]): List of messages.
 
         Returns:
-            str: Объединенный промпт.
+            str: Combined prompt.
         """
         return "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])

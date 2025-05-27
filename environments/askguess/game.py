@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 
 class AskGuessGame(Game):
     """
-    Основная реализация игры AskGuess, где один агент пытается угадать слово,
-    задавая вопросы, а другой отвечает на них.
+    Main implementation of the AskGuess game, where one agent tries to guess a word
+    by asking questions, and another agent answers them.
     
     Args:
-        args: Аргументы игры (режим, настройки и т.д.)
-        model: Языковая модель (LangChain-совместимая)
+        args: Game arguments (mode, settings, etc.)
+        model: Language model (LangChain-compatible)
     """
     def __init__(self, args, model):
         super().__init__(args)
@@ -34,7 +34,7 @@ class AskGuessGame(Game):
         self.question_agent = None
         self.max_rounds = getattr(args, 'max_rounds', 10)  # Default to 10 rounds for benchmark
         self.qa_history = []
-        logger.info(f"Инициализирована игра AskGuess с моделью: {model.__class__.__name__}")
+        logger.info(f"Initialized AskGuess game with model: {model.__class__.__name__}")
         
         # Инициализация системы метрик
         self.metrics = AskGuessMetrics(metadata={
@@ -49,7 +49,7 @@ class AskGuessGame(Game):
             if evaluator_model is None:
                 evaluator_model = model
             self.metrics.enable_llm_evaluation(evaluator_model)
-            logger.info("LLM-оценка игрового процесса включена")
+            logger.info("LLM game process evaluation enabled")
         
         # Устанавливаем режим игры и количество раундов в метриках
         self.metrics.set_game_mode(getattr(args, 'mode', 'standard'))
@@ -57,13 +57,13 @@ class AskGuessGame(Game):
 
     def init_game(self, word):
         """
-        Инициализирует игру с заданным словом.
+        Initializes the game with the given word.
         
         Args:
-            word: Слово, которое нужно угадать
+            word: Word to be guessed
         """
         self.word = word.replace("_", " ")
-        logger.info(f"Инициализация игры AskGuess со словом: {self.word}")
+        logger.info(f"Initializing AskGuess game with word: {self.word}")
         
         # Запись начала игры и целевого слова в метрики
         self.metrics.set_target_word(self.word)
@@ -89,15 +89,14 @@ class AskGuessGame(Game):
 
     def game_loop(self, log_file):
         """
-        Основной игровой цикл, выполняющий до max_rounds раундов вопросов и ответов.
+        Main game loop, executing up to max_rounds of questions and answers.
         
         Args:
-            log_file: Файл для записи логов игры
+            log_file: File for logging game events
             
         Returns:
-            Словарь с результатами игры
+            Dictionary with game results
         """
-        # Describing Stage (только для режима easy)
         if self.args.mode == "easy" and self.game_round == 0:
             result = self.handle_description_stage(log_file)
             if isinstance(result, dict):
@@ -188,21 +187,17 @@ class AskGuessGame(Game):
                 return result_dict
                 
             elif isinstance(result, dict):
-                # Обнаружен конец игры (успех или ошибка)
                 is_success = result.get("error_type") == "SuccessfulTrial"
                 
-                # Запись конца игры в метрики
                 self.metrics.record_event(
                     self.metrics.EVENT_GAME_END,
                     success=is_success,
                     error=None if is_success else result.get("error_type", "Unknown")
                 )
                 
-                # Если включена LLM-оценка, проводим оценку итогов игры
                 if self.metrics.use_llm_evaluation:
                     self.metrics.evaluate_game()
                 
-                # Добавляем метрики к результату
                 result["metrics"] = self.metrics.compute_all()
                 result["metrics_file"] = self._save_metrics()
                 
@@ -211,23 +206,23 @@ class AskGuessGame(Game):
             # Небольшая пауза между раундами
             sleep(1)
             
-        # Игра завершена по достижению максимального числа раундов
-        # Запись конца игры в метрики
+        # If we've reached the maximum number of rounds without a result
+        logger.info(f"Maximum rounds ({self.max_rounds}) reached without guessing the word")
+        
         self.metrics.record_event(
             self.metrics.EVENT_GAME_END,
-            success=True,
-            reason="RoundLimitSuccess"
+            success=False,
+            error="RoundLimitError"
         )
         
-        # Если включена LLM-оценка, проводим оценку итогов игры
         if self.metrics.use_llm_evaluation:
             self.metrics.evaluate_game()
         
         result_dict = {
-            "object": self.word, 
-            "round": self.game_round + 1,  # +1 так как индексация с 0
+            "object": self.word,
+            "round": self.max_rounds,
             "qa_history": self.qa_history,
-            "error_type": "RoundLimitSuccess",
+            "error_type": "RoundLimitError",
             "metrics": self.metrics.compute_all(),
             "metrics_file": self._save_metrics()
         }
@@ -235,282 +230,327 @@ class AskGuessGame(Game):
         return result_dict
 
     def handle_description_stage(self, log_file):
-        sleep(2)
+        """
+        Handles the description stage (only in easy mode).
         
-        # Запись начала хода
+        Args:
+            log_file: File for logging game events
+            
+        Returns:
+            True if successful, or dict with error information if failed
+        """
+        logger.info("Starting description stage")
+        
+        host_message = create_message("user", get_host_description_prompt())
+        self.answer_agent.update_history(host_message)
+        self.question_agent.update_history(host_message)
+        
         self.metrics.record_event(
             self.metrics.EVENT_TURN_START,
-            stage="description",
-            agent="answer_agent"
+            agent="answer_agent",
+            stage="description"
         )
         
-        # Запись взаимодействия с моделью
-        start_time = time.time()
-        description = self.answer_agent.play()
-        response_time = time.time() - start_time
-        
-        if description is None:
-            # Запись ошибки
+        try:
+            start_time = time.time()
+            answer_response = self.answer_agent.answer()
+            response_time = time.time() - start_time
+            
+            if self.check_word_mention(answer_response):
+                logger.warning(f"Answer agent mentioned the word directly: {answer_response}")
+                
+                self.metrics.record_event(
+                    self.metrics.EVENT_TURN_END,
+                    agent="answer_agent",
+                    stage="description",
+                    success=False,
+                    error="word_mentioned"
+                )
+                
+                return {
+                    "object": self.word,
+                    "round": 0,
+                    "qa_history": [],
+                    "error_type": "AnswerMentionedError"
+                }
+            
             self.metrics.record_model_interaction(
                 agent_name="answer_agent",
-                request="get_description",
-                response="ERROR: Failed to get description",
+                request="describe",
+                response=answer_response,
                 model_name=getattr(self.model, "__class__.__name__", "unknown"),
                 latency=response_time
             )
             
-            # Запись конца хода
             self.metrics.record_event(
                 self.metrics.EVENT_TURN_END,
-                stage="description",
                 agent="answer_agent",
-                success=False
+                stage="description",
+                success=True
             )
             
-            return {"object": self.word, "round": -1, "error_type": "ChatError"}
-
-        # Запись успешного взаимодействия с моделью
-        self.metrics.record_model_interaction(
-            agent_name="answer_agent",
-            request="get_description",
-            response=description,
-            model_name=getattr(self.model, "__class__.__name__", "unknown"),
-            latency=response_time
-        )
-
-        if self.check_word_mention(description.lower()):
-            # Запись конца хода с ошибкой
+            answer_message = f"Answerer: {answer_response}"
+            if log_file:
+                log_file.write(answer_message + "\n")
+            logger.info(answer_message)
+            
+            answer_msg_for_answerer = create_message("assistant", answer_response)
+            answer_msg_for_questioner = create_message("user", answer_response)
+            
+            self.answer_agent.update_history(answer_msg_for_answerer)
+            self.question_agent.update_history(answer_msg_for_questioner)
+            
+            self.qa_history.append({
+                "role": "answerer",
+                "content": answer_response
+            })
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error in description stage: {str(e)}")
+            
             self.metrics.record_event(
                 self.metrics.EVENT_TURN_END,
-                stage="description",
                 agent="answer_agent",
+                stage="description",
                 success=False,
-                error="AnswerMentionedError"
-            )
-            
-            return {"object": self.word, "round": -1, "error_type": "AnswerMentionedError"}
-
-        self.log_message(log_file, f"description: {description}")
-        questioner_message = create_message("user", description)
-        answerer_message = create_message("assistant", description)
-        self.answer_agent.update_history(answerer_message)
-        self.question_agent.update_history(questioner_message)
-        
-        # Запись конца хода
-        self.metrics.record_event(
-            self.metrics.EVENT_TURN_END,
-            stage="description",
-            agent="answer_agent",
-            success=True
-        )
-        
-        return True
-
-    def handle_qa_stage(self, log_file):
-        # Get question
-        
-        # Запись начала хода для вопроса
-        self.metrics.record_event(
-            self.metrics.EVENT_TURN_START,
-            stage="question",
-            agent="question_agent",
-            round=self.game_round + 1
-        )
-        
-        sleep(2)
-        
-        # Замер времени для вопроса
-        start_time = time.time()
-        question, thinking = self.question_agent.play_with_thinking()
-        response_time = time.time() - start_time
-        
-        if question is None:
-            # Запись ошибки взаимодействия с моделью
-            self.metrics.record_model_interaction(
-                agent_name="question_agent",
-                request="get_question",
-                response="ERROR: Failed to get question",
-                model_name=getattr(self.model, "__class__.__name__", "unknown"),
-                latency=response_time
-            )
-            
-            # Запись конца хода с ошибкой
-            self.metrics.record_event(
-                self.metrics.EVENT_TURN_END,
-                stage="question",
-                agent="question_agent",
-                round=self.game_round + 1,
-                success=False
-            )
-            
-            return False
-
-        # Запись успешного взаимодействия с моделью для вопроса
-        self.metrics.record_model_interaction(
-            agent_name="question_agent",
-            request="get_question",
-            response=question,
-            model_name=getattr(self.model, "__class__.__name__", "unknown"),
-            latency=response_time
-        )
-        
-        # Запись вопроса в метрики
-        self.metrics.record_question(
-            question=question,
-            round_num=self.game_round + 1,
-            thinking=thinking
-        )
-
-        self.log_message(log_file, f"question: {question}")
-        questioner_message = create_message("assistant", question)
-        answerer_message = create_message("user", question)
-        self.answer_agent.update_history(answerer_message)
-        self.question_agent.update_history(questioner_message)
-        
-        # Запись конца хода для вопроса
-        self.metrics.record_event(
-            self.metrics.EVENT_TURN_END,
-            stage="question",
-            agent="question_agent",
-            round=self.game_round + 1,
-            success=True
-        )
-
-        # Get answer
-        
-        # Запись начала хода для ответа
-        self.metrics.record_event(
-            self.metrics.EVENT_TURN_START,
-            stage="answer",
-            agent="answer_agent",
-            round=self.game_round + 1
-        )
-        
-        sleep(2)
-        
-        # Замер времени для ответа
-        start_time = time.time()
-        answer = self.answer_agent.play()
-        response_time = time.time() - start_time
-        
-        if answer is None:
-            # Запись ошибки взаимодействия с моделью
-            self.metrics.record_model_interaction(
-                agent_name="answer_agent",
-                request="get_answer",
-                response="ERROR: Failed to get answer",
-                model_name=getattr(self.model, "__class__.__name__", "unknown"),
-                latency=response_time
-            )
-            
-            # Запись конца хода с ошибкой
-            self.metrics.record_event(
-                self.metrics.EVENT_TURN_END,
-                stage="answer",
-                agent="answer_agent",
-                round=self.game_round + 1,
-                success=False
-            )
-            
-            return False
-
-        # Запись успешного взаимодействия с моделью для ответа
-        self.metrics.record_model_interaction(
-            agent_name="answer_agent",
-            request="get_answer",
-            response=answer,
-            model_name=getattr(self.model, "__class__.__name__", "unknown"),
-            latency=response_time
-        )
-        
-        # Запись ответа в метрики
-        self.metrics.record_answer(
-            answer=answer,
-            round_num=self.game_round + 1
-        )
-
-        self.log_message(log_file, f"answer: {answer}")
-        questioner_message = create_message("user", answer)
-        answerer_message = create_message("assistant", answer)
-        self.answer_agent.update_history(answerer_message)
-        self.question_agent.update_history(questioner_message)
-        
-        # Запись конца хода для ответа
-        self.metrics.record_event(
-            self.metrics.EVENT_TURN_END,
-            stage="answer",
-            agent="answer_agent",
-            round=self.game_round + 1,
-            success=True
-        )
-        
-        # Store QA in history
-        self.qa_history.append({"question": question, "answer": answer})
-
-        # Check game end conditions
-        if "gameover" in answer.lower() or "game over" in answer.lower():
-            is_correct = self.word.lower() in question.lower()
-            
-            # Запись догадки в метрики
-            self.metrics.record_guess(
-                guess=question,
-                is_correct=is_correct,
-                round_num=self.game_round + 1,
-                thinking=thinking if 'thinking' in locals() else None
-            )
-            
-            if is_correct:
-                return {
-                    "object": self.word, 
-                    "round": self.game_round + 1,  # +1 так как индексация с 0
-                    "qa_history": self.qa_history,
-                    "error_type": "SuccessfulTrial"
-                }
-            else:
-                return {
-                    "object": self.word, 
-                    "round": -1, 
-                    "qa_history": self.qa_history,
-                    "error_type": "EndingError"
-                }
-
-        if self.check_word_mention(answer.lower()):
-            # Запись ошибки в метрики
-            self.metrics.record_event(
-                "error",
-                error_type="AnswerMentionedError",
-                stage="answer",
-                round=self.game_round + 1
+                error=str(e)
             )
             
             return {
-                "object": self.word, 
-                "round": -1, 
-                "qa_history": self.qa_history,
-                "error_type": "AnswerMentionedError"
+                "object": self.word,
+                "round": 0,
+                "qa_history": [],
+                "error_type": "ChatError"
             }
 
-        return True
+    def handle_qa_stage(self, log_file):
+        """
+        Handles a single Q&A round.
         
+        Args:
+            log_file: File for logging game events
+            
+        Returns:
+            True if round completed successfully,
+            False if there was an error,
+            dict with results if game ended
+        """ 
+        logger.debug(f"=== Round {self.game_round + 1} - Current History ===")
+        logger.debug(f"Question agent history length: {len(self.question_agent.private_history)}")
+        logger.debug(f"Answer agent history length: {len(self.answer_agent.private_history)}")
+        
+        for i, msg in enumerate(self.question_agent.private_history[-5:]):  # Last 5 messages
+            logger.debug(f"Q-Agent msg {i}: {msg['role']}: {msg['content'][:100]}...")
+        
+        for i, msg in enumerate(self.answer_agent.private_history[-5:]):  # Last 5 messages
+            logger.debug(f"A-Agent msg {i}: {msg['role']}: {msg['content'][:100]}...")
+        
+        self.metrics.record_event(
+            self.metrics.EVENT_TURN_START,
+            agent="question_agent",
+            stage="question",
+            round_number=self.game_round + 1
+        )
+        
+        try:
+            start_time = time.time()
+            if hasattr(self.question_agent, "play_with_thinking"):
+                question_response, thinking = self.question_agent.play_with_thinking()
+            else:
+                question_response = self.question_agent.play()
+                thinking = None
+                
+            response_time = time.time() - start_time
+            
+            logger.debug(f"Question agent response: {question_response}")
+            
+            self.metrics.record_model_interaction(
+                agent_name="question_agent",
+                request="question",
+                response=question_response,
+                model_name=getattr(self.model, "__class__.__name__", "unknown"),
+                latency=response_time
+            )
+            
+            self.metrics.record_event(
+                self.metrics.EVENT_TURN_END,
+                agent="question_agent",
+                stage="question",
+                round_number=self.game_round + 1,
+                success=True
+            )
+            
+            if "my guess is" in question_response.lower() or "i guess" in question_response.lower():
+                logger.info(f"Detected guess in question: {question_response}")
+                
+                guess_match = re.search(r'(?:my guess is|i guess)[:\s]+([^\.!?,;]+)', question_response.lower())
+                if guess_match:
+                    guessed_word = guess_match.group(1).strip()
+                    logger.info(f"Extracted guess: '{guessed_word}'")
+                    
+                    is_correct = guessed_word.lower() == self.word.lower()
+                    
+                    self.metrics.record_guess(
+                        guess=guessed_word,
+                        is_correct=is_correct,
+                        round_num=self.game_round + 1
+                    )
+                    
+                    question_message = f"Questioner: {question_response}"
+                    if log_file:
+                        log_file.write(question_message + "\n")
+                    logger.info(question_message)
+                    
+                    question_msg_for_answerer = create_message("user", question_response)
+                    question_msg_for_questioner = create_message("assistant", question_response)
+                    
+                    self.answer_agent.update_history(question_msg_for_answerer)
+                    self.question_agent.update_history(question_msg_for_questioner)
+                    
+                    self.qa_history.append({
+                        "role": "questioner", 
+                        "content": question_response
+                    })
+                    
+                    if is_correct:
+                        logger.info(f"Correct guess! The word was: {self.word}")
+                        return {
+                            "object": self.word,
+                            "round": self.game_round + 1,
+                            "qa_history": self.qa_history,
+                            "error_type": "SuccessfulTrial"
+                        }
+            
+            question_message = f"Questioner: {question_response}"
+            if log_file:
+                log_file.write(question_message + "\n")
+            logger.info(question_message)
+            
+            question_msg_for_answerer = create_message("user", question_response)
+            question_msg_for_questioner = create_message("assistant", question_response)
+            
+            self.answer_agent.update_history(question_msg_for_answerer)
+            self.question_agent.update_history(question_msg_for_questioner)
+            
+            self.qa_history.append({
+                "role": "questioner", 
+                "content": question_response
+            })
+            
+        except Exception as e:
+            logger.error(f"Error in question stage: {str(e)}")
+            return False
+            
+        self.metrics.record_event(
+            self.metrics.EVENT_TURN_START,
+            agent="answer_agent",
+            stage="answer",
+            round_number=self.game_round + 1
+        )
+        
+        try:
+            start_time = time.time()
+            answer_response = self.answer_agent.answer()
+            response_time = time.time() - start_time
+            
+            logger.debug(f"Answer agent response: {answer_response}")
+            
+            if "gameover" in answer_response.lower() or "game over" in answer_response.lower():
+                logger.info(f"Answer agent signaled game over: {answer_response}")
+                
+                if any(word in answer_response.lower() for word in ["correct", "right", "yes", "guessed"]):
+                    return {
+                        "object": self.word,
+                        "round": self.game_round + 1,
+                        "qa_history": self.qa_history,
+                        "error_type": "SuccessfulTrial"
+                    }
+                else:
+                    return {
+                        "object": self.word,
+                        "round": self.game_round + 1,
+                        "qa_history": self.qa_history,
+                        "error_type": "EndingError"
+                    }
+            
+            if self.check_word_mention(answer_response):
+                logger.warning(f"Answer agent mentioned the word directly: {answer_response}")
+                
+                self.metrics.record_event(
+                    self.metrics.EVENT_TURN_END,
+                    agent="answer_agent",
+                    stage="answer",
+                    round_number=self.game_round + 1,
+                    success=False,
+                    error="word_mentioned"
+                )
+                
+                return {
+                    "object": self.word,
+                    "round": self.game_round + 1,
+                    "qa_history": self.qa_history,
+                    "error_type": "AnswerMentionedError"
+                }
+            
+            answer_lower = answer_response.lower().strip()
+            valid_responses = ["yes", "no", "maybe", "sometimes", "often", "rarely", "never", "usually", "occasionally"]
+            
+            if not any(valid_word in answer_lower for valid_word in valid_responses):
+                logger.warning(f"Answer agent gave invalid response: {answer_response}")
+                
+            self.metrics.record_model_interaction(
+                agent_name="answer_agent",
+                request="answer",
+                response=answer_response,
+                model_name=getattr(self.model, "__class__.__name__", "unknown"),
+                latency=response_time
+            )
+            
+            self.metrics.record_event(
+                self.metrics.EVENT_TURN_END,
+                agent="answer_agent",
+                stage="answer",
+                round_number=self.game_round + 1,
+                success=True
+            )
+            
+            answer_message = f"Answerer: {answer_response}"
+            if log_file:
+                log_file.write(answer_message + "\n")
+            logger.info(answer_message)
+            
+            answer_msg_for_answerer = create_message("assistant", answer_response)
+            answer_msg_for_questioner = create_message("user", answer_response)
+            
+            self.answer_agent.update_history(answer_msg_for_answerer)
+            self.question_agent.update_history(answer_msg_for_questioner)
+            
+            self.qa_history.append({
+                "role": "answerer",
+                "content": answer_response
+            })
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error in answer stage: {str(e)}")
+            return False
+
     def _save_metrics(self) -> str:
         """
-        Сохраняет метрики в файл и возвращает имя файла.
+        Saves metrics to a file and returns the filename.
         
         Returns:
-            str: Имя сохраненного файла метрик
+            str: Filename where metrics were saved
         """
-        # Создаем имя файла метрик с временной меткой
         timestamp = int(time.time())
         metrics_filename = f"askguess_metrics_{timestamp}.json"
         
-        # Получаем путь к директории текущих результатов из переменной окружения или используем значение по умолчанию
         results_dir = os.environ.get("BENCHMARK_RESULTS_DIR", "benchmark_results")
         metrics_path = os.path.join(results_dir, metrics_filename)
         
-        # Вычисляем метрики
-        computed_metrics = self.metrics.compute_all()
-        
-        # Сохраняем метрики в файл
         self.metrics.save(metrics_path)
         
         return metrics_filename

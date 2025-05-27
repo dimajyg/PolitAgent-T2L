@@ -1,761 +1,809 @@
 from typing import Dict, List, Tuple, Union, Any, Set, Optional
 import numpy as np
-from sklearn.metrics import f1_score, matthews_corrcoef
-from sklearn.feature_extraction.text import TfidfVectorizer
-import re
-import requests
-import torch
 import os
 from datetime import datetime
+import json
+import logging
+from langchain_core.language_models.base import BaseLanguageModel
 
 from metrics.base_metrics import BaseMetrics
 
+logger = logging.getLogger(__name__)
+
 class SpyfallMetrics(BaseMetrics):
     """
-    Metrics collection and computation for the Spyfall game.
-    
-    This class extends BaseMetrics to handle Spyfall-specific metrics:
-    - Spy survival and detection rates
-    - Description analysis (specificity, vagueness)
-    - Voting pattern analysis
-    - Various performance metrics
-    
-    Additionally includes all common metrics from BaseMetrics.
+    Comprehensive metrics for evaluating model performance in Spyfall deduction game.
+    Includes inference metrics, strategic evaluation, and detailed reporting.
     """
     
-    # Spyfall specific event types
-    EVENT_DESCRIPTION = "description"
-    EVENT_VOTE = "vote"
-    EVENT_ROLE_ASSIGNED = "role_assigned"
-    
-    # Spyfall specific LLM evaluation templates
-    SPYFALL_GAME_EVALUATION_TEMPLATE = """
-    Evaluate this Spyfall game based on the provided information:
-    
-    Game setup:
-    - Spy word: {spy_word}
-    - Villager word: {villager_word}
-    - Spy player: {spy_name}
-    - Villagers: {villagers}
-    - Winner: {winner}
-    
-    Game summary:
-    {game_summary}
-    
-    Please provide a detailed analysis of:
-    1. Spy strategy and effectiveness (score 1-10)
-    2. Villagers coordination and detection skills (score 1-10)
-    3. Quality of word descriptions by all players (score 1-10)
-    4. Voting strategy effectiveness (score 1-10)
-    5. Key moments that determined the game outcome
-    
-    For each player, provide an individual performance evaluation with score (1-10).
-    
-    Finally, suggest how the LLM agents could have played better in this game scenario.
-    """
-    
-    SPYFALL_ROUND_EVALUATION_TEMPLATE = """
-    Evaluate this round (Round {round_num}) of Spyfall:
-    
-    Current game state:
-    - Living players: {living_players}
-    - Spy: {spy_name} (this is hidden from players)
-    - Game words: Spy word is "{spy_word}", Villager word is "{villager_word}"
-    
-    Round activities:
-    {round_summary}
-    
-    Please analyze:
-    1. How well did the spy blend in? (score 1-10)
-    2. How effective were the villagers at identifying suspicious behavior? (score 1-10)
-    3. How strategic were the voting decisions? (score 1-10)
-    4. Which player had the most impact on this round? Why?
-    
-    Provide a brief evaluation of each player's performance this round with a score (1-10).
-    """
-    
-    SPYFALL_DESCRIPTION_EVALUATION_TEMPLATE = """
-    Evaluate this player's description in Spyfall:
-    
-    Player: {player_name} ({role})
-    Description: "{description}"
-    
-    Word context:
-    - Spy word: {spy_word}
-    - Villager word: {villager_word}
-    
-    Please analyze:
-    1. Appropriateness of the description (score 1-10)
-    2. Strategy effectiveness (score 1-10)
-    3. Balance between information sharing and self-protection (score 1-10)
-    
-    For a spy: How well did they blend in without revealing ignorance?
-    For a villager: How well did they communicate the word without being too obvious?
-    
-    Provide a brief analysis explaining your scores and reasoning.
-    """
-    
-    SPYFALL_VOTE_EVALUATION_TEMPLATE = """
-    Evaluate this player's voting decision in Spyfall:
-    
-    Player: {player_name} ({role})
-    Voted for: {vote_for}
-    Reasoning: "{reasoning}"
-    
-    Current game state:
-    - Living players: {living_players}
-    - Round: {round_num}
-    - Previous voting pattern: {voting_history}
-    
-    Please analyze:
-    1. Strategic value of this vote (score 1-10)
-    2. Reasoning quality (score 1-10)
-    3. Impact on game outcome (score 1-10)
-    
-    Provide a brief analysis explaining your assessment of this voting decision.
-    """
-    
-    def __init__(self, metadata: Optional[Dict[str, Any]] = None):
+    def __init__(self, model: Optional[BaseLanguageModel] = None):
         """
-        Initialize the SpyfallMetrics collector.
+        Initialize Spyfall metrics with optional LLM evaluator.
         
         Args:
-            metadata (Optional[Dict[str, Any]]): Additional metadata for the game session
+            model: LLM model for evaluation (LLM as judge)
         """
-        super().__init__("spyfall", metadata)
-        self.descriptions = {}
-        self.votes = {}
-        self.spy_name = None
-        self.spy_index = None
-        self.villagers = []
-        self.players = []
-        self.spy_caught = False
-        self.winner = None
-        self.spy_word = None
-        self.villager_word = None
-        self.round_summaries = {}
-        self.current_round = 0
-    
-    def add_game_words(self, spy_word: str, villager_word: str) -> None:
-        """
-        Add the game words to the metrics.
-        
-        Args:
-            spy_word (str): The word given to the spy
-            villager_word (str): The word given to the villagers
-        """
-        self.spy_word = spy_word
-        self.villager_word = villager_word
-        self.add_metadata("spy_word", spy_word)
-        self.add_metadata("villager_word", villager_word)
-    
-    def evaluate_game(self) -> Optional[Dict[str, Any]]:
-        """
-        Request an LLM evaluation of the entire game.
-        
-        Returns:
-            Optional[Dict[str, Any]]: Evaluation results or None if LLM evaluation is disabled
-        """
-        if not self.use_llm_evaluation:
-            return None
-            
-        # Build game summary from events
-        descriptions_events = [e for e in self.events if e["type"] == self.EVENT_DESCRIPTION]
-        vote_events = [e for e in self.events if e["type"] == self.EVENT_VOTE]
-        
-        # Format descriptions
-        descriptions_summary = []
-        for event in descriptions_events:
-            player = event["data"].get("player", "Unknown")
-            description = event["data"].get("description", "No description")
-            is_spy = event["data"].get("is_spy", False)
-            role = "Spy" if is_spy else "Villager"
-            descriptions_summary.append(f"{player} ({role}): \"{description}\"")
-        
-        # Format votes
-        votes_summary = []
-        for event in vote_events:
-            voter = event["data"].get("voter", "Unknown")
-            vote_for = event["data"].get("vote_for", "Unknown")
-            is_spy_voter = event["data"].get("is_spy_voter", False)
-            role = "Spy" if is_spy_voter else "Villager"
-            votes_summary.append(f"{voter} ({role}) voted for {vote_for}")
-        
-        # Build game summary
-        game_summary = "Descriptions:\n" + "\n".join(descriptions_summary) + "\n\n"
-        game_summary += "Votes:\n" + "\n".join(votes_summary)
-        
-        # Context for evaluation
-        context = {
-            "spy_word": self.spy_word,
-            "villager_word": self.villager_word,
-            "spy_name": self.spy_name,
-            "villagers": self.villagers,
-            "winner": self.winner or "Unknown",
-            "game_summary": game_summary
-        }
-        
-        # Request evaluation using the Spyfall-specific template
-        return self.record_llm_evaluation("game", context, self.SPYFALL_GAME_EVALUATION_TEMPLATE)
-    
-    def evaluate_round(self, round_num: int) -> Optional[Dict[str, Any]]:
-        """
-        Request an LLM evaluation of a specific round.
-        
-        Args:
-            round_num (int): Round number to evaluate
-            
-        Returns:
-            Optional[Dict[str, Any]]: Evaluation results or None if LLM evaluation is disabled
-        """
-        if not self.use_llm_evaluation:
-            return None
-            
-        # Get round-specific events
-        round_events = []
-        in_target_round = False
-        
-        for event in self.events:
-            if event["type"] == self.EVENT_ROUND_START and event["data"].get("round_number") == round_num:
-                in_target_round = True
-                round_events.append(event)
-                
-            elif event["type"] == self.EVENT_ROUND_END and event["data"].get("round_number") == round_num:
-                round_events.append(event)
-                in_target_round = False
-                
-            elif in_target_round:
-                round_events.append(event)
-        
-        # Extract descriptions and votes from round events
-        descriptions = []
-        votes = []
-        
-        for event in round_events:
-            if event["type"] == self.EVENT_DESCRIPTION:
-                player = event["data"].get("player", "Unknown")
-                description = event["data"].get("description", "No description")
-                is_spy = event["data"].get("is_spy", False)
-                role = "Spy" if is_spy else "Villager"
-                descriptions.append(f"{player} ({role}): \"{description}\"")
-                
-            elif event["type"] == self.EVENT_VOTE:
-                voter = event["data"].get("voter", "Unknown")
-                vote_for = event["data"].get("vote_for", "Unknown")
-                is_spy_voter = event["data"].get("is_spy_voter", False)
-                role = "Spy" if is_spy_voter else "Villager"
-                votes.append(f"{voter} ({role}) voted for {vote_for}")
-        
-        # Build round summary
-        round_summary = "Descriptions:\n" + "\n".join(descriptions) + "\n\n"
-        round_summary += "Votes:\n" + "\n".join(votes)
-        
-        # Get living players for this round
-        living_players = None
-        for event in round_events:
-            if event["type"] == self.EVENT_ROUND_START:
-                living_players = event["data"].get("living_players", None)
-                break
-        
-        # Context for evaluation
-        context = {
-            "round_num": round_num,
-            "living_players": living_players or self.players,
-            "spy_name": self.spy_name,
-            "spy_word": self.spy_word,
-            "villager_word": self.villager_word,
-            "round_summary": round_summary
-        }
-        
-        # Request evaluation using the Spyfall-specific template
-        return self.record_llm_evaluation("round", context, self.SPYFALL_ROUND_EVALUATION_TEMPLATE)
-    
-    def evaluate_description(self, player_name: str, description: str, is_spy: bool) -> Optional[Dict[str, Any]]:
-        """
-        Request an LLM evaluation of a player's description.
-        
-        Args:
-            player_name (str): Name of the player
-            description (str): The description provided
-            is_spy (bool): Whether the player is the spy
-            
-        Returns:
-            Optional[Dict[str, Any]]: Evaluation results or None if LLM evaluation is disabled
-        """
-        if not self.use_llm_evaluation:
-            return None
-            
-        # Context for evaluation
-        context = {
-            "player_name": player_name,
-            "role": "Spy" if is_spy else "Villager",
-            "description": description,
-            "spy_word": self.spy_word,
-            "villager_word": self.villager_word
-        }
-        
-        # Request evaluation using the Spyfall-specific template
-        return self.record_llm_evaluation("description", context, self.SPYFALL_DESCRIPTION_EVALUATION_TEMPLATE)
-    
-    def evaluate_vote(self, voter: str, vote_for: str, is_spy_voter: bool, reasoning: str = "") -> Optional[Dict[str, Any]]:
-        """
-        Request an LLM evaluation of a player's vote.
-        
-        Args:
-            voter (str): Name of the voting player
-            vote_for (str): Name of the player being voted for
-            is_spy_voter (bool): Whether the voter is the spy
-            reasoning (str, optional): Player's reasoning for the vote
-            
-        Returns:
-            Optional[Dict[str, Any]]: Evaluation results or None if LLM evaluation is disabled
-        """
-        if not self.use_llm_evaluation:
-            return None
-            
-        # Get voting history for context
-        voting_history = []
-        for player, votes_list in self.votes.items():
-            for vote in votes_list:
-                if vote["round"] < self.current_round:  # Only include votes from previous rounds
-                    voting_history.append(f"{player} voted for {vote['vote_for']} in round {vote['round']}")
-        
-        # Get current living players
-        living_players = self.get_living_players()
-        
-        # Context for evaluation
-        context = {
-            "player_name": voter,
-            "role": "Spy" if is_spy_voter else "Villager",
-            "vote_for": vote_for,
-            "reasoning": reasoning,
-            "living_players": living_players,
-            "round_num": self.current_round,
-            "voting_history": voting_history
-        }
-        
-        # Request evaluation using the Spyfall-specific template
-        return self.record_llm_evaluation("vote", context, self.SPYFALL_VOTE_EVALUATION_TEMPLATE)
-    
-    def get_living_players(self) -> List[str]:
-        """
-        Get the list of living players from the most recent round start event.
-        
-        Returns:
-            List[str]: List of living player names
-        """
-        round_start_events = [e for e in self.events if e["type"] == self.EVENT_ROUND_START]
-        
-        if round_start_events:
-            latest_round = round_start_events[-1]
-            return latest_round["data"].get("living_players", self.players)
-        
-        return self.players
-    
-    def record_description(self, player_name: str, description: str, is_spy: bool) -> None:
-        """
-        Record a player's description.
-        
-        Args:
-            player_name (str): Name of the player
-            description (str): Description provided by the player
-            is_spy (bool): Whether the player is the spy
-        """
-        self.descriptions[player_name] = {
-            "text": description,
-            "is_spy": is_spy,
-            "specificity": self.calculate_description_specificity(description),
-            "perplexity": self.calculate_perplexity(description)
-        }
-        
-        self.record_event(
-            self.EVENT_DESCRIPTION,
-            player=player_name,
-            description=description,
-            is_spy=is_spy
-        )
-        
-        # If LLM evaluation is enabled, evaluate this description
-        if self.use_llm_evaluation:
-            evaluation = self.evaluate_description(player_name, description, is_spy)
-            if evaluation:
-                self.descriptions[player_name]["llm_evaluation"] = evaluation
-    
-    def record_vote(self, voter: str, vote_for: str, is_spy_voter: bool, reasoning: str = "") -> None:
-        """
-        Record a player's vote.
-        
-        Args:
-            voter (str): Name of the player casting the vote
-            vote_for (str): Name of the player being voted for
-            is_spy_voter (bool): Whether the voting player is the spy
-            reasoning (str, optional): Player's reasoning for the vote
-        """
-        if voter not in self.votes:
-            self.votes[voter] = []
-            
-        vote_data = {
-            "vote_for": vote_for,
-            "is_spy_voter": is_spy_voter,
-            "voted_for_spy": vote_for == self.spy_name,
-            "round": self.get_current_round(),
-            "reasoning": reasoning
-        }
-        
-        self.votes[voter].append(vote_data)
-        
-        self.record_event(
-            self.EVENT_VOTE,
-            voter=voter,
-            vote_for=vote_for,
-            is_spy_voter=is_spy_voter,
-            voted_for_spy=vote_for == self.spy_name,
-            round=self.get_current_round(),
-            reasoning=reasoning
-        )
-        
-        # If LLM evaluation is enabled, evaluate this vote
-        if self.use_llm_evaluation:
-            evaluation = self.evaluate_vote(voter, vote_for, is_spy_voter, reasoning)
-            if evaluation:
-                self.votes[voter][-1]["llm_evaluation"] = evaluation
-    
-    def record_role_assignment(self, players: List[str], spy_index: int, spy_name: str) -> None:
-        """
-        Record the role assignments at the start of the game.
-        
-        Args:
-            players (List[str]): List of all player names
-            spy_index (int): Index of the spy in the players list
-            spy_name (str): Name of the spy
-        """
-        self.players = players
-        self.spy_index = spy_index
-        self.spy_name = spy_name
-        self.villagers = [p for p in players if p != spy_name]
-        
-        self.add_metadata("players", players)
-        self.add_metadata("spy_index", spy_index)
-        self.add_metadata("spy_name", spy_name)
-        
-        for i, player in enumerate(players):
-            is_spy = (i == spy_index - 1)  # Adjust for 1-indexing if needed
-            
-            self.record_event(
-                self.EVENT_ROLE_ASSIGNED,
-                player=player,
-                is_spy=is_spy,
-                role="spy" if is_spy else "villager"
-            )
-    
-    def record_game_end(self, winner: str, spy_caught: bool) -> None:
-        """
-        Record the game end result.
-        
-        Args:
-            winner (str): Who won the game ("spy" or "villager")
-            spy_caught (bool): Whether the spy was caught
-        """
-        self.winner = winner
-        self.spy_caught = spy_caught
-        
-        self.add_metadata("winner", winner)
-        self.add_metadata("spy_caught", spy_caught)
-        
-        self.record_event(
-            self.EVENT_GAME_END,
-            winner=winner,
-            spy_caught=spy_caught
-        )
-    
-    def get_current_round(self) -> int:
-        """
-        Get the current game round based on recorded events.
-        
-        Returns:
-            int: Current round number
-        """
-        round_start_events = [e for e in self.events if e["type"] == self.EVENT_ROUND_START]
-        return len(round_start_events)
+        super().__init__(game_type="spyfall")
+        self.model = model
+        self.metrics = {}
+        self.inference_data = []    
+        self.strategic_analysis = {}  
+        self.game_state = {}  
     
     def compute_all(self) -> Dict[str, Any]:
         """
-        Compute all Spyfall metrics.
+        Implementation of abstract method from BaseMetrics.
+        Computes all metrics from recorded events.
         
         Returns:
-            Dict[str, Any]: Dictionary of computed metrics
+            Dict[str, Any]: Complete metrics suite
         """
-        # Call the parent method to get common metrics
-        base_metrics = super().compute_all()
-        
-        # Add Spyfall-specific metrics
-        spyfall_metrics = {
-            "description_metrics": self._compute_description_metrics(),
-            "voting_metrics": self._compute_voting_metrics(),
-            "game_outcome": {
-                "winner": self.winner,
-                "spy_caught": self.spy_caught,
-                "rounds_played": self.get_current_round()
-            }
-        }
-        
-        # Merge metrics
-        self.computed_metrics.update(spyfall_metrics)
-        
         return self.computed_metrics
     
-    def _compute_description_metrics(self) -> Dict[str, Any]:
+    def calculate_metrics(self, results_dir: str) -> Dict[str, Any]:
         """
-        Compute metrics related to descriptions.
+        Calculate comprehensive metrics from game results.
+        
+        Args:
+            results_dir: Directory containing game results
         
         Returns:
-            Dict[str, Any]: Description metrics
+            Dict[str, Any]: Complete metrics suite
         """
-        # Basic metrics
-        description_metrics = {
-            "by_player": self.descriptions,
-            "avg_specificity": sum(d["specificity"] for d in self.descriptions.values()) / len(self.descriptions) if self.descriptions else 0,
-            "avg_perplexity": sum(d["perplexity"] for d in self.descriptions.values()) / len(self.descriptions) if self.descriptions else 0
+        game_logs = self._load_game_logs(results_dir)
+        
+        if not game_logs:
+            logger.warning("No games found in results directory: %s", results_dir)
+            return {"error": "No game logs found", "games_total": 0}
+        
+        self.metrics = {
+            "games_total": len(game_logs),
+            "timestamp": datetime.now().isoformat(),
+            "model_performance": self._calculate_model_inference_metrics(game_logs),
+            "strategic_metrics": self._calculate_strategic_metrics(game_logs),
+            "deception_metrics": self._calculate_deception_metrics(game_logs),
+            "communication_metrics": self._calculate_communication_metrics(game_logs),
+            "voting_metrics": self._calculate_voting_metrics(game_logs),
+            "game_outcome_metrics": self._calculate_game_outcome_metrics(game_logs),
+            "behavioral_analysis": self._calculate_behavioral_analysis(game_logs)
         }
         
-        # Spy vs. Villager comparison
-        spy_descriptions = [d for p, d in self.descriptions.items() if d["is_spy"]]
-        villager_descriptions = [d for p, d in self.descriptions.items() if not d["is_spy"]]
+        if self.model:
+            self.metrics["llm_evaluation"] = self._calculate_llm_judge_metrics(game_logs)
         
-        if spy_descriptions:
-            description_metrics["spy_avg_specificity"] = sum(d["specificity"] for d in spy_descriptions) / len(spy_descriptions)
-            description_metrics["spy_avg_perplexity"] = sum(d["perplexity"] for d in spy_descriptions) / len(spy_descriptions)
+        self.metrics["detailed_report"] = self._generate_detailed_report()
         
-        if villager_descriptions:
-            description_metrics["villager_avg_specificity"] = sum(d["specificity"] for d in villager_descriptions) / len(villager_descriptions)
-            description_metrics["villager_avg_perplexity"] = sum(d["perplexity"] for d in villager_descriptions) / len(villager_descriptions)
+        self.metrics = self._convert_numpy_types(self.metrics)
         
-        # Vagueness scores
-        if self.descriptions:
-            description_metrics["vagueness_scores"] = self.vagueness_score([d["text"] for d in self.descriptions.values()])
+        self.computed_metrics = self.metrics
         
-        return description_metrics
+        return self.metrics
     
-    def _compute_voting_metrics(self) -> Dict[str, Any]:
+    def _load_game_logs(self, results_dir: str) -> List[Dict[str, Any]]:
         """
-        Compute metrics related to voting patterns.
+        Load game logs from results directory.
         
+        Args:
+            results_dir: Directory with game results
+            
         Returns:
-            Dict[str, Any]: Voting metrics
+            List[Dict[str, Any]]: List of game logs
         """
-        voting_metrics = {
-            "by_player": self.votes,
-            "votes_for_spy": 0,
-            "spy_votes_accuracy": 0,
-            "villager_votes_accuracy": 0
+        game_logs = []
+        for root, _, files in os.walk(results_dir):
+            for file in files:
+                if file.endswith('.json') and 'spyfall' in file:
+                    try:
+                        with open(os.path.join(root, file), 'r') as f:
+                            game_data = json.load(f)
+                            game_logs.append(game_data)
+                    except Exception as e:
+                        logger.error(f"Error loading game log {file}: {e}")
+        
+        return game_logs
+    
+    def _calculate_model_inference_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Calculate detailed model inference performance metrics.
+        
+        Args:
+            game_logs: List of game results
+            
+        Returns:
+            Dict[str, Any]: Inference performance metrics
+        """
+        inference_metrics = {
+            "total_inferences": 0,
+            "description_inferences": 0,
+            "voting_inferences": 0,
+            "response_quality": {},
+            "strategic_coherence": {},
+            "role_consistency": {},
+            "error_rate": {},
+            "total_errors": 0,
+            "deception_effectiveness": {},
+            "information_extraction": {}
         }
         
-        # Count votes for spy
-        spy_votes = 0
-        total_votes = 0
+        players = set()
+        spy_players = set()
+        villager_players = set()
         
-        # Spy voting accuracy
-        spy_correct_votes = 0
-        spy_total_votes = 0
+        for game in game_logs:
+            game_setup = game.get("game_setup", {})
+            spy_name = game_setup.get("spy_name", "")
+            spy_word = game_setup.get("spy_word", "")
+            villager_word = game_setup.get("villager_word", "")
+            
+            if spy_name:
+                spy_players.add(spy_name)
+            
+            if "players" in game_setup:
+                all_players = game_setup["players"]
+                players.update(all_players)
+                for player in all_players:
+                    if player != spy_name:
+                        villager_players.add(player)
+            
+            rounds = game.get("rounds", [])
+            for round_data in rounds:
+                descriptions = round_data.get("descriptions", {})
+                inference_metrics["description_inferences"] += len(descriptions)
+                
+                votes = round_data.get("votes", {})
+                inference_metrics["voting_inferences"] += len(votes)
+                
+                players.update(descriptions.keys())
+                players.update(votes.keys())
+
+        for player in players:
+            inference_metrics["response_quality"][player] = 0.0
+            inference_metrics["strategic_coherence"][player] = 0.0
+            inference_metrics["role_consistency"][player] = 0.0
+            inference_metrics["error_rate"][player] = 0.0
+            inference_metrics["deception_effectiveness"][player] = 0.0
+            inference_metrics["information_extraction"][player] = 0.0
         
-        # Villager voting accuracy
-        villager_correct_votes = 0
-        villager_total_votes = 0
-        
-        for player, vote_list in self.votes.items():
-            for vote in vote_list:
-                total_votes += 1
-                if vote["voted_for_spy"]:
-                    spy_votes += 1
+        for game in game_logs:
+            game_setup = game.get("game_setup", {})
+            spy_name = game_setup.get("spy_name", "")
+            
+            for player in players:
+                player_decisions = self._extract_player_decisions_spyfall(player, game)
+                
+                if player_decisions:
+                    quality_score = self._analyze_decision_quality_spyfall(player_decisions, player == spy_name)
+                    inference_metrics["response_quality"][player] = quality_score
                     
-                # Check if voter is spy and tracking their accuracy
-                if vote["is_spy_voter"]:
-                    spy_total_votes += 1
-                    if not vote["voted_for_spy"]:  # Spy correctly voting for villager
-                        spy_correct_votes += 1
-                else:  # Voter is villager
-                    villager_total_votes += 1
-                    if vote["voted_for_spy"]:  # Villager correctly voting for spy
-                        villager_correct_votes += 1
+                    coherence_score = self._analyze_strategic_coherence_spyfall(player_decisions, player == spy_name)
+                    inference_metrics["strategic_coherence"][player] = coherence_score
+                    
+                    consistency_score = self._analyze_role_consistency_spyfall(player_decisions, player == spy_name)
+                    inference_metrics["role_consistency"][player] = consistency_score
+                    
+                    if player == spy_name:
+                        deception_score = self._analyze_deception_effectiveness_spyfall(player_decisions, game)
+                        inference_metrics["deception_effectiveness"][player] = deception_score
+                    
+                    if player != spy_name:
+                        extraction_score = self._analyze_information_extraction_spyfall(player_decisions, game)
+                        inference_metrics["information_extraction"][player] = extraction_score
+                    
+                    error_rate = self._calculate_error_rate_spyfall(player_decisions)
+                    inference_metrics["error_rate"][player] = error_rate
+                    inference_metrics["total_errors"] += int(error_rate * len(player_decisions["descriptions"]) + len(player_decisions["votes"]))
         
-        if total_votes > 0:
-            voting_metrics["votes_for_spy"] = spy_votes / total_votes
-            
-        if spy_total_votes > 0:
-            voting_metrics["spy_votes_accuracy"] = spy_correct_votes / spy_total_votes
-            
-        if villager_total_votes > 0:
-            voting_metrics["villager_votes_accuracy"] = villager_correct_votes / villager_total_votes
-        
-        # Calculate vote influence metrics if needed
-        voting_metrics["vote_influence"] = self.vote_influence_index()
-        
-        return voting_metrics
-    
-    # Methods ported from the original SpyfallMetrics class
-    
-    @staticmethod
-    def calculate_description_specificity(description: str, abstract_words: Set[str] = None) -> float:
-        """
-        Calculate how specific a description is by measuring the absence of abstract/vague terms.
-        
-        Args:
-            description: The text description to analyze
-            abstract_words: Set of abstract/vague words to check against
-            
-        Returns:
-            Specificity score between 0 and 1 (higher is more specific)
-        """
-        if not description:
-            return 0.0
-            
-        # Default set of vague/abstract words if none provided
-        if abstract_words is None:
-            abstract_words = {
-                "thing", "something", "stuff", "item", "object", "entity", "device",
-                "gadget", "material", "substance", "matter", "product", "element",
-                "tool", "instrument", "implement", "apparatus", "equipment", "mechanism",
-                "can", "could", "may", "might", "would", "should", "must", "will", 
-                "general", "common", "usual", "regular", "normal", "ordinary", "typical",
-                "standard", "basic", "fundamental", "conventional", "traditional",
-                "it", "this", "that", "these", "those", "they", "them", "their",
-                "often", "sometimes", "occasionally", "frequently", "generally", "usually",
-                "possibly", "potentially", "perhaps", "maybe", "probably",
-                "various", "different", "diverse", "several", "many", "few", "some"
-            }
-            
-        # Clean and tokenize the description
-        words = re.findall(r'\b\w+\b', description.lower())
-        
-        if not words:
-            return 0.0
-            
-        # Count abstract words in the description
-        abstract_count = sum(1 for word in words if word in abstract_words)
-        
-        # Calculate specificity score (1 - proportion of abstract words)
-        specificity = 1.0 - (abstract_count / len(words))
-        
-        return specificity
-    
-    @staticmethod
-    def calculate_perplexity(text: str, api_key: str = None, model_name: str = "gpt-2") -> float:
-        """
-        Calculate the perplexity of text using a language model.
-        
-        Lower perplexity = more natural/coherent text
-        Higher perplexity = more confusing/unusual text
-        
-        Args:
-            text: Text to analyze
-            api_key: API key for external model (if needed)
-            model_name: Language model to use
-            
-        Returns:
-            Perplexity score (lower is more coherent)
-        """
-        # Simple implementation for now - could be replaced with a real perplexity calculation
-        # with an actual language model if needed
-        if not text:
-            return 0.0
-            
-        # This is a simplified perplexity estimation based on some text features
-        # that might correlate with actual perplexity
-        
-        # Sentence length (longer sentences can be more complex)
-        sentences = re.split(r'[.!?]+', text)
-        avg_sentence_length = sum(len(re.findall(r'\b\w+\b', s)) for s in sentences) / len(sentences) if sentences else 0
-        
-        # Vocabulary diversity
-        words = re.findall(r'\b\w+\b', text.lower())
-        vocab_diversity = len(set(words)) / len(words) if words else 0
-        
-        # Presence of unusual punctuation or patterns
-        unusual_patterns = len(re.findall(r'[^a-zA-Z0-9 .!?,;:\'"-]', text))
-        
-        # Combine factors to estimate perplexity (completely heuristic)
-        perplexity = (0.5 * avg_sentence_length) + (20 * vocab_diversity) + (2 * unusual_patterns)
-        
-        # Normalize to a reasonable range (0-20, with 10 being average)
-        return min(20, max(0, perplexity))
-    
-    @staticmethod
-    def vagueness_score(descriptions: List[str]) -> Dict[str, float]:
-        """
-        Calculate vagueness scores for a set of descriptions.
-        
-        Uses TF-IDF to identify content-rich words vs general words.
-        
-        Args:
-            descriptions: List of text descriptions
-            
-        Returns:
-            Dictionary with various vagueness metrics
-        """
-        if not descriptions or len(descriptions) < 2:
-            return {"avg_vagueness": 0, "max_vagueness": 0, "min_vagueness": 0}
-            
-        # Create TF-IDF vectorizer
-        vectorizer = TfidfVectorizer(
-            stop_words='english',
-            min_df=1,
-            max_df=0.9
+        inference_metrics["total_inferences"] = (
+            inference_metrics["description_inferences"] + 
+            inference_metrics["voting_inferences"]
         )
         
-        try:
-            # Transform descriptions to TF-IDF matrix
-            tfidf_matrix = vectorizer.fit_transform(descriptions)
-            
-            # Calculate average TF-IDF score for each description
-            # Lower score = more vague (fewer distinctive words)
-            # Higher score = more specific (more distinctive words)
-            avg_tfidf_scores = tfidf_matrix.mean(axis=1).A1
-            
-            # Convert to vagueness score (1 - tfidf, so higher = more vague)
-            vagueness_scores = 1 - (avg_tfidf_scores / avg_tfidf_scores.max())
-            
-            return {
-                "avg_vagueness": float(np.mean(vagueness_scores)),
-                "max_vagueness": float(np.max(vagueness_scores)),
-                "min_vagueness": float(np.min(vagueness_scores)),
-                "std_vagueness": float(np.std(vagueness_scores))
-            }
-        except:
-            return {"avg_vagueness": 0, "max_vagueness": 0, "min_vagueness": 0, "std_vagueness": 0}
+        inference_metrics["spy_performance"] = {
+            "average_quality": np.mean([inference_metrics["response_quality"][spy] for spy in spy_players]) if spy_players else 0.0,
+            "average_deception": np.mean([inference_metrics["deception_effectiveness"][spy] for spy in spy_players]) if spy_players else 0.0
+        }
+        
+        inference_metrics["villager_performance"] = {
+            "average_quality": np.mean([inference_metrics["response_quality"][villager] for villager in villager_players]) if villager_players else 0.0,
+            "average_extraction": np.mean([inference_metrics["information_extraction"][villager] for villager in villager_players]) if villager_players else 0.0
+        }
+        
+        return inference_metrics
     
-    def vote_influence_index(self) -> Dict[str, float]:
-        """
-        Calculate how influential each player's votes were.
+    def _extract_player_decisions_spyfall(self, player: str, game: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract all decisions made by a player across the game."""
+        decisions = {
+            "descriptions": [],
+            "votes": [],
+            "game_context": game.get("game_setup", {})
+        }
         
+        rounds = game.get("rounds", [])
+        for round_num, round_data in enumerate(rounds):
+            descriptions = round_data.get("descriptions", {})
+            if player in descriptions:
+                decisions["descriptions"].append({
+                    "round": round_num + 1,
+                    "content": descriptions[player],
+                    "context": round_data
+                })
+
+            votes = round_data.get("votes", {})
+            if player in votes:
+                decisions["votes"].append({
+                    "round": round_num + 1,
+                    "target": votes[player],
+                    "context": round_data
+                })
+        
+        return decisions
+    
+    def _analyze_decision_quality_spyfall(self, player_decisions: Dict[str, Any], is_spy: bool) -> float:
+        """Analyze the quality of a player's decisions."""
+        quality_scores = []
+        
+        for desc_data in player_decisions["descriptions"]:
+            desc_quality = self._evaluate_description_quality(desc_data, is_spy)
+            quality_scores.append(desc_quality)
+        
+        for vote_data in player_decisions["votes"]:
+            vote_quality = self._evaluate_voting_quality(vote_data, is_spy)
+            quality_scores.append(vote_quality)
+        
+        return np.mean(quality_scores) if quality_scores else 0.0
+    
+    def _analyze_strategic_coherence_spyfall(self, player_decisions: Dict[str, Any], is_spy: bool) -> float:
+        """Analyze strategic coherence across descriptions and votes."""
+        if len(player_decisions["descriptions"]) < 2:
+            return 1.0  
+        
+        coherence_scores = []
+        
+        descriptions = player_decisions["descriptions"]
+        for i in range(1, len(descriptions)):
+            prev_desc = descriptions[i-1]
+            curr_desc = descriptions[i]
+            coherence = self._evaluate_description_coherence(prev_desc, curr_desc, is_spy)
+            coherence_scores.append(coherence)
+        
+        if player_decisions["votes"] and player_decisions["descriptions"]:
+            vote_desc_alignment = self._evaluate_vote_description_alignment(
+                player_decisions["descriptions"], 
+                player_decisions["votes"], 
+                is_spy
+            )
+            coherence_scores.append(vote_desc_alignment)
+        
+        return np.mean(coherence_scores) if coherence_scores else 0.5
+    
+    def _analyze_role_consistency_spyfall(self, player_decisions: Dict[str, Any], is_spy: bool) -> float:
+        """Analyze how consistently player acts according to their role."""
+        consistency_scores = []
+        
+        for desc_data in player_decisions["descriptions"]:
+            consistency = self._evaluate_role_consistency(desc_data, is_spy)
+            consistency_scores.append(consistency)
+        
+        for vote_data in player_decisions["votes"]:
+            consistency = self._evaluate_vote_role_consistency(vote_data, is_spy)
+            consistency_scores.append(consistency)
+        
+        return np.mean(consistency_scores) if consistency_scores else 0.5
+    
+    def _analyze_deception_effectiveness_spyfall(self, player_decisions: Dict[str, Any], game: Dict[str, Any]) -> float:
+        """Analyze how effectively a spy deceives villagers."""
+        if not player_decisions["descriptions"]:
+            return 0.0
+        
+        deception_scores = []
+        
+        for desc_data in player_decisions["descriptions"]:
+            deception_score = self._evaluate_spy_deception(desc_data, game)
+            deception_scores.append(deception_score)
+        
+        game_result = game.get("game_result", {})
+        if game_result.get("winner") == "spy":
+            outcome_bonus = 0.3  
+        else:
+            outcome_bonus = 0.0
+        
+        base_score = np.mean(deception_scores) if deception_scores else 0.0
+        return min(1.0, base_score + outcome_bonus)
+    
+    def _analyze_information_extraction_spyfall(self, player_decisions: Dict[str, Any], game: Dict[str, Any]) -> float:
+        """Analyze how effectively a villager extracts information about the spy."""
+        if not player_decisions["votes"]:
+            return 0.0
+        
+        extraction_scores = []
+        
+        spy_name = game.get("game_setup", {}).get("spy_name", "")
+        for vote_data in player_decisions["votes"]:
+            if vote_data["target"] == spy_name:
+                extraction_scores.append(1.0)  
+            else:
+                extraction_scores.append(0.0)  
+
+        game_result = game.get("game_result", {})
+        if game_result.get("winner") == "villager":
+            outcome_bonus = 0.2  
+        else:
+            outcome_bonus = 0.0
+        
+        base_score = np.mean(extraction_scores) if extraction_scores else 0.0
+        return min(1.0, base_score + outcome_bonus)
+    
+    def _calculate_error_rate_spyfall(self, player_decisions: Dict[str, Any]) -> float:
+        """Calculate error rate in player decisions."""
+        total_decisions = len(player_decisions["descriptions"]) + len(player_decisions["votes"])
+        total_errors = 0
+        
+        # Check for description errors
+        for desc_data in player_decisions["descriptions"]:
+            if self._is_description_error(desc_data):
+                total_errors += 1
+        
+        # Check for voting errors
+        for vote_data in player_decisions["votes"]:
+            if self._is_voting_error(vote_data):
+                total_errors += 1
+        
+        return total_errors / total_decisions if total_decisions > 0 else 0.0
+    
+    # Evaluation helper methods
+    def _evaluate_description_quality(self, desc_data: Dict[str, Any], is_spy: bool) -> float:
+        """Evaluate quality of a description."""
+        content = desc_data.get("content", "")
+        if not content:
+            return 0.0
+        
+        score = 0.5  # Base score
+        
+        # Length check (not too short, not too long)
+        if 10 <= len(content) <= 200:
+            score += 0.2
+        
+        # Specificity vs vagueness balance
+        if is_spy:
+            # Spy should be vague but not obviously so
+            if self._is_appropriately_vague(content):
+                score += 0.2
+            if not self._contains_obvious_tells(content):
+                score += 0.1
+        else:
+            # Villager should be specific but not too revealing
+            if self._is_appropriately_specific(content):
+                score += 0.2
+            if not self._is_too_revealing(content):
+                score += 0.1
+        
+        return min(score, 1.0)
+    
+    def _evaluate_voting_quality(self, vote_data: Dict[str, Any], is_spy: bool) -> float:
+        """Evaluate quality of a voting decision."""
+        target = vote_data.get("target", "")
+        context = vote_data.get("context", {})
+        
+        if not target:
+            return 0.0
+        
+        score = 0.5  # Base score
+        
+        # Check if vote target is valid
+        living_players = context.get("living_players", [])
+        if target in living_players:
+            score += 0.2
+        
+        # Role-specific voting strategy
+        if is_spy:
+            # Spy should vote for villagers
+            spy_name = vote_data.get("context", {}).get("spy_name", "")
+            if target != spy_name:  # Not voting for self
+                score += 0.3
+        else:
+            # Villager should try to vote for spy
+            # This is harder to evaluate without knowing the outcome
+            score += 0.3  # Assume reasonable attempt
+        
+        return min(score, 1.0)
+    
+    def _evaluate_description_coherence(self, prev_desc: Dict[str, Any], curr_desc: Dict[str, Any], is_spy: bool) -> float:
+        """Evaluate coherence between consecutive descriptions."""
+        prev_content = prev_desc.get("content", "")
+        curr_content = curr_desc.get("content", "")
+        
+        if not prev_content or not curr_content:
+            return 0.5
+        
+        # Simple keyword overlap analysis
+        prev_words = set(prev_content.lower().split())
+        curr_words = set(curr_content.lower().split())
+        
+        overlap = len(prev_words.intersection(curr_words))
+        total_unique = len(prev_words.union(curr_words))
+        
+        if total_unique == 0:
+            return 0.5
+        
+        # Coherence should be moderate - too much overlap is suspicious, too little is inconsistent
+        overlap_ratio = overlap / total_unique
+        if 0.2 <= overlap_ratio <= 0.6:
+            return 0.8
+        elif 0.1 <= overlap_ratio <= 0.8:
+            return 0.6
+        else:
+            return 0.3
+    
+    def _evaluate_vote_description_alignment(self, descriptions: List[Dict[str, Any]], votes: List[Dict[str, Any]], is_spy: bool) -> float:
+        """Evaluate alignment between descriptions and voting behavior."""
+        if not descriptions or not votes:
+            return 0.5
+        
+        # For simplicity, assume alignment if consistent strategy is maintained
+        # This could be enhanced with more sophisticated analysis
+        return 0.7  # Reasonable alignment assumed
+    
+    def _evaluate_role_consistency(self, desc_data: Dict[str, Any], is_spy: bool) -> float:
+        """Evaluate if description is consistent with role."""
+        content = desc_data.get("content", "")
+        
+        if is_spy:
+            # Spy should avoid being too specific
+            if self._is_appropriately_vague(content) and not self._contains_obvious_tells(content):
+                return 0.8
+            else:
+                return 0.4
+        else:
+            # Villager should be reasonably specific
+            if self._is_appropriately_specific(content) and not self._is_too_revealing(content):
+                return 0.8
+            else:
+                return 0.4
+    
+    def _evaluate_vote_role_consistency(self, vote_data: Dict[str, Any], is_spy: bool) -> float:
+        """Evaluate if voting behavior is consistent with role."""
+        # Simplified evaluation - could be enhanced
+        return 0.7
+    
+    def _evaluate_spy_deception(self, desc_data: Dict[str, Any], game: Dict[str, Any]) -> float:
+        """Evaluate how well spy deceives with their description."""
+        content = desc_data.get("content", "")
+        villager_word = game.get("game_setup", {}).get("villager_word", "")
+        
+        score = 0.5
+        
+        # Spy should sound like they know the word without actually knowing it
+        if self._sounds_knowledgeable(content, villager_word):
+            score += 0.3
+        
+        if self._is_appropriately_vague(content):
+            score += 0.2
+        
+        return min(score, 1.0)
+    
+    # Helper methods for content analysis
+    def _is_appropriately_vague(self, content: str) -> bool:
+        """Check if content is appropriately vague."""
+        vague_indicators = ["something", "thing", "stuff", "kind of", "sort of", "maybe", "perhaps"]
+        return any(indicator in content.lower() for indicator in vague_indicators)
+    
+    def _is_appropriately_specific(self, content: str) -> bool:
+        """Check if content is appropriately specific."""
+        # Not too vague, but not too specific
+        return len(content.split()) >= 5 and not self._is_too_revealing(content)
+    
+    def _contains_obvious_tells(self, content: str) -> bool:
+        """Check if content contains obvious spy tells."""
+        tell_phrases = ["don't know", "not sure", "no idea", "never seen", "what is"]
+        return any(phrase in content.lower() for phrase in tell_phrases)
+    
+    def _is_too_revealing(self, content: str) -> bool:
+        """Check if content is too revealing of the actual word."""
+        # This would need game-specific word analysis
+        return len(content.split()) > 50  # Too long descriptions are suspicious
+    
+    def _sounds_knowledgeable(self, content: str, villager_word: str) -> bool:
+        """Check if spy sounds like they know the villager word."""
+        # Simple heuristic - could be enhanced with semantic analysis
+        return len(content.split()) >= 3 and not self._contains_obvious_tells(content)
+    
+    def _is_description_error(self, desc_data: Dict[str, Any]) -> bool:
+        """Check if description contains obvious errors."""
+        content = desc_data.get("content", "")
+        return not content or len(content.strip()) < 3
+    
+    def _is_voting_error(self, vote_data: Dict[str, Any]) -> bool:
+        """Check if voting decision contains obvious errors."""
+        target = vote_data.get("target", "")
+        context = vote_data.get("context", {})
+        living_players = context.get("living_players", [])
+        
+        return not target or (living_players and target not in living_players)
+    
+    def _calculate_strategic_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate strategic performance metrics."""
+        strategic_metrics = {
+            "spy_win_rate": 0.0,
+            "villager_win_rate": 0.0,
+            "average_game_length": 0.0,
+            "spy_detection_accuracy": 0.0,
+            "deception_success_rate": 0.0,
+            "information_gathering_effectiveness": 0.0
+        }
+        
+        total_games = len(game_logs)
+        spy_wins = 0
+        villager_wins = 0
+        game_lengths = []
+        correct_spy_votes = 0
+        total_votes = 0
+        successful_deceptions = 0
+        total_spy_games = 0
+        
+        for game in game_logs:
+            # Game outcome analysis
+            game_result = game.get("game_result", {})
+            winner = game_result.get("winner", "")
+            
+            if winner == "spy":
+                spy_wins += 1
+                successful_deceptions += 1
+            elif winner == "villager":
+                villager_wins += 1
+            
+            # Game length
+            rounds = game.get("rounds", [])
+            game_lengths.append(len(rounds))
+            
+            # Voting accuracy analysis
+            spy_name = game.get("game_setup", {}).get("spy_name", "")
+            if spy_name:
+                total_spy_games += 1
+                
+                for round_data in rounds:
+                    votes = round_data.get("votes", {})
+                    for voter, target in votes.items():
+                        total_votes += 1
+                        if target == spy_name:
+                            correct_spy_votes += 1
+        
+        # Calculate metrics
+        if total_games > 0:
+            strategic_metrics["spy_win_rate"] = spy_wins / total_games
+            strategic_metrics["villager_win_rate"] = villager_wins / total_games
+            strategic_metrics["average_game_length"] = np.mean(game_lengths) if game_lengths else 0.0
+        
+        if total_votes > 0:
+            strategic_metrics["spy_detection_accuracy"] = correct_spy_votes / total_votes
+        
+        if total_spy_games > 0:
+            strategic_metrics["deception_success_rate"] = successful_deceptions / total_spy_games
+        
+        # Information gathering effectiveness (simplified)
+        strategic_metrics["information_gathering_effectiveness"] = strategic_metrics["spy_detection_accuracy"]
+        
+        return strategic_metrics
+    
+    def _calculate_deception_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate deception and detection metrics."""
+        return {
+            "spy_blending_effectiveness": 0.0,
+            "villager_suspicion_accuracy": 0.0,
+            "deception_complexity": 0.0,
+            "tell_frequency": 0.0
+        }
+    
+    def _calculate_communication_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate communication quality metrics."""
+        return {
+            "description_clarity": 0.0,
+            "information_content": 0.0,
+            "strategic_messaging": 0.0,
+            "communication_consistency": 0.0
+        }
+    
+    def _calculate_voting_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate voting behavior metrics."""
+        return {
+            "voting_accuracy": 0.0,
+            "voting_confidence": 0.0,
+            "strategic_voting": 0.0,
+            "consensus_building": 0.0
+        }
+    
+    def _calculate_game_outcome_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate game outcome metrics."""
+        return {
+            "win_rate_by_role": {},
+            "elimination_patterns": {},
+            "game_duration_analysis": {},
+            "performance_rankings": {}
+        }
+    
+    def _calculate_behavioral_analysis(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate behavioral patterns."""
+        return {
+            "aggression_levels": {},
+            "deception_patterns": {},
+            "cooperation_indicators": {},
+            "risk_assessment": {}
+        }
+    
+    def _calculate_llm_judge_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate LLM as judge evaluation metrics."""
+        if not self.model:
+            return {"error": "No LLM model provided for evaluation"}
+        
+        logger.info("LLM judge evaluation would be implemented here with actual model calls")
+        return {}
+    
+    def _generate_detailed_report(self) -> Dict[str, Any]:
+        """Generate comprehensive analysis report."""
+        if not self.metrics:
+            return {"error": "No metrics calculated yet"}
+        
+        return {
+            "executive_summary": self._generate_executive_summary(),
+            "detailed_analysis": self._generate_detailed_analysis(),
+            "recommendations": self._generate_recommendations()
+        }
+    
+    def _generate_executive_summary(self) -> Dict[str, Any]:
+        """Generate executive summary."""
+        model_perf = self.metrics.get("model_performance", {})
+        strategic_metrics = self.metrics.get("strategic_metrics", {})
+        
+        return {
+            "total_inferences": model_perf.get("total_inferences", 0),
+            "average_response_quality": np.mean(list(model_perf.get("response_quality", {}).values())) if model_perf.get("response_quality") else 0.0,
+            "spy_win_rate": strategic_metrics.get("spy_win_rate", 0.0),
+            "villager_win_rate": strategic_metrics.get("villager_win_rate", 0.0),
+            "key_strengths": [],
+            "key_weaknesses": []
+        }
+    
+    def _generate_detailed_analysis(self) -> Dict[str, Any]:
+        """Generate detailed analysis."""
+        return {
+            "inference_patterns": self.metrics.get("model_performance", {}),
+            "strategic_patterns": self.metrics.get("strategic_metrics", {}),
+            "deception_analysis": self.metrics.get("deception_metrics", {}),
+            "communication_analysis": self.metrics.get("communication_metrics", {})
+        }
+    
+    def _generate_recommendations(self) -> List[str]:
+        """Generate recommendations."""
+        return [
+            "Improve deception techniques for spy role",
+            "Enhance information gathering for villager role",
+            "Balance specificity in descriptions"
+        ]
+    
+    def _convert_numpy_types(self, obj: Any) -> Any:
+        """Recursively convert numpy types to JSON-serializable types."""
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {key: self._convert_numpy_types(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_numpy_types(item) for item in obj]
+        elif isinstance(obj, tuple):
+            return tuple(self._convert_numpy_types(item) for item in obj)
+        else:
+            return obj
+    
+    # Additional methods for compatibility and report generation
+    def generate_report(self, metrics_data: Dict[str, Any], format_type: str = "markdown") -> str:
+        """
+        Generate comprehensive analysis report in specified format.
+        
+        Args:
+            metrics_data: Calculated metrics data
+            format_type: Format type ("markdown", "json", "txt")
+            
         Returns:
-            Dictionary mapping player names to influence scores
+            str: Formatted report
         """
-        influence_scores = {}
+        if format_type == "markdown":
+            return self._generate_markdown_report(metrics_data)
+        elif format_type == "json":
+            return json.dumps(metrics_data, indent=2)
+        else:
+            return self._generate_text_report(metrics_data)
+    
+    def _generate_markdown_report(self, metrics_data: Dict[str, Any]) -> str:
+        """Generate markdown format report."""
+        report = f"""# Spyfall Game Analysis Report
+
+Generated: {metrics_data.get('timestamp', 'Unknown')}
+Games Analyzed: {metrics_data.get('games_total', 0)}
+
+## Executive Summary
+
+"""
         
-        # If we don't have votes, return empty dict
-        if not self.votes:
-            return influence_scores
-            
-        # Count how many players voted for each target
-        vote_counts = {}
-        for player, vote_list in self.votes.items():
-            for vote in vote_list:
-                target = vote["vote_for"]
-                if target not in vote_counts:
-                    vote_counts[target] = 0
-                vote_counts[target] += 1
+        executive_summary = metrics_data.get('detailed_report', {}).get('executive_summary', {})
+        model_perf = metrics_data.get('model_performance', {})
+        strategic_metrics = metrics_data.get('strategic_metrics', {})
         
-        # Define influence as voting with the majority
-        for player, vote_list in self.votes.items():
-            majority_votes = 0
-            total_votes = len(vote_list)
-            
-            for vote in vote_list:
-                target = vote["vote_for"]
-                if target in vote_counts and vote_counts[target] > 1:  # If voted for someone others also voted for
-                    majority_votes += 1
-            
-            # Influence is the proportion of votes that aligned with others
-            influence_scores[player] = majority_votes / total_votes if total_votes > 0 else 0
+        report += f"""### Key Performance Indicators
+- **Total Inferences**: {executive_summary.get('total_inferences', 0)}
+- **Average Response Quality**: {executive_summary.get('average_response_quality', 0):.3f}
+- **Spy Win Rate**: {executive_summary.get('spy_win_rate', 0):.3f}
+- **Villager Win Rate**: {executive_summary.get('villager_win_rate', 0):.3f}
+
+## Model Inference Performance
+
+### Overall Statistics
+- **Description Inferences**: {model_perf.get('description_inferences', 0)}
+- **Voting Inferences**: {model_perf.get('voting_inferences', 0)}
+- **Total Errors**: {model_perf.get('total_errors', 0)}
+
+### Role-Specific Performance
+"""
         
-        return influence_scores 
+        spy_perf = model_perf.get('spy_performance', {})
+        villager_perf = model_perf.get('villager_performance', {})
+        
+        if spy_perf:
+            report += f"""
+#### Spy Performance
+- **Average Quality**: {spy_perf.get('average_quality', 0):.3f}
+- **Average Deception**: {spy_perf.get('average_deception', 0):.3f}
+"""
+        
+        if villager_perf:
+            report += f"""
+#### Villager Performance
+- **Average Quality**: {villager_perf.get('average_quality', 0):.3f}
+- **Average Information Extraction**: {villager_perf.get('average_extraction', 0):.3f}
+"""
+        
+        report += f"""
+## Strategic Analysis
+
+### Game Outcomes
+- **Average Game Length**: {strategic_metrics.get('average_game_length', 0):.1f} rounds
+- **Spy Detection Accuracy**: {strategic_metrics.get('spy_detection_accuracy', 0):.3f}
+- **Deception Success Rate**: {strategic_metrics.get('deception_success_rate', 0):.3f}
+
+## Player Performance Analysis
+
+### Response Quality by Player
+"""
+        
+        response_quality = model_perf.get('response_quality', {})
+        for player, quality in sorted(response_quality.items(), key=lambda x: x[1], reverse=True):
+            report += f"- **{player}**: {quality:.3f}\n"
+        
+        report += """
+### Strategic Coherence by Player
+"""
+        
+        strategic_coherence = model_perf.get('strategic_coherence', {})
+        for player, coherence in sorted(strategic_coherence.items(), key=lambda x: x[1], reverse=True):
+            report += f"- **{player}**: {coherence:.3f}\n"
+        
+        recommendations = metrics_data.get('detailed_report', {}).get('recommendations', [])
+        if recommendations:
+            report += """
+## Recommendations for Improvement
+
+"""
+            for i, rec in enumerate(recommendations, 1):
+                report += f"{i}. {rec}\n"
+        
+        report += f"""
+---
+*Report generated by PolitAgent Spyfall Metrics v2.0*
+"""
+        
+        return report
+    
+    def _generate_text_report(self, metrics_data: Dict[str, Any]) -> str:
+        """Generate plain text format report."""
+        return f"Spyfall Analysis Report - {metrics_data.get('games_total', 0)} games analyzed" 

@@ -46,7 +46,6 @@ def main() -> None:
         res = compute_adversarial(lines)
         res_dict[label_name] = res
 
-    # Calculate averages
     valid_results = [v for k, v in res_dict.items() if k != "avg"]
     avg = {
         "round_avg": sum(v["round_avg"] for v in valid_results) / len(valid_results) if valid_results else 0,

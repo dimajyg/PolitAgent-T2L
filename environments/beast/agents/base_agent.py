@@ -2,20 +2,15 @@ from llm.agent import BaseAgent
 from environments.beast.utils.utils import create_message
 from environments.beast.utils.prompt import (
     get_role_prompt_template, 
-    get_choose_conv_prompt_template, 
-    get_conv_prompt_template,
     format_prompt
 )
 import json
 import random
-from typing import Dict, List, Any, Optional, Tuple, cast
+from typing import Dict, List, Any, Optional, Tuple
 try:
     from langchain_core.language_models.base import BaseLanguageModel
-    from langchain_core.messages import HumanMessage, SystemMessage
 except ImportError:
-    # Fallback for older langchain versions
     from langchain.llms.base import BaseLLM as BaseLanguageModel
-    from langchain.schema import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -112,31 +107,24 @@ class BeastAgent(BaseAgent):
         self.wealth = wealth
         self.influence_points = influence_points
         
-        # Assign secret role
         self.secret_role = secret_role or random.choice(list(SecretRole))
         
-        # Initialize trust system - track trust with each other player
         self.trust_levels: Dict[str, TrustLevel] = {
             player: TrustLevel.MEDIUM for player in players if player != self.player_name
         }
         
-        # Knowledge tracking
         self.known_information: Dict[str, List[str]] = {player: [] for player in players}
         self.secret_information: List[str] = self._generate_secret_info()
         self.suspected_alliances: Dict[str, List[str]] = {}
         
-        # Alliance tracking
         self.current_alliances: List[List[str]] = []
         self.betrayed_players: List[str] = []
         
-        # Game state tracking
         self.current_round = 1
         self.eliminated_players: List[str] = []
         
-        # Role-specific abilities
         self.role_abilities_used: List[str] = []
         
-        # Generate initial role prompt with all secret information
         role_prompt = format_prompt(
             get_role_prompt_template(),
             player_name=self.player_name,
@@ -147,10 +135,8 @@ class BeastAgent(BaseAgent):
             current_round=self.current_round
         )
         
-        # Initialize the BaseAgent
         super().__init__(player_name, llm, role_prompt)
         
-        # Initialize message history
         self.private_history: List[Dict[str, str]] = []
         self.private_history.append(create_message("system", role_prompt))
         
@@ -159,26 +145,21 @@ class BeastAgent(BaseAgent):
         secrets = []
         other_players = [p for p in self.players if p != self.player_name]
         
-        # Role-specific secret information
         if self.secret_role == SecretRole.SPY:
-            # Spy knows about wealth levels
             for player in random.sample(other_players, min(2, len(other_players))):
                 wealth_level = random.choice(["very rich", "moderately wealthy", "poor"])
                 secrets.append(f"{player} appears to be {wealth_level}")
                 
         elif self.secret_role == SecretRole.INSIDER:
-            # Insider knows elimination targets
             if other_players:
                 target = random.choice(other_players)
                 secrets.append(f"There are rumors that {target} might be an early elimination target")
                 
         elif self.secret_role == SecretRole.MANIPULATOR:
-            # Manipulator knows about relationships
             if len(other_players) >= 2:
                 p1, p2 = random.sample(other_players, 2)
                 secrets.append(f"{p1} and {p2} seem to distrust each other")
         
-        # Add some general secrets
         if len(other_players) >= 2:
             p1, p2 = random.sample(other_players, 2)
             secrets.append(f"You noticed {p1} and {p2} whispering together before the game started")
@@ -258,26 +239,21 @@ class BeastAgent(BaseAgent):
         messages.append(create_message("user", prompt))
         
         try:
-            # Use regular text generation instead of structured output
             result = self.llm.invoke(messages)
             response_text = result.content if hasattr(result, 'content') else str(result)
             
-            # Add logging for debugging
             if hasattr(self, 'current_round'):
                 print(f"🔍 {self.player_name} intelligence gathering: {response_text[:100]}...")
             
-            # Add small delay to simulate thinking time
             import time
             time.sleep(0.1)
             
-            # Try to parse JSON response
             import re
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
                 json_str = json_match.group(0)
                 parsed = json.loads(json_str)
                 
-                # Validate and create action
                 investigate_players = parsed.get("investigate_players", [])
                 valid_targets = [p for p in investigate_players if p in available_players and p != self.player_name]
                 
@@ -288,7 +264,6 @@ class BeastAgent(BaseAgent):
                         target_of_misinformation=parsed.get("target_of_misinformation")
                     )
             
-            # If parsing fails, try to extract from text
             available = [p for p in available_players if p != self.player_name]
             selected = []
             for player in available:
@@ -307,7 +282,6 @@ class BeastAgent(BaseAgent):
             )
             
         except Exception as e:
-            # Fallback action
             available = [p for p in available_players if p != self.player_name]
             return IntelligenceAction(
                 investigate_players=random.sample(available, min(2, len(available))),
@@ -344,32 +318,27 @@ class BeastAgent(BaseAgent):
             result = self.llm.invoke(messages)
             response_text = result.content if hasattr(result, 'content') else str(result)
             
-            # Add logging for debugging
             print(f"🤝 {self.player_name} alliance formation: {response_text[:100]}...")
             
-            # Add small delay to simulate thinking time
             import time
             time.sleep(0.1)
-            
-            # Try to parse JSON response
+
             import re
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
                 json_str = json_match.group(0)
                 parsed = json.loads(json_str)
                 
-                # Validate targets
                 target_players = parsed.get("target_players", [])
                 valid_targets = [p for p in target_players if p in available_players and p != self.player_name]
                 
                 return AllianceAction(
                     alliance_type=parsed.get("alliance_type", "temporary"),
-                    target_players=valid_targets[:2],  # Max 2 allies
+                    target_players=valid_targets[:2],
                     shared_information=parsed.get("shared_information"),
                     deception_strategy=parsed.get("deception_strategy")
                 )
             
-            # If parsing fails, extract from text
             available = [p for p in available_players if p != self.player_name]
             selected = []
             for player in available:
@@ -389,7 +358,6 @@ class BeastAgent(BaseAgent):
             )
             
         except Exception as e:
-            # Fallback action
             available = [p for p in available_players if p != self.player_name]
             targets = random.sample(available, min(1, len(available)))
             return AllianceAction(
@@ -427,14 +395,11 @@ class BeastAgent(BaseAgent):
             result = self.llm.invoke(messages)
             response_text = result.content if hasattr(result, 'content') else str(result)
             
-            # Add logging for debugging
             print(f"⚔️ {self.player_name} strategic challenge: {response_text[:100]}...")
             
-            # Add small delay to simulate thinking time
             import time
             time.sleep(0.1)
             
-            # Try to parse JSON response
             import re
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
@@ -454,7 +419,6 @@ class BeastAgent(BaseAgent):
                     bid_amount=bid_amount
                 )
             
-            # If parsing fails, make conservative decision
             return ChallengeAction(
                 challenge_type=challenge_type,
                 decision="conservative approach",
@@ -463,7 +427,6 @@ class BeastAgent(BaseAgent):
             )
             
         except Exception as e:
-            # Fallback action
             return ChallengeAction(
                 challenge_type=challenge_type,
                 decision="conservative approach", 
@@ -505,14 +468,11 @@ class BeastAgent(BaseAgent):
             result = self.llm.invoke(messages)
             response_text = result.content if hasattr(result, 'content') else str(result)
             
-            # Add logging for debugging
             print(f"💬 {self.player_name} negotiating with {opponent_name}: {response_text[:100]}...")
             
-            # Add small delay to simulate thinking time
             import time
             time.sleep(0.2)
             
-            # Try to parse JSON response
             import re
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
@@ -530,8 +490,7 @@ class BeastAgent(BaseAgent):
                     information_to_extract=parsed.get("information_to_extract", ["wealth level"]),
                     pressure_tactics=parsed.get("pressure_tactics", ["strategic pressure"])
                 )
-            
-            # If parsing fails, extract message from response
+
             message = response_text.strip()
             if not message or len(message) > 200:
                 message = f"I think we should work together against the stronger players, {opponent_name}."
@@ -545,7 +504,6 @@ class BeastAgent(BaseAgent):
             )
             
         except Exception as e:
-            # Fallback negotiation
             return NegotiationAction(
                 message=f"I think we should work together against the stronger players, {opponent_name}.",
                 offer_amount=0,
@@ -583,14 +541,11 @@ class BeastAgent(BaseAgent):
             result = self.llm.invoke(messages)
             response_text = result.content if hasattr(result, 'content') else str(result)
             
-            # Add logging for debugging
             print(f"🗳️ {self.player_name} voting: {response_text[:100]}...")
             
-            # Add small delay to simulate thinking time
             import time
             time.sleep(0.15)
             
-            # Try to parse JSON response
             import re
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
@@ -599,7 +554,6 @@ class BeastAgent(BaseAgent):
                 
                 target = parsed.get("target", "")
                 if target not in available_targets:
-                    # Try to find target mentioned in text
                     for player in available_targets:
                         if player.lower() in response_text.lower():
                             target = player
@@ -614,7 +568,6 @@ class BeastAgent(BaseAgent):
                     alliance_coordination=parsed.get("alliance_coordination", False)
                 )
             
-            # If parsing fails, find target in text
             target = None
             for player in available_targets:
                 if player.lower() in response_text.lower():
@@ -632,7 +585,6 @@ class BeastAgent(BaseAgent):
             )
             
         except Exception as e:
-            # Fallback vote
             target = random.choice(available_targets)
             return VoteAction(
                 target=target,
@@ -641,7 +593,6 @@ class BeastAgent(BaseAgent):
                 alliance_coordination=False
             )
 
-    # Legacy methods for compatibility
     def choose_opponents(self, players_remaining: List[str]) -> List[str]:
         """Legacy method - choose conversation partners"""
         return random.sample([p for p in players_remaining if p != self.player_name], 
@@ -663,8 +614,7 @@ class BeastAgent(BaseAgent):
     def handle_offer(self, opponent_name: str, amount: int) -> bool:
         """Handle wealth transfer offers"""
         trust = self.trust_levels.get(opponent_name, TrustLevel.MEDIUM)
-        
-        # More likely to accept from trusted players
+            
         trust_multiplier = {
             TrustLevel.VERY_HIGH: 0.9,
             TrustLevel.HIGH: 0.7,

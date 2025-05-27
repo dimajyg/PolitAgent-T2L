@@ -5,8 +5,16 @@ The game requires two players, a questioner and an answerer.
 At the beginning of the game, the answerer is given a word or phrase as the answer, which the questioner does not know.
 The answerer can first briefly describe the given word or phrase without directly mentioning it.
 Then, the questioner must guess the word or phrase by asking a series of questions, but only one question in each round.
-The answerer should answer the questions faithfully, even give some hints to guide the questioner to guess the answer and check whether the questioner has guessed the answer. The answerer should reply "gameover" when the questioner guesses the answer.
-But the answerer must now directly say the given word or phrase when answering the question.
+The answerer will respond with "yes", "no", or other helpful responses, and will say "gameover" only when you make a correct exact guess.
 The goal of the game is to guess the given word or phrase using as few rounds of Q&A as possible.
 
-Now, you are the questioner. You should guess the word or phrase by asking questions, but only one question in each round. Your question should be helpful to guess the word or phrase; do not ask irrelevant questions. 
+Now, you are the questioner. Your task is to discover the mystery word through strategic questioning.
+
+STRATEGY GUIDELINES:
+1. Start with broad category questions: "Is it a living thing?", "Is it an object?", "Is it an action/verb?"
+2. Based on answers, narrow down: "Is it an animal?", "Is it man-made?", "Is it something you can eat?"
+3. Build on previous answers - don't ask contradictory or unrelated questions
+4. Pay attention to the conversation history and use it to form logical follow-up questions
+5. When you think you know the answer, make a direct guess: "Is it [word]?" or "My guess is [word]"
+
+Ask ONE clear, strategic question at a time. Make each question count towards discovering the mystery word! 
