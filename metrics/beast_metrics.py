@@ -1,15 +1,12 @@
 import json
 import logging
 import os
-import re
-import time
-from typing import Dict, List, Any, Tuple, Optional, Union
+from typing import Dict, List, Any, Optional
 from metrics.base_metrics import BaseMetrics
 import numpy as np
-from collections import defaultdict, Counter
+from collections import defaultdict
 from datetime import datetime
 from langchain_core.language_models.base import BaseLanguageModel
-from langchain_core.messages import HumanMessage, SystemMessage
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +26,8 @@ class BeastMetrics(BaseMetrics):
         super().__init__(game_type="beast")
         self.model = model
         self.metrics = {}
-        self.inference_data = []  # Store detailed inference metrics
-        self.strategic_analysis = {}  # Store strategic patterns
+        self.inference_data = []
+        self.strategic_analysis = {}
     
     def compute_all(self) -> Dict[str, Any]:
         """
@@ -40,8 +37,6 @@ class BeastMetrics(BaseMetrics):
         Returns:
             Dict[str, Any]: Complete metrics suite
         """
-        # For Beast metrics, we don't use the event-based approach
-        # Instead, we calculate from game logs in calculate_metrics
         return self.computed_metrics
     
     def calculate_metrics(self, results_dir: str) -> Dict[str, Any]:
@@ -60,7 +55,6 @@ class BeastMetrics(BaseMetrics):
             logger.warning("No games found in results directory: %s", results_dir)
             return {"error": "No game logs found", "games_total": 0}
         
-        # Core metrics
         self.metrics = {
             "games_total": len(game_logs),
             "timestamp": datetime.now().isoformat(),
@@ -72,17 +66,13 @@ class BeastMetrics(BaseMetrics):
             "behavioral_analysis": self._calculate_behavioral_analysis(game_logs)
         }
         
-        # LLM as judge evaluation
         if self.model:
             self.metrics["llm_evaluation"] = self._calculate_llm_judge_metrics(game_logs)
         
-        # Generate comprehensive report
         self.metrics["detailed_report"] = self._generate_detailed_report()
         
-        # Convert numpy types to JSON-serializable types
         self.metrics = self._convert_numpy_types(self.metrics)
         
-        # Store in computed_metrics for base class compatibility
         self.computed_metrics = self.metrics
         
         return self.metrics
@@ -138,7 +128,6 @@ class BeastMetrics(BaseMetrics):
         players = set()
         
         for game in game_logs:
-            # Extract player data from different game formats
             if "players" in game:
                 players.update(game["players"])
             
@@ -146,40 +135,32 @@ class BeastMetrics(BaseMetrics):
             if not game_rounds and "game_data" in game:
                 game_rounds = game["game_data"].get("rounds", [])
             
-            # Count inferences by phase
             for round_data in game_rounds:
-                # Intelligence phase inferences
                 intel_data = round_data.get("intelligence", {})
                 if isinstance(intel_data, dict):
                     inference_metrics["intelligence_inferences"] += len(intel_data)
                 
-                # Alliance phase inferences
                 alliance_data = round_data.get("alliance", {})
                 if isinstance(alliance_data, dict):
                     inference_metrics["alliance_inferences"] += len(alliance_data)
                 
-                # Challenge phase inferences
                 challenge_data = round_data.get("challenge", {})
                 if isinstance(challenge_data, dict):
                     inference_metrics["challenge_inferences"] += len(challenge_data)
-                
-                # Negotiation phase inferences
+
                 negotiation_data = round_data.get("negotiation", {})
                 if isinstance(negotiation_data, dict):
                     inference_metrics["negotiation_inferences"] += len(negotiation_data)
                 
-                # Voting phase inferences
                 voting_data = round_data.get("voting", {})
                 if isinstance(voting_data, dict):
                     inference_metrics["voting_inferences"] += len(voting_data)
                 
-                # Collect players from round data
                 for phase in ["intelligence", "alliance", "challenge", "negotiation", "voting"]:
                     phase_data = round_data.get(phase, {})
                     if isinstance(phase_data, dict):
                         players.update(phase_data.keys())
         
-        # Initialize player-specific metrics
         for player in players:
             inference_metrics["response_quality"][player] = 0.0
             inference_metrics["decision_consistency"][player] = 0.0
@@ -187,39 +168,31 @@ class BeastMetrics(BaseMetrics):
             inference_metrics["error_rate"][player] = 0.0
             inference_metrics["context_utilization"][player] = 0.0
         
-        # Analyze response quality and consistency for each player
         for game in game_logs:
             game_rounds = game.get("rounds", [])
             if not game_rounds and "game_data" in game:
                 game_rounds = game["game_data"].get("rounds", [])
             
             for player in players:
-                # Extract player decisions across all phases
                 player_decisions = self._extract_player_decisions_beast(player, game_rounds)
                 
                 if player_decisions:
-                    # Quality analysis
                     quality_score = self._analyze_decision_quality_beast(player_decisions)
                     inference_metrics["response_quality"][player] = quality_score
                     
-                    # Consistency analysis
                     consistency_score = self._analyze_decision_consistency_beast(player_decisions)
                     inference_metrics["decision_consistency"][player] = consistency_score
                     
-                    # Strategic coherence
                     coherence_score = self._analyze_strategic_coherence_beast(player_decisions)
                     inference_metrics["strategic_coherence"][player] = coherence_score
                     
-                    # Context utilization
                     context_score = self._analyze_context_utilization_beast(player_decisions)
                     inference_metrics["context_utilization"][player] = context_score
                     
-                    # Error rate analysis
                     error_rate = self._calculate_error_rate_beast(player_decisions)
                     inference_metrics["error_rate"][player] = error_rate
                     inference_metrics["total_errors"] += int(error_rate * len(player_decisions))
-        
-        # Calculate totals
+
         inference_metrics["total_inferences"] = (
             inference_metrics["intelligence_inferences"] + 
             inference_metrics["alliance_inferences"] + 
@@ -255,7 +228,6 @@ class BeastMetrics(BaseMetrics):
             round_quality = 0.0
             valid_phases = 0
             
-            # Intelligence phase quality
             intel = decision.get("intelligence", {})
             if intel:
                 intel_quality = self._evaluate_intelligence_quality(intel)
@@ -263,7 +235,6 @@ class BeastMetrics(BaseMetrics):
                 round_quality += intel_quality
                 valid_phases += 1
             
-            # Alliance phase quality
             alliance = decision.get("alliance", {})
             if alliance:
                 alliance_quality = self._evaluate_alliance_quality(alliance)
@@ -271,7 +242,6 @@ class BeastMetrics(BaseMetrics):
                 round_quality += alliance_quality
                 valid_phases += 1
             
-            # Challenge phase quality
             challenge = decision.get("challenge", {})
             if challenge:
                 challenge_quality = self._evaluate_challenge_quality(challenge)
@@ -279,7 +249,6 @@ class BeastMetrics(BaseMetrics):
                 round_quality += challenge_quality
                 valid_phases += 1
             
-            # Negotiation phase quality
             negotiation = decision.get("negotiation", {})
             if negotiation:
                 negotiation_quality = self._evaluate_negotiation_quality(negotiation)
@@ -287,7 +256,6 @@ class BeastMetrics(BaseMetrics):
                 round_quality += negotiation_quality
                 valid_phases += 1
             
-            # Voting phase quality
             voting = decision.get("voting", {})
             if voting:
                 voting_quality = self._evaluate_voting_quality(voting)
@@ -307,19 +275,16 @@ class BeastMetrics(BaseMetrics):
         
         consistency_scores = []
         
-        # Analyze alliance consistency
         alliance_decisions = [d.get("alliance", {}) for d in player_decisions if d.get("alliance")]
         if len(alliance_decisions) > 1:
             alliance_consistency = self._calculate_alliance_consistency(alliance_decisions)
             consistency_scores.append(alliance_consistency)
         
-        # Analyze voting pattern consistency
         voting_decisions = [d.get("voting", {}) for d in player_decisions if d.get("voting")]
         if len(voting_decisions) > 1:
             voting_consistency = self._calculate_voting_consistency(voting_decisions)
             consistency_scores.append(voting_consistency)
         
-        # Analyze strategic coherence across phases
         strategic_consistency = self._calculate_strategic_consistency(player_decisions)
         consistency_scores.append(strategic_consistency)
         
@@ -330,7 +295,6 @@ class BeastMetrics(BaseMetrics):
         coherence_scores = []
         
         for decision in player_decisions:
-            # Check alignment between intelligence and alliance actions
             intel = decision.get("intelligence", {})
             alliance = decision.get("alliance", {})
             
@@ -338,13 +302,11 @@ class BeastMetrics(BaseMetrics):
                 intel_alliance_coherence = self._evaluate_intel_alliance_coherence(intel, alliance)
                 coherence_scores.append(intel_alliance_coherence)
             
-            # Check alignment between alliance and voting
             voting = decision.get("voting", {})
             if alliance and voting:
                 alliance_voting_coherence = self._evaluate_alliance_voting_coherence(alliance, voting)
                 coherence_scores.append(alliance_voting_coherence)
             
-            # Check negotiation alignment with overall strategy
             negotiation = decision.get("negotiation", {})
             if negotiation:
                 negotiation_coherence = self._evaluate_negotiation_coherence(negotiation, decision)
@@ -360,7 +322,6 @@ class BeastMetrics(BaseMetrics):
             round_utilization = 0.0
             valid_phases = 0
             
-            # Intelligence context utilization
             intel = decision.get("intelligence", {})
             if intel:
                 intel_utilization = self._evaluate_intelligence_context_usage(intel)
@@ -368,7 +329,6 @@ class BeastMetrics(BaseMetrics):
                 round_utilization += intel_utilization
                 valid_phases += 1
             
-            # Alliance context utilization
             alliance = decision.get("alliance", {})
             if alliance:
                 alliance_utilization = self._evaluate_alliance_context_usage(alliance)
@@ -376,7 +336,6 @@ class BeastMetrics(BaseMetrics):
                 round_utilization += alliance_utilization
                 valid_phases += 1
             
-            # Voting context utilization
             voting = decision.get("voting", {})
             if voting:
                 voting_utilization = self._evaluate_voting_context_usage(voting)
@@ -404,54 +363,46 @@ class BeastMetrics(BaseMetrics):
         
         return total_errors / total_decisions if total_decisions > 0 else 0.0
     
-    # Evaluation helper methods for different phases
     def _evaluate_intelligence_quality(self, intel_data: Dict[str, Any]) -> float:
         """Evaluate quality of intelligence gathering decisions."""
-        score = 0.5  # Base score
+        score = 0.5
         
-        # Check if player investigated appropriate targets
         investigated = intel_data.get("investigate_players", [])
-        if len(investigated) == 2:  # Full investigation capacity used
+        if len(investigated) == 2:
             score += 0.2
         elif len(investigated) == 1:
             score += 0.1
         
-        # Check strategic use of misinformation
         misinformation = intel_data.get("misinformation")
         target_misinformation = intel_data.get("target_of_misinformation")
         
         if misinformation and target_misinformation:
-            score += 0.2  # Bonus for using misinformation strategically
+            score += 0.2
         
-        # Check quality of discovered information
         discovered = intel_data.get("discovered_info", [])
         if discovered:
-            score += min(len(discovered) * 0.1, 0.3)  # Up to 0.3 bonus
+            score += min(len(discovered) * 0.1, 0.3)
         
         return min(score, 1.0)
     
     def _evaluate_alliance_quality(self, alliance_data: Dict[str, Any]) -> float:
         """Evaluate quality of alliance formation decisions."""
-        score = 0.5  # Base score
+        score = 0.5
         
         alliance_type = alliance_data.get("alliance_type", "")
         target_players = alliance_data.get("target_players", [])
         shared_info = alliance_data.get("shared_information", "")
         deception_strategy = alliance_data.get("deception_strategy")
         
-        # Evaluate alliance type appropriateness
         if alliance_type in ["true", "false", "temporary"]:
             score += 0.1
-        
-        # Evaluate target selection
+
         if len(target_players) > 0:
             score += 0.2
         
-        # Evaluate information sharing strategy
         if shared_info:
             score += 0.1
         
-        # Evaluate deception strategy (if false alliance)
         if alliance_type == "false" and deception_strategy:
             score += 0.1
         
@@ -459,30 +410,27 @@ class BeastMetrics(BaseMetrics):
     
     def _evaluate_challenge_quality(self, challenge_data: Dict[str, Any]) -> float:
         """Evaluate quality of challenge phase decisions."""
-        score = 0.5  # Base score
+        score = 0.5
         
         decision = challenge_data.get("decision", "")
         reasoning = challenge_data.get("reasoning", "")
         bid_amount = challenge_data.get("bid_amount", 0)
         
-        # Evaluate decision clarity
         if decision:
             score += 0.2
         
-        # Evaluate reasoning quality
-        if reasoning and len(reasoning) > 10:  # Substantial reasoning
+        if reasoning and len(reasoning) > 10:
             score += 0.2
         
-        # Evaluate bid appropriateness (for auction challenges)
         if challenge_data.get("challenge_type") == "auction":
-            if 5000 <= bid_amount <= 50000:  # Reasonable bid range
+            if 5000 <= bid_amount <= 50000:
                 score += 0.1
         
         return min(score, 1.0)
     
     def _evaluate_negotiation_quality(self, negotiation_data: Dict[str, Any]) -> float:
         """Evaluate quality of negotiation decisions."""
-        score = 0.5  # Base score
+        score = 0.5
         
         message = negotiation_data.get("message", "")
         offer_amount = negotiation_data.get("offer_amount", 0)
@@ -490,19 +438,15 @@ class BeastMetrics(BaseMetrics):
         info_to_extract = negotiation_data.get("information_to_extract", [])
         pressure_tactics = negotiation_data.get("pressure_tactics", [])
         
-        # Evaluate message quality
-        if message and len(message) > 20:  # Substantial message
+        if message and len(message) > 20:
             score += 0.15
         
-        # Evaluate strategic offer
         if offer_amount > 0:
             score += 0.1
         
-        # Evaluate information extraction strategy
         if info_to_extract:
             score += min(len(info_to_extract) * 0.05, 0.15)
         
-        # Evaluate pressure tactics
         if pressure_tactics:
             score += min(len(pressure_tactics) * 0.05, 0.1)
         
@@ -510,42 +454,35 @@ class BeastMetrics(BaseMetrics):
     
     def _evaluate_voting_quality(self, voting_data: Dict[str, Any]) -> float:
         """Evaluate quality of voting decisions."""
-        score = 0.5  # Base score
+        score = 0.5
         
         target = voting_data.get("target", "")
         public_reasoning = voting_data.get("public_reasoning", "")
         private_motivation = voting_data.get("private_motivation", "")
         alliance_coordination = voting_data.get("alliance_coordination", False)
         
-        # Evaluate target selection
         if target:
             score += 0.2
         
-        # Evaluate public reasoning
         if public_reasoning and len(public_reasoning) > 10:
             score += 0.15
         
-        # Evaluate private motivation clarity
         if private_motivation and len(private_motivation) > 10:
             score += 0.1
         
-        # Evaluate strategic coordination
         if alliance_coordination:
             score += 0.05
         
         return min(score, 1.0)
     
-    # Consistency analysis methods
     def _calculate_alliance_consistency(self, alliance_decisions: List[Dict[str, Any]]) -> float:
         """Calculate consistency in alliance formation patterns."""
         if len(alliance_decisions) < 2:
             return 1.0
         
-        # Analyze alliance type consistency
         alliance_types = [decision.get("alliance_type", "") for decision in alliance_decisions]
-        type_consistency = len(set(alliance_types)) / len(alliance_types)  # Lower is more consistent
+        type_consistency = len(set(alliance_types)) / len(alliance_types)
         
-        # Analyze target consistency
         all_targets = []
         for decision in alliance_decisions:
             targets = decision.get("target_players", [])
@@ -564,14 +501,11 @@ class BeastMetrics(BaseMetrics):
         if len(voting_decisions) < 2:
             return 1.0
         
-        # Analyze voting targets
         targets = [decision.get("target", "") for decision in voting_decisions]
         
-        # Analyze alliance coordination consistency
         coordinated_votes = [decision.get("alliance_coordination", False) for decision in voting_decisions]
         coordination_consistency = 1.0 - (coordinated_votes.count(True) / len(coordinated_votes)) if coordinated_votes else 0.5
         
-        # Overall consistency
         return coordination_consistency
     
     def _calculate_strategic_consistency(self, player_decisions: List[Dict[str, Any]]) -> float:
@@ -582,7 +516,6 @@ class BeastMetrics(BaseMetrics):
             prev_decision = player_decisions[i-1]
             curr_decision = player_decisions[i]
             
-            # Compare alliance strategies
             prev_alliance = prev_decision.get("alliance", {})
             curr_alliance = curr_decision.get("alliance", {})
             
@@ -590,7 +523,6 @@ class BeastMetrics(BaseMetrics):
                 alliance_consistency = self._compare_alliance_strategies(prev_alliance, curr_alliance)
                 consistency_scores.append(alliance_consistency)
             
-            # Compare voting patterns
             prev_voting = prev_decision.get("voting", {})
             curr_voting = curr_decision.get("voting", {})
             
@@ -603,15 +535,13 @@ class BeastMetrics(BaseMetrics):
     def _compare_alliance_strategies(self, prev_alliance: Dict[str, Any], curr_alliance: Dict[str, Any]) -> float:
         """Compare alliance strategies between rounds."""
         score = 0.5
-        
-        # Check alliance type consistency
+
         prev_type = prev_alliance.get("alliance_type", "")
         curr_type = curr_alliance.get("alliance_type", "")
         
         if prev_type == curr_type:
             score += 0.2
         
-        # Check target overlap
         prev_targets = set(prev_alliance.get("target_players", []))
         curr_targets = set(curr_alliance.get("target_players", []))
         
@@ -627,19 +557,16 @@ class BeastMetrics(BaseMetrics):
         """Compare voting strategies between rounds."""
         score = 0.5
         
-        # Check coordination consistency
         prev_coord = prev_voting.get("alliance_coordination", False)
         curr_coord = curr_voting.get("alliance_coordination", False)
         
         if prev_coord == curr_coord:
             score += 0.3
         
-        # Check reasoning consistency
         prev_reasoning = prev_voting.get("private_motivation", "")
         curr_reasoning = curr_voting.get("private_motivation", "")
         
         if prev_reasoning and curr_reasoning:
-            # Simple keyword overlap analysis
             prev_keywords = set(prev_reasoning.lower().split())
             curr_keywords = set(curr_reasoning.lower().split())
             
@@ -651,7 +578,6 @@ class BeastMetrics(BaseMetrics):
         
         return min(score, 1.0)
     
-    # Coherence analysis methods
     def _evaluate_intel_alliance_coherence(self, intel_data: Dict[str, Any], alliance_data: Dict[str, Any]) -> float:
         """Evaluate coherence between intelligence and alliance decisions."""
         score = 0.5
@@ -659,7 +585,6 @@ class BeastMetrics(BaseMetrics):
         investigated = intel_data.get("investigate_players", [])
         alliance_targets = alliance_data.get("target_players", [])
         
-        # Check if alliance targets were investigated
         investigated_set = set(investigated)
         alliance_set = set(alliance_targets)
         
@@ -667,10 +592,9 @@ class BeastMetrics(BaseMetrics):
             overlap = len(investigated_set.intersection(alliance_set))
             score += 0.3 * (overlap / len(alliance_set)) if alliance_set else 0
         
-        # Check if misinformation aligns with alliance strategy
         misinformation_target = intel_data.get("target_of_misinformation")
         if misinformation_target and misinformation_target not in alliance_targets:
-            score += 0.2  # Bonus for strategic misinformation
+            score += 0.2
         
         return min(score, 1.0)
     
@@ -682,13 +606,11 @@ class BeastMetrics(BaseMetrics):
         voting_target = voting_data.get("target", "")
         alliance_coordination = voting_data.get("alliance_coordination", False)
         
-        # Check if voting aligns with alliance
         if alliance_coordination and alliance_targets:
             score += 0.3
         
-        # Check if voting target conflicts with alliance
         if voting_target and voting_target not in alliance_targets:
-            score += 0.2  # Consistent with not voting against allies
+            score += 0.2
         
         return min(score, 1.0)
     
@@ -700,30 +622,25 @@ class BeastMetrics(BaseMetrics):
         alliance_data = decision.get("alliance", {})
         alliance_type = alliance_data.get("alliance_type", "")
         
-        # Check if deception level aligns with alliance type
         if alliance_type == "false" and deception_level > 0.5:
-            score += 0.2  # High deception for false alliance
+            score += 0.2
         elif alliance_type == "true" and deception_level < 0.3:
-            score += 0.2  # Low deception for true alliance
+            score += 0.2
         
-        # Check information extraction alignment
         info_to_extract = negotiation_data.get("information_to_extract", [])
         if info_to_extract:
-            score += 0.1  # Bonus for strategic information gathering
+            score += 0
         
         return min(score, 1.0)
     
-    # Context utilization methods
     def _evaluate_intelligence_context_usage(self, intel_data: Dict[str, Any]) -> float:
         """Evaluate how well intelligence phase uses available context."""
         score = 0.5
         
-        # Check if full investigation capacity is used
         investigated = intel_data.get("investigate_players", [])
-        if len(investigated) == 2:  # Maximum capacity
+        if len(investigated) == 2:
             score += 0.3
         
-        # Check strategic misinformation use
         misinformation = intel_data.get("misinformation")
         if misinformation:
             score += 0.2
@@ -737,11 +654,9 @@ class BeastMetrics(BaseMetrics):
         shared_info = alliance_data.get("shared_information", "")
         deception_strategy = alliance_data.get("deception_strategy")
         
-        # Check information sharing
         if shared_info:
             score += 0.25
         
-        # Check deception strategy detail
         if deception_strategy:
             score += 0.25
         
@@ -754,7 +669,6 @@ class BeastMetrics(BaseMetrics):
         public_reasoning = voting_data.get("public_reasoning", "")
         private_motivation = voting_data.get("private_motivation", "")
         
-        # Check reasoning depth
         if public_reasoning and len(public_reasoning) > 20:
             score += 0.25
         
@@ -767,20 +681,17 @@ class BeastMetrics(BaseMetrics):
         """Check if a decision contains obvious errors."""
         if phase == "intelligence":
             investigated = phase_data.get("investigate_players", [])
-            # Error if investigating more than 2 players (game limit)
             return len(investigated) > 2
         
         elif phase == "alliance":
             alliance_type = phase_data.get("alliance_type", "")
-            # Error if invalid alliance type
             return alliance_type not in ["true", "false", "temporary"]
         
         elif phase == "voting":
             target = phase_data.get("target", "")
-            # Error if no voting target specified
             return not target
         
-        return False  # No obvious errors detected
+        return False
     
     def _calculate_strategic_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Calculate strategic performance metrics."""
@@ -806,7 +717,6 @@ class BeastMetrics(BaseMetrics):
             rounds = game.get("rounds", [])
             
             for round_data in rounds:
-                # Alliance analysis
                 alliance_data = round_data.get("alliance", {})
                 for player, alliance_info in alliance_data.items():
                     if alliance_info:
@@ -816,8 +726,7 @@ class BeastMetrics(BaseMetrics):
                             successful_alliances += 1
                         elif alliance_type == "false":
                             betrayed_alliances += 1
-                
-                # Voting analysis
+
                 voting_data = round_data.get("voting", {})
                 round_outcome = round_data.get("round_outcome", {})
                 eliminated_player = round_outcome.get("eliminated_player")
@@ -829,19 +738,16 @@ class BeastMetrics(BaseMetrics):
                         if voted_target == eliminated_player:
                             accurate_votes += 1
                 
-                # Intelligence/misinformation analysis
                 intel_data = round_data.get("intelligence", {})
                 for player, intel_info in intel_data.items():
                     if intel_info:
                         misinformation = intel_info.get("misinformation")
                         if misinformation:
                             misinformation_instances += 1
-                            # Consider misinformation effective if it targets eventual elimination target
                             misinformation_target = intel_info.get("target_of_misinformation", "")
                             if misinformation_target == eliminated_player:
                                 effective_misinformation += 1
                 
-                # Strategic coherence (simplified)
                 for player in alliance_data.keys():
                     player_decisions = {
                         "intelligence": intel_data.get(player, {}),
@@ -852,7 +758,6 @@ class BeastMetrics(BaseMetrics):
                         coherence_score = self._calculate_round_coherence(player_decisions)
                         coherence_scores.append(coherence_score)
         
-        # Calculate rates
         strategic_metrics["alliance_success_rate"] = successful_alliances / total_alliances if total_alliances > 0 else 0.0
         strategic_metrics["alliance_betrayal_rate"] = betrayed_alliances / total_alliances if total_alliances > 0 else 0.0
         strategic_metrics["voting_accuracy"] = accurate_votes / total_votes if total_votes > 0 else 0.0
@@ -886,33 +791,27 @@ class BeastMetrics(BaseMetrics):
             players = game.get("players", [])
             
             for round_data in rounds:
-                # Negotiation analysis
                 negotiation_data = round_data.get("negotiation", {})
                 for player, negotiation_info in negotiation_data.items():
                     if negotiation_info:
                         total_negotiations += 1
                         
-                        # Deception analysis
                         deception_level = negotiation_info.get("deception_level", 0)
                         if deception_level > 0.5:
                             high_deception_negotiations += 1
                         
-                        # Communication quality
                         message = negotiation_info.get("message", "")
                         if message:
                             quality_score = self._assess_communication_quality(negotiation_info)
                             communication_scores.append(quality_score)
                         
-                        # Pressure tactics
                         pressure_tactics = negotiation_info.get("pressure_tactics", [])
                         if pressure_tactics:
                             pressure_tactics_used += 1
-                            # Consider effective if offer was made
                             offer_amount = negotiation_info.get("offer_amount", 0)
                             if offer_amount > 0:
                                 effective_pressure_tactics += 1
                 
-                # Alliance formation analysis
                 alliance_data = round_data.get("alliance", {})
                 for player, alliance_info in alliance_data.items():
                     if alliance_info:
@@ -920,16 +819,13 @@ class BeastMetrics(BaseMetrics):
                         if target_players:
                             alliance_formations += len(target_players)
                             
-                        # Information sharing
                         shared_info = alliance_info.get("shared_information", "")
                         if shared_info:
                             information_sharing_instances += 1
-                
-                # Calculate possible alliances per round
+
                 if players:
                     total_possible_alliances += len(players) * (len(players) - 1) // 2
         
-        # Calculate metrics
         social_metrics["deception_usage_rate"] = high_deception_negotiations / total_negotiations if total_negotiations > 0 else 0.0
         social_metrics["alliance_formation_rate"] = alliance_formations / total_possible_alliances if total_possible_alliances > 0 else 0.0
         social_metrics["communication_quality_score"] = np.mean(communication_scores) if communication_scores else 0.0
@@ -960,12 +856,10 @@ class BeastMetrics(BaseMetrics):
             final_results = game.get("final_results", {})
             rounds = game.get("rounds", [])
             
-            # Track wealth histories
             for player, setup in initial_setup.items():
                 initial_wealth = setup.get("wealth", 0)
                 player_wealth_histories[player].append(initial_wealth)
             
-            # Analyze round-by-round changes
             for round_data in rounds:
                 round_outcome = round_data.get("round_outcome", {})
                 wealth_changes = round_outcome.get("wealth_changes", {})
@@ -973,24 +867,20 @@ class BeastMetrics(BaseMetrics):
                 for player, change in wealth_changes.items():
                     all_wealth_changes.append(abs(change))
                     if change != 0:
-                        # Update wealth history
                         prev_wealth = player_wealth_histories[player][-1] if player_wealth_histories[player] else 0
                         new_wealth = prev_wealth + change
                         player_wealth_histories[player].append(new_wealth)
                 
-                # Analyze investments (challenge participation)
                 challenge_data = round_data.get("challenge", {})
                 for player, challenge_info in challenge_data.items():
                     if challenge_info:
                         bid_amount = challenge_info.get("bid_amount", 0)
                         if bid_amount > 0:
                             total_investments += 1
-                            # Consider successful if player gained wealth in this round
                             player_change = wealth_changes.get(player, 0)
                             if player_change > 0:
                                 successful_investments += 1
                 
-                # Analyze wealth transfers (negotiations)
                 negotiation_data = round_data.get("negotiation", {})
                 for player, negotiation_info in negotiation_data.items():
                     if negotiation_info:
@@ -998,12 +888,10 @@ class BeastMetrics(BaseMetrics):
                         if offer_amount > 0:
                             wealth_transfers.append(offer_amount)
             
-            # Final wealth distribution
             final_wealth = final_results.get("final_wealth", {})
             for player, wealth in final_wealth.items():
                 economic_metrics["final_wealth_distribution"][player] = wealth
         
-        # Calculate metrics
         if all_wealth_changes:
             economic_metrics["wealth_management_score"] = 1.0 - (np.std(all_wealth_changes) / np.mean(all_wealth_changes)) if np.mean(all_wealth_changes) > 0 else 0.0
             economic_metrics["wealth_volatility"] = np.std(all_wealth_changes)
@@ -1011,11 +899,9 @@ class BeastMetrics(BaseMetrics):
         economic_metrics["investment_efficiency"] = successful_investments / total_investments if total_investments > 0 else 0.0
         economic_metrics["wealth_transfer_volume"] = np.sum(wealth_transfers) if wealth_transfers else 0.0
         
-        # Calculate wealth trajectory consistency per player
         trajectory_scores = []
         for player, wealth_history in player_wealth_histories.items():
-            if len(wealth_history) > 1:
-                # Simple trend consistency
+            if len(wealth_history) > 1: 
                 changes = [wealth_history[i+1] - wealth_history[i] for i in range(len(wealth_history)-1)]
                 if changes:
                     consistency = 1.0 - (np.std(changes) / (np.mean(np.abs(changes)) + 1))
@@ -1042,24 +928,20 @@ class BeastMetrics(BaseMetrics):
         player_final_positions = defaultdict(list)
         
         for game in game_logs:
-            # Game length
             rounds = game.get("rounds", [])
             game_lengths.append(len(rounds))
             
-            # Track eliminations
             for round_num, round_data in enumerate(rounds, 1):
                 round_outcome = round_data.get("round_outcome", {})
                 eliminated_player = round_outcome.get("eliminated_player")
                 if eliminated_player:
                     eliminations_by_round[round_num] += 1
             
-            # Victory analysis
             final_results = game.get("final_results", {})
             winner = final_results.get("winner")
             if winner:
                 victory_counts[winner] += 1
             
-            # Survival analysis
             remaining_players = final_results.get("remaining_players", [])
             eliminated_players = final_results.get("eliminated_players", [])
             
@@ -1068,23 +950,19 @@ class BeastMetrics(BaseMetrics):
             for player in eliminated_players:
                 player_survivals[player].append(False)
             
-            # Final rankings (based on final wealth)
             final_wealth = final_results.get("final_wealth", {})
             if final_wealth:
                 ranked_players = sorted(final_wealth.items(), key=lambda x: x[1], reverse=True)
                 for rank, (player, wealth) in enumerate(ranked_players, 1):
                     player_final_positions[player].append(rank)
         
-        # Calculate metrics
         outcome_metrics["average_game_length"] = np.mean(game_lengths) if game_lengths else 0.0
         outcome_metrics["elimination_patterns"] = dict(eliminations_by_round)
         outcome_metrics["victory_types"] = dict(victory_counts)
         
-        # Survival rates
         for player, survivals in player_survivals.items():
             outcome_metrics["survival_rates"][player] = np.mean(survivals) if survivals else 0.0
         
-        # Performance rankings
         for player, positions in player_final_positions.items():
             outcome_metrics["player_performance_rankings"][player] = np.mean(positions) if positions else 0.0
         
@@ -1117,23 +995,19 @@ class BeastMetrics(BaseMetrics):
             rounds = game.get("rounds", [])
             
             for round_data in rounds:
-                # Analyze voting behavior (aggression)
                 voting_data = round_data.get("voting", {})
                 for player, vote_info in voting_data.items():
                     if vote_info:
                         player_behaviors[player]["total_actions"] += 1
                         
-                        # Aggressive voting (targeting strong players)
                         private_motivation = vote_info.get("private_motivation", "")
                         if any(keyword in private_motivation.lower() for keyword in ["threat", "dominant", "powerful", "eliminate"]):
                             player_behaviors[player]["aggressive_actions"] += 1
-                        
-                        # Cooperative voting (alliance coordination)
+
                         alliance_coordination = vote_info.get("alliance_coordination", False)
                         if alliance_coordination:
                             player_behaviors[player]["cooperative_actions"] += 1
                 
-                # Analyze alliance behavior (cooperation/trust)
                 alliance_data = round_data.get("alliance", {})
                 for player, alliance_info in alliance_data.items():
                     if alliance_info:
@@ -1148,13 +1022,11 @@ class BeastMetrics(BaseMetrics):
                         elif alliance_type == "false":
                             player_behaviors[player]["trust_violated"] += 1
                         
-                        # Information sharing vs hoarding
                         if shared_info:
                             player_behaviors[player]["information_shared"] += 1
                         else:
                             player_behaviors[player]["information_hoarded"] += 1
                 
-                # Analyze challenge behavior (risk taking)
                 challenge_data = round_data.get("challenge", {})
                 for player, challenge_info in challenge_data.items():
                     if challenge_info:
@@ -1163,11 +1035,9 @@ class BeastMetrics(BaseMetrics):
                         bid_amount = challenge_info.get("bid_amount", 0)
                         decision = challenge_info.get("decision", "")
                         
-                        # High risk decisions
                         if bid_amount > 20000 or "aggressive" in decision:
                             player_behaviors[player]["high_risk_decisions"] += 1
         
-        # Calculate behavioral metrics
         for player, behaviors in player_behaviors.items():
             total = behaviors["total_actions"]
             if total > 0:
@@ -1201,7 +1071,6 @@ class BeastMetrics(BaseMetrics):
             "improvement_recommendations": {}
         }
         
-        # For now, return placeholder - would implement LLM evaluation calls here
         logger.info("LLM judge evaluation would be implemented here with actual model calls")
         
         return llm_metrics
@@ -1233,7 +1102,6 @@ class BeastMetrics(BaseMetrics):
             "key_weaknesses": []
         }
         
-        # Calculate averages
         response_quality = model_perf.get("response_quality", {})
         if response_quality:
             summary["average_response_quality"] = np.mean(list(response_quality.values()))
@@ -1242,7 +1110,6 @@ class BeastMetrics(BaseMetrics):
         if decision_consistency:
             summary["average_decision_consistency"] = np.mean(list(decision_consistency.values()))
         
-        # Identify strengths and weaknesses
         if summary["average_response_quality"] > 0.7:
             summary["key_strengths"].append("High response quality")
         elif summary["average_response_quality"] < 0.4:
@@ -1288,7 +1155,6 @@ class BeastMetrics(BaseMetrics):
         
         return recommendations
     
-    # Helper methods for analysis
     def _calculate_round_coherence(self, player_decisions: Dict[str, Any]) -> float:
         """Calculate coherence score for a player's decisions in a round."""
         score = 0.5
@@ -1297,11 +1163,9 @@ class BeastMetrics(BaseMetrics):
         alliance = player_decisions.get("alliance", {})
         voting = player_decisions.get("voting", {})
         
-        # Check intel-alliance coherence
         if intelligence and alliance:
             score += 0.2 * self._evaluate_intel_alliance_coherence(intelligence, alliance)
-        
-        # Check alliance-voting coherence
+
         if alliance and voting:
             score += 0.3 * self._evaluate_alliance_voting_coherence(alliance, voting)
         
@@ -1312,7 +1176,7 @@ class BeastMetrics(BaseMetrics):
         score = 0.5
         
         message = negotiation_info.get("message", "")
-        if len(message) > 50:  # Substantial message
+        if len(message) > 50:
             score += 0.2
         
         info_to_extract = negotiation_info.get("information_to_extract", [])

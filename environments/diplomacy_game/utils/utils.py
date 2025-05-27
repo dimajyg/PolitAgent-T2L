@@ -1,5 +1,4 @@
-from typing import Dict, List, Any
-import json
+from typing import Dict
 
 def create_message(role: str, content: str) -> Dict[str, str]:
     """
@@ -16,14 +15,13 @@ def create_message(role: str, content: str) -> Dict[str, str]:
 
 def estimate_tokens(text: str) -> int:
     """
-    Примерно оценивает количество токенов в тексте.
-    Это грубая оценка, но достаточная для управления контекстом.
+    Estimates the number of tokens in the text.
+    This is a rough estimate, but sufficient for context management.
     
     Args:
-        text: Текст для оценки
+        text: Text to estimate
         
     Returns:
-        Приблизительное количество токенов
+        Approximate number of tokens
     """
-    # Примерно 4 символа на токен для английского языка
     return len(text) // 4

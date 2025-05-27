@@ -8,7 +8,6 @@ import logging
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompts"
 
-# Create prompts directory if it doesn't exist
 PROMPT_DIR.mkdir(exist_ok=True, parents=True)
 
 def load_prompt(filename: str) -> str:
@@ -22,7 +21,6 @@ def load_prompt(filename: str) -> str:
     """
     prompt_path = PROMPT_DIR / filename
     
-    # Check if file exists
     if not prompt_path.exists():
         logging.error(f"Prompt file '{filename}' not found in {PROMPT_DIR}")
         raise FileNotFoundError(f"Prompt file '{filename}' not found in {PROMPT_DIR}")
@@ -39,7 +37,6 @@ def get_game_prompt_template(language: str = "en") -> PromptTemplate:
     Returns:
         PromptTemplate: The game rules prompt template.
     """
-    # Default to English if unsupported language is requested
     if language not in ["en", "zh"]:
         logging.warning(f"Unsupported language '{language}'. Defaulting to English.")
         language = "en"
@@ -71,14 +68,12 @@ def format_prompt(prompt_template: Union[PromptTemplate, str], **kwargs: Any) ->
     Returns:
         str: The formatted prompt
     """
-    # Default variables for common placeholders
     default_vars = {
-        'player_name': 'Player',  # Default player name
-        'opponent_name': 'Opponent',  # Default opponent name
-        'role_name': 'Unknown',  # Default role name
+        'player_name': 'Player',
+        'opponent_name': 'Opponent',
+        'role_name': 'Unknown',
     }
     
-    # Combine default vars with provided kwargs (kwargs take precedence)
     format_vars = {**default_vars, **kwargs}
     
     if isinstance(prompt_template, str):
@@ -89,10 +84,8 @@ def format_prompt(prompt_template: Union[PromptTemplate, str], **kwargs: Any) ->
         return prompt_template.format(**format_vars)
     except KeyError as e:
         logging.warning(f"Missing variable in prompt template: {e}")
-        # Return template with unfilled variables for debugging
         return f"[ERROR: Missing variable {e} in template] {prompt_template.template}"
 
-# For backwards compatibility - provide game prompts as strings
 def get_game_prompt_en() -> str:
     """Returns the English game prompt as a string.
     

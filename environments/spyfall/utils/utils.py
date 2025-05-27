@@ -1,25 +1,19 @@
-"""
-Вспомогательные функции для игры Spyfall.
-"""
-# Импортируем новый унифицированный интерфейс
-from llm.models import get_model, format_messages
-from environments.spyfall.utils.prompt import game_prompt_en
 
-def create_message(role, content):
+def create_message(role: str, content: str) -> dict:
     """
-    Создает словарь сообщения в формате, ожидаемом LLM API.
+    Creates a message dictionary in the format expected by LLM API.
     
     Args:
-        role (str): Роль отправителя сообщения ('system', 'user', 'assistant')
-        content (str): Содержимое сообщения
+        role (str): The role of the message sender ('system', 'user', 'assistant')
+        content (str): The content of the message
         
     Returns:
-        dict: Словарь сообщения
+        dict: Message dictionary
     """
     return {"role": role, "content": content}
 
-def print_messages(messages):
-    """Печатает список сообщений в консоль."""
+def print_messages(messages: list) -> None:
+    """Prints a list of messages to the console."""
     for message in messages:
         print(message)
 

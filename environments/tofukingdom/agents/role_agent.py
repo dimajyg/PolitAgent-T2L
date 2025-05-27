@@ -17,7 +17,6 @@ class RoleAgent(TofuKingdomAgent):
         all_players: List of all players in the game
         role: Role of the agent (Princess, Queen, etc.)
     """
-    # Define role behavior mappings
     ROLE_BEHAVIORS: Dict[RoleType, TruthBehavior] = {
         "Princess": "truth",
         "Chef": "truth",
@@ -28,7 +27,6 @@ class RoleAgent(TofuKingdomAgent):
         "Spy": "choice"
     }
     
-    # Define role teams for determining winners
     ROLE_TEAMS: Dict[RoleType, str] = {
         "Princess": "Princess",
         "Chef": "Princess",
@@ -71,10 +69,8 @@ class RoleAgent(TofuKingdomAgent):
         Returns:
             Tuple of answer text and complete response with thought
         """
-        # Include the question in the history
         self.private_history.append({"role": "user", "content": f"Prince asks: {question}"})
         
-        # Process question using the base method
         return self.process_question(identities)
     
     def get_truth_behavior(self) -> TruthBehavior:

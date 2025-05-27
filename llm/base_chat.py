@@ -3,14 +3,14 @@ from typing import Any, Dict, List, Optional
 
 class BaseChat(ABC):
     """
-    Абстрактный базовый класс для чата с LLM.
+    Abstract base class for LLM chat interactions.
 
     Args:
-        system_prompt (str): Системный промпт для инициализации диалога.
+        system_prompt (str): System prompt to initialize the conversation.
 
     Attributes:
-        system_prompt (str): Системный промпт.
-        history (List[Dict[str, str]]): История сообщений.
+        system_prompt (str): System prompt for the conversation.
+        history (List[Dict[str, str]]): Message history containing the conversation.
     """
 
     def __init__(self, system_prompt: str) -> None:
@@ -20,16 +20,16 @@ class BaseChat(ABC):
     @abstractmethod
     def send(self, user_message: str, **kwargs: Any) -> str:
         """
-        Отправить сообщение пользователем и получить ответ LLM.
+        Send a user message and get a response from the LLM.
 
         Args:
-            user_message (str): Сообщение пользователя.
+            user_message (str): The user's message to send.
 
         Returns:
-            str: Ответ LLM.
+            str: The LLM's response.
         """
         pass
 
     def reset_history(self) -> None:
-        """Сбросить историю диалога."""
+        """Reset the conversation history."""
         self.history = [] 

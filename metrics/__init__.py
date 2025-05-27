@@ -29,7 +29,7 @@ METRICS_MAP = {
 
 def get_metrics(game_name, **kwargs):
     """
-    Возвращает класс метрик для указанной игры.
+    Returns the metrics class for the specified game.
     """
     if game_name not in METRICS_MAP:
         return BaseMetrics(**kwargs)

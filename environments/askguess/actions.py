@@ -37,7 +37,6 @@ class ProvideAnswerAction(AskGuessBaseAction):
     """Action for the Answerer to provide an answer or description."""
     action_type: Literal["provide_answer"] = "provide_answer"
     answer_text: str = Field(..., description="The content of the answer or description.")
-    # In easy mode, the first action is a description. This can be handled by the same model.
 
 class MakeGuessAction(AskGuessBaseAction):
     """Action for the Questioner to make a final guess."""
@@ -49,7 +48,6 @@ class SignalEndGameAction(AskGuessBaseAction):
     """Action to signal that the game should end based on agent's observation or decision."""
     action_type: Literal["signal_end_game"] = "signal_end_game"
     reason: str = Field(..., description="Reason for ending the game (e.g., 'Successfully guessed the word', 'Answerer mentioned the word', 'Max rounds reached and word not guessed by me').")
-    # This can be used by the Questioner if it thinks it guessed, or by Answerer if it breaks a rule, or if Questioner gives up.
 
 # Union type for actions QuestionAgent can take
 QuestionerAction = Union[AskQuestionAction, MakeGuessAction, SignalEndGameAction]

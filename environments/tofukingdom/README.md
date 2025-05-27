@@ -1,48 +1,196 @@
-# TofuKingdom Game Environment
+# TofuKingdom Game Environment - Strategic Deception Simulation
 
-TofuKingdom is a social deduction game where language models play a medieval court intrigue scenario. The Prince must determine which player is the Princess by asking questions to various characters who may tell the truth or lie depending on their role.
+TofuKingdom is a sophisticated social deduction game that evaluates language models' abilities in strategic reasoning, deception detection, and political maneuvering within a medieval court intrigue scenario. This environment creates a complex network of competing incentives where models must navigate through intentional misinformation to achieve their objectives.
 
-## Overview
+## Strategic Testing Framework
 
-In this game:
-- 8 different roles interact in a single game session
-- The Prince must identify the Princess through strategic questioning
-- Different characters have distinct truth-telling behaviors
-- Three competing teams vie for victory based on the Prince's final decision
-- Complex deduction is required to navigate through deception and misdirection
+The TofuKingdom environment rigorously assesses language models' capabilities in:
 
-## Game Rules
+- **Deception Detection**: Identifying false statements among conflicting testimonies
+- **Strategic Questioning**: Formulating inquiries that extract maximum information value
+- **Truth Discrimination**: Differentiating between truthful and deceptive statements
+- **Role Identification**: Mapping behavioral patterns to underlying identities
+- **Team Awareness**: Understanding coalition dynamics and competing incentives
+- **Constrained Decision-Making**: Operating within fixed action parameters
+- **Evidence Synthesis**: Compiling consistent theories from contradictory information
 
-1. **Roles and Behaviors**:
-   - **Prince**: Must identify the Princess through questioning (always controlled by its own model)
-   - **Princess**: Always tells the truth
-   - **Chef**: Always tells the truth
-   - **Queen**: Always lies
-   - **Minister**: Always lies
-   - **Guard**: Always lies
-   - **Maid**: Can either tell the truth or lie
-   - **Spy**: Can either tell the truth or lie
+## Game Architecture
 
-2. **Team Structure**:
-   - **Princess Team**: Princess and Chef
-   - **Queen Team**: Queen, Minister, and Guard
-   - **Neutral Team**: Maid and Spy
+### Core Game Mechanics
 
-3. **Gameplay**:
-   - Prince asks a series of questions to all players
-   - Questions must be one of three predefined formats:
-     1. "Which player is the Princess?"
-     2. "What is your identity?"
-     3. "What is the identity of {player_name}?"
-   - After questioning all players, the Prince can ask one final question
-   - The Prince then makes a final guess about who is the Princess
+TofuKingdom implements a structured social deduction framework:
 
-4. **Victory Conditions**:
-   - If the Prince correctly identifies the Princess, the Princess Team wins
-   - If the Prince wrongly identifies the Queen, the Queen Team wins
-   - If the Prince identifies any other character, the Neutral Team wins
+#### 1. Role & Identity System
+- 8 character roles with distinct truth-telling behaviors
+- 3 competing teams with different victory conditions
+- Hidden identities requiring strategic information gathering
+- Asymmetric access to knowledge about true roles
 
-## File Structure
+#### 2. Truth Behavior Rules
+- **Absolute Truth-Tellers**: Princess and Chef always tell the truth
+- **Absolute Liars**: Queen, Minister, and Guard always lie
+- **Strategic Actors**: Maid and Spy can choose to either lie or tell the truth
+- **Information Seeker**: Prince must determine which player is the Princess
+
+#### 3. Team Structure
+- **Princess Team**: Princess and Chef (win if Prince correctly identifies Princess)
+- **Queen Team**: Queen, Minister, and Guard (win if Prince mistakenly identifies Queen as Princess)
+- **Neutral Team**: Maid and Spy (win if Prince chooses any team member besides Princess or Queen)
+
+#### 4. Question Framework
+- Restricted to three predefined question formats:
+  1. "Which player is the Princess?"
+  2. "What is your identity?"
+  3. "What is the identity of {player_name}?"
+- Sequential questioning of all players
+- Final decisive question to one selected player
+- Limited information-gathering opportunities
+
+### Advanced Features
+
+- **Logical Paradox Generation**: The lying mechanism creates classic liar paradoxes
+- **Coalition Dynamics**: Team members act in coordinated self-interest
+- **Adversarial Testimony**: Players provide information designed to mislead or misdirect
+- **Stance Consistency Tracking**: Analysis of internal consistency in responses
+- **Competing Theories**: Multiple possible interpretations of the evidence
+- **Deception Layering**: Strategic lies built upon other strategic lies
+- **Truth Mixing**: Partial truths combined with falsehoods for credibility
+
+## Comprehensive Metrics System
+
+TofuKingdom employs a sophisticated metrics framework to evaluate agent performance:
+
+### 1. Strategic Questioning Metrics
+
+- **Question Diversity**: Measures range of question types and targets
+- **Information Value**: Evaluates how much each question reduces uncertainty
+- **Targeting Strategy**: Assesses pattern of player selection for questioning
+- **Follow-up Coherence**: Analyzes how questions build on previous information
+- **Critical Question Identification**: Measures ability to ask decisive questions
+- **Question Balance**: Evaluates distribution of question types
+- **Question Sequencing**: Analyzes the logical progression of inquiry
+
+### 2. Deception Detection Metrics
+
+- **Lie Recognition Rate**: Percentage of lies correctly identified
+- **Truth Recognition Rate**: Percentage of truths correctly identified
+- **Confusion Matrix Analysis**: Patterns of truth/lie classification errors
+- **Contradiction Identification**: Ability to detect logically incompatible statements
+- **Logical Consistency Tracking**: Following the implications of truth/lie behaviors
+- **Team Affiliation Detection**: Identifying team allegiances from behavioral patterns
+- **Pattern Recognition**: Noticing consistent behavior across multiple responses
+
+### 3. Role Performance Metrics
+
+- **Truth Behavior Adherence**: How consistently roles follow their truth behavior rules
+- **Strategic Effectiveness**: How well each role advances their team's goals
+- **Answer Quality**: Sophistication and persuasiveness of responses
+- **Deception Effectiveness**: For roles that lie, how convincing their lies are
+- **Team Coordination**: How well team members align their strategies
+- **Self-Preservation**: How effectively roles avoid detection
+- **Tactical Misdirection**: Success in leading the Prince toward incorrect conclusions
+
+### 4. Prince Performance Metrics
+
+- **Correct Identification**: Whether the Prince correctly identifies the Princess
+- **Question Strategy Effectiveness**: Quality of information gained through questions
+- **Information Integration**: Ability to synthesize information across answers
+- **Logical Reasoning**: Quality of deductive process from contradictory information
+- **Truth Table Analysis**: Systematic testing of possible role configurations
+- **Decision Confidence**: Certainty level in final Princess identification
+- **Reasoning Chain Quality**: Logical path from evidence to conclusion
+
+### 5. Game Outcome Metrics
+
+- **Team Victory Distribution**: Percentage of games won by each team
+- **Role Identification Accuracy**: Accuracy of Prince's beliefs about all roles
+- **Critical Decision Points**: Key moments that determined game outcomes
+- **Win Path Analysis**: Patterns in successful strategies for each team
+- **Model Performance Comparison**: Relative success rates across different models
+- **Game Balance Assessment**: Fairness of outcomes across team configurations
+- **Decision Quality**: Relationship between reasoning process and correct outcomes
+
+## LLM Capability Assessment
+
+Through the TofuKingdom benchmark, we can assess several critical capabilities of language models:
+
+### 1. Logical Reasoning
+
+- **Syllogistic Reasoning**: Ability to follow chains of logical implications
+- **Contradiction Resolution**: Handling inconsistencies in collected information
+- **Constraint Satisfaction**: Finding solutions that satisfy observed truth behaviors
+- **Impossible Case Elimination**: Ruling out logically impossible configurations
+- **Propositional Logic**: Understanding how statements relate when inverted by lying
+- **Truth Table Construction**: Systematically exploring possible configurations
+- **Proof by Contradiction**: Testing hypotheses against established constraints
+
+### 2. Strategic Intelligence
+
+- **Information Source Evaluation**: Assessing credibility of different players
+- **Theory Formation and Testing**: Developing and refining hypotheses about roles
+- **Information Integration**: Combining disparate clues into coherent theories
+- **Decision Under Uncertainty**: Making optimal choices with incomplete information
+- **Adversarial Reasoning**: Understanding others' strategic motivations
+- **Pattern Recognition**: Identifying consistent behavior across responses
+- **Predictive Modeling**: Anticipating responses based on role hypotheses
+
+### 3. Social Deception Capabilities
+
+- **Lie Crafting**: For lying roles, producing believable false statements
+- **Truth Masking**: Presenting true information in misleading ways
+- **Misdirection**: Diverting attention from revealing information
+- **Strategic Disclosure**: Selecting what information to reveal
+- **False Confidence**: Projecting certainty despite internal uncertainty
+- **Consistency Maintenance**: Ensuring responses don't contradict previous statements
+- **Deceptive Coordination**: Aligning deception with team members
+
+### 4. Political Reasoning
+
+- **Coalition Dynamics**: Understanding team-based incentive structures
+- **Role-based Behavior Modeling**: Predicting actions based on role constraints
+- **Strategic Communication**: Using questions to achieve specific information goals
+- **Power Dynamics**: Understanding the asymmetric influence of different roles
+- **Competing Narratives**: Evaluating alternative explanations for observed behavior
+- **Incentive Analysis**: Identifying motivations behind different statements
+- **Strategic Adaptation**: Adjusting theories based on new evidence
+
+## Research Applications
+
+The TofuKingdom environment serves as an experimental platform for research into:
+
+### Political Agent Development
+
+- **Deception Detection**: Building systems that can identify false information
+- **Strategic Questioning**: Designing optimal information-elicitation strategies
+- **Coalition Behavior**: Modeling how aligned agents coordinate their statements
+- **Competing Interests**: Understanding how conflicting goals shape communications
+- **Truth Evaluation**: Developing frameworks for assessing statement veracity
+- **Adversarial Information Environments**: Navigating spaces with intentional misinformation
+- **Strategic Communication**: Balancing information extraction with revelation
+
+### LLM Capability Assessment
+
+- **Logical Reasoning**: Testing models' ability to solve complex logical puzzles
+- **Contradiction Handling**: Assessing how models resolve inconsistent information
+- **Strategic Planning**: Evaluating multi-step reasoning toward information goals
+- **Theory of Mind**: Testing understanding of others' knowledge and intentions
+- **Deceptive Capabilities**: Measuring both generation and detection of deception
+- **Role-Constrained Behavior**: Assessing adherence to defined behavioral rules
+- **Epistemic Uncertainty**: Handling multiple possible world-states simultaneously
+
+### Game Theory Applications
+
+- **Information Asymmetry**: Studying decision-making with unequal information access
+- **Signaling Games**: Analyzing credible and non-credible information transmission
+- **Coalition Formation**: Examining how shared incentives create aligned behaviors
+- **Strategic Deception**: Exploring optimal deception strategies
+- **Bayesian Updating**: Studying belief revision with unreliable information
+- **Coordination Problems**: Investigating team-based information sharing
+- **Mixed-motive Interactions**: Analyzing scenarios with partially aligned incentives
+
+## Technical Implementation
+
+### File Structure
 
 ```
 tofukingdom/
@@ -63,6 +211,42 @@ tofukingdom/
 └── __init__.py           # Package exports
 ```
 
+### Metrics Implementation
+
+The metrics system integrates with the PolitAgent framework and provides:
+
+1. **Question Analysis**: Evaluation of Prince's questioning strategy and effectiveness
+2. **Truth/Lie Tracking**: Measurement of deception generation and detection
+3. **Role Performance**: Assessment of how well each role follows their behavior rules
+4. **Team Dynamics**: Analysis of coordination within and between teams
+5. **Outcome Analysis**: Detailed breakdown of game results and contributing factors
+6. **LLM-as-Judge**: Optional evaluation using an external model to assess strategic play
+
+### Game Flow
+
+1. **Initialization**:
+   - Randomly assign roles to players
+   - Set up agents with appropriate models for each team
+   - Configure truth behavior rules for each role
+   - Record role assignments for metrics tracking
+
+2. **Question Rounds**:
+   - Prince selects and asks one question to each player
+   - Each player responds according to their role's truth behavior
+   - Responses are analyzed and recorded in metrics
+   - Prince updates internal beliefs based on answers
+
+3. **Final Question**:
+   - Prince selects one player for a decisive final question
+   - The chosen player responds according to their role
+   - Prince makes final information update
+
+4. **Decision Phase**:
+   - Prince makes final determination of Princess identity
+   - System determines winning team based on the guess
+   - Comprehensive metrics calculation
+   - Optional LLM evaluation of strategic performance
+
 ## Running the Game
 
 ### As Part of the Benchmark
@@ -81,6 +265,12 @@ python -m core.benchmark --games tofukingdom --models openai --runs_per_game 3 \
     --neutral_model_name openai
 ```
 
+### Full Benchmark Mode
+
+```bash
+python -m core.benchmark --full_benchmark --games tofukingdom --models openai --specific_model gpt-4
+```
+
 ## Configuration Options
 
 | Parameter | Description | Default |
@@ -91,61 +281,42 @@ python -m core.benchmark --games tofukingdom --models openai --runs_per_game 3 \
 | `--neutral_model_name` | Model for Neutral team (Maid, Spy) | Same as Prince model |
 | `--n_players` | Number of players (excluding Prince) | `7` |
 | `--debug` | Enable verbose logging | `False` |
+| `--use_llm_evaluation` | Enable LLM-as-judge for game evaluation | `False` |
 
-## Advanced Features
+## Political Agent Implications
 
-### Role-Based Agent Architecture
+The TofuKingdom environment offers valuable insights for political agent development:
 
-TofuKingdom uses a unified agent architecture where:
-- All non-Prince roles are handled by the `RoleAgent` class
-- Each role's truth behavior is determined by a mapping dictionary
-- Team affiliations are tracked for determining victory conditions
+### 1. Information Reliability Assessment
 
-### Question System
+- **Source Credibility**: How to evaluate information based on source reputation and incentives
+- **Consistency Analysis**: Detecting contradictions across multiple statements
+- **Pattern Recognition**: Identifying behavioral patterns that reveal underlying motives
+- **Strategic Questioning**: Designing questions that maximize information extraction
+- **Cross-Verification**: Using multiple information sources to triangulate truth
 
-The Prince agent is restricted to asking three types of questions:
-1. Direct question about Princess identity
-2. Question about the player's own identity
-3. Question about another player's identity
+### 2. Strategic Deception
 
-The question system enforces these formats while allowing the Prince to develop strategic questioning approaches.
+- **Plausible Deniability**: Creating statements that appear truthful while being false
+- **Partial Truth Tactics**: Mixing accurate and inaccurate information strategically
+- **Coordinated Misinformation**: Aligning deceptive statements across multiple actors
+- **Deception Detection**: Identifying when others are providing false information
+- **Reputation Management**: Maintaining credibility while pursuing strategic goals
 
-## Game Logic
+### 3. Coalition Dynamics
 
-1. **Initialization**:
-   - Randomly assign roles to players
-   - Create role-specific agents with appropriate models
-   - Set up the truth-telling behavior for each role
+- **Team-based Incentives**: How shared objectives shape information sharing
+- **Competitive Cooperation**: Balancing cooperation within teams against competition between teams
+- **Information Compartmentalization**: Strategic sharing and withholding within coalitions
+- **Coordinated Narrative Building**: Creating consistent alternate realities through aligned statements
+- **Mixed Loyalty Challenges**: Managing complex incentive structures in multi-polar systems
 
-2. **Question Rounds**:
-   - Prince asks one question to each player
-   - Players respond according to their role's truth behavior
-   - Responses are tracked in the Prince's knowledge base
+### 4. Constrained Strategic Action
 
-3. **Final Question**:
-   - Prince selects one player for a final question
-   - The chosen player responds according to their role
-   - Prince updates their information one last time
+- **Rule-Bound Behavior**: Operating effectively within strict behavioral constraints
+- **Format Optimization**: Maximizing strategic impact within limited action formats
+- **Sequential Decision Optimization**: Making the most of limited action opportunities
+- **Decision Under Uncertainty**: Making optimal choices with incomplete information
+- **Final Decision Quality**: Converting partial information into effective conclusions
 
-4. **Final Decision**:
-   - Prince makes a final guess about who is the Princess
-   - The winning team is determined based on the guess
-   - Game results are compiled and returned
-
-## Game Results
-
-The game returns a structured result dictionary with:
-- `winner_team`: Which team won ("Princess", "Queen", or "Neutral")
-- `winners`: List of players on the winning team
-- `princess_guess`: The player guessed to be the Princess
-- `guessed_role`: The actual role of the guessed player
-- `true_princess`: The player who was actually the Princess
-- `identities`: Complete mapping of players to roles
-
-## Extending the Game
-
-To customize or extend the game:
-1. Modify the prompt files to change agent behavior
-2. Adjust the question system in the Prince agent
-3. Implement new truth behaviors in the RoleAgent class
-4. Add additional roles or teams by updating the role mappings 
+Through systematic experimentation with the TofuKingdom environment, researchers can develop more sophisticated political agents capable of navigating complex information environments with strategic deception, competing interests, and coalition dynamics that mirror real-world political systems. 

@@ -18,17 +18,14 @@ class PrinceAgent(TofuKingdomAgent):
     def __init__(self, llm, player_name: str, all_players: List[str]) -> None:
         super().__init__(llm, player_name, all_players, "Prince")
         
-        # Questions the Prince can ask
         self.questions = [
             "Which player is the Princess?",
             "What is your identity?",
             "What is the identity of {player_name}?"
         ]
         
-        # Identity information - will be updated as the game progresses
         self.identity_information = {}
         
-        # Questions already asked to each player
         self.asked_questions = {player: [] for player in all_players if player != player_name}
         
     def ask_question(self, target_player: str) -> str:
@@ -43,7 +40,6 @@ class PrinceAgent(TofuKingdomAgent):
         """
         messages = self.private_history.copy()
         
-        # Prepare context
         context = (
             f"You need to ask a question to {target_player}.\n"
             f"You can only choose from these three questions:\n"
@@ -57,23 +53,19 @@ class PrinceAgent(TofuKingdomAgent):
         messages.append(create_message("user", context))
         response = super().chat(messages)
         
-        # Parse response to determine which question to ask
         question_idx = 0
         try:
-            # Check if response contains a choice
             if "1" in response or "first" in response.lower():
                 question_idx = 0
             elif "2" in response or "second" in response.lower():
                 question_idx = 1
             elif "3" in response or "third" in response.lower():
                 question_idx = 2
-                # For question 3, extract the player name
                 for player in self.all_players:
                     if player in response and player != target_player:
                         target_question = self.questions[question_idx].format(player_name=player)
                         self.asked_questions[target_player].append(target_question)
                         return target_question
-                # If no valid player name is found, use a random player
                 other_players = [p for p in self.all_players if p != self.player_name and p != target_player]
                 if other_players:
                     random_player = random.choice(other_players)
@@ -81,14 +73,12 @@ class PrinceAgent(TofuKingdomAgent):
                     self.asked_questions[target_player].append(target_question)
                     return target_question
             
-            # For questions 1 and 2
             target_question = self.questions[question_idx]
             self.asked_questions[target_player].append(target_question)
             return target_question
             
         except Exception as e:
-            # If parsing fails, use a default question
-            question_idx = random.randint(0, 1)  # Avoid question 3 as default
+            question_idx = random.randint(0, 1)
             target_question = self.questions[question_idx]
             self.asked_questions[target_player].append(target_question)
             return target_question
@@ -102,11 +92,9 @@ class PrinceAgent(TofuKingdomAgent):
             question: The question that was asked
             answer: The answer received
         """
-        # Record the Q&A in history
         qa_message = f"{player} was asked: {question}\n{player} answered: {answer}"
         self.private_history.append(create_message("user", qa_message))
         
-        # Update identity information (simple format for now)
         if player not in self.identity_information:
             self.identity_information[player] = []
         
@@ -134,7 +122,6 @@ class PrinceAgent(TofuKingdomAgent):
         messages.append(create_message("user", context))
         response = super().chat(messages)
         
-        # Parse response to find player and question
         try:
             target_player = None
             for player in self.all_players:
@@ -143,11 +130,9 @@ class PrinceAgent(TofuKingdomAgent):
                     break
             
             if not target_player:
-                # Choose a random player if parsing fails
                 other_players = [p for p in self.all_players if p != self.player_name]
                 target_player = random.choice(other_players)
             
-            # Determine which question to ask
             question_idx = 0
             if "1" in response or "first" in response.lower():
                 question_idx = 0
@@ -157,25 +142,21 @@ class PrinceAgent(TofuKingdomAgent):
                 target_question = self.questions[question_idx]
             elif "3" in response or "third" in response.lower():
                 question_idx = 2
-                # For question 3, extract the player name
                 for player in self.all_players:
                     if player in response and player != target_player and player != self.player_name:
                         target_question = self.questions[question_idx].format(player_name=player)
                         return target_player, target_question
-                # If no valid player name is found, use a random player
                 other_players = [p for p in self.all_players if p != self.player_name and p != target_player]
                 if other_players:
                     random_player = random.choice(other_players)
                     target_question = self.questions[question_idx].format(player_name=random_player)
                     return target_player, target_question
             else:
-                # Default to question 1 if parsing fails
                 target_question = self.questions[0]
                 
             return target_player, target_question
             
         except Exception as e:
-            # If parsing completely fails, return defaults
             other_players = [p for p in self.all_players if p != self.player_name]
             target_player = random.choice(other_players)
             return target_player, self.questions[0]
@@ -198,17 +179,14 @@ class PrinceAgent(TofuKingdomAgent):
         messages.append(create_message("user", context))
         response = super().chat(messages)
         
-        # Parse response to find the guessed Princess
         try:
             for player in self.all_players:
                 if player in response and player != self.player_name:
                     return player
                     
-            # If no valid player is found, return a random player
             other_players = [p for p in self.all_players if p != self.player_name]
             return random.choice(other_players)
             
         except Exception as e:
-            # If parsing fails, return a random player
             other_players = [p for p in self.all_players if p != self.player_name]
             return random.choice(other_players)

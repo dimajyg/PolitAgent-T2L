@@ -17,10 +17,8 @@ class OllamaChatModel:
     
     def invoke(self, messages, **kwargs):
         if isinstance(messages, list):
-            # Use proper message formatting for Ollama
             return self.llm.invoke(messages, **kwargs)
         else:
-            # Handle string input
             prompt = str(messages)
             return self.llm.invoke(prompt, **kwargs)
     

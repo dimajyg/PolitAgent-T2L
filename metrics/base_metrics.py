@@ -352,13 +352,142 @@ class BaseMetrics(ABC):
     
     def add_metadata(self, key: str, value: Any) -> None:
         """
-        Add additional metadata to the metrics collection.
+        Add or update metadata.
         
         Args:
             key (str): Metadata key
-            value (Any): Metadata value
+            value (Any): Value to store
         """
         self.metadata[key] = value
+    
+    def record_description(self, player_name: str, description: str, is_spy: bool) -> None:
+        """
+        Record a player's description.
+        
+        Args:
+            player_name (str): Name of the player
+            description (str): The description given
+            is_spy (bool): Whether the player is a spy
+        """
+        self.record_event(
+            "description",
+            agent=player_name,
+            content=description,
+            is_spy=is_spy
+        )
+    
+    def record_vote(self, player_name: str, voted_for: str, is_spy: bool, reasoning: str = "") -> None:
+        """
+        Record a player's vote.
+        
+        Args:
+            player_name (str): Name of the player voting
+            voted_for (str): Name of the player voted for
+            is_spy (bool): Whether the voting player is a spy
+            reasoning (str): Reasoning behind the vote
+        """
+        self.record_event(
+            "vote",
+            agent=player_name,
+            voted_for=voted_for,
+            is_spy=is_spy,
+            reasoning=reasoning
+        )
+    
+    def record_role_assignment(self, players: List[str], spy_index: int, spy_name: str) -> None:
+        """
+        Record role assignments for the game.
+        
+        Args:
+            players (List[str]): List of all player names
+            spy_index (int): Index of the spy
+            spy_name (str): Name of the spy
+        """
+        self.record_event(
+            "role_assignment",
+            players=players,
+            spy_index=spy_index,
+            spy_name=spy_name
+        )
+        
+        # Add to metadata for easy access
+        self.add_metadata("players", players)
+        self.add_metadata("spy_index", spy_index)
+        self.add_metadata("spy_name", spy_name)
+    
+    def add_game_words(self, spy_word: str, villager_word: str) -> None:
+        """
+        Add game words to metadata.
+        
+        Args:
+            spy_word (str): The word given to the spy
+            villager_word (str): The word given to villagers
+        """
+        self.add_metadata("spy_word", spy_word)
+        self.add_metadata("villager_word", villager_word)
+    
+    def record_game_end(self, winner: str, spy_caught: bool) -> None:
+        """
+        Record the end of the game.
+        
+        Args:
+            winner (str): The winning role ("spy", "villager", "error")
+            spy_caught (bool): Whether the spy was caught
+        """
+        self.record_event(
+            self.EVENT_GAME_END,
+            winner=winner,
+            spy_caught=spy_caught
+        )
+        
+        # Add to metadata for easy access
+        self.add_metadata("winner", winner)
+        self.add_metadata("spy_caught", spy_caught)
+    
+    def evaluate_round(self, round_number: int) -> Optional[Dict[str, Any]]:
+        """
+        Evaluate a round using LLM judge.
+        
+        Args:
+            round_number (int): Round number to evaluate
+            
+        Returns:
+            Optional[Dict[str, Any]]: Evaluation results or None
+        """
+        if not self.use_llm_evaluation or not self.llm_evaluator:
+            return None
+            
+        # Get round events
+        round_events = [e for e in self.events if 
+                        e.get("data", {}).get("round_number") == round_number]
+        
+        # Context for evaluation
+        context = {
+            "round_number": round_number,
+            "events": round_events,
+            "metadata": {k: v for k, v in self.metadata.items() 
+                         if k in ["spy_word", "villager_word", "spy_name"]}
+        }
+        
+        return self.record_llm_evaluation("round", context)
+    
+    def evaluate_game(self) -> Optional[Dict[str, Any]]:
+        """
+        Evaluate the entire game using LLM judge.
+        
+        Returns:
+            Optional[Dict[str, Any]]: Evaluation results or None
+        """
+        if not self.use_llm_evaluation or not self.llm_evaluator:
+            return None
+            
+        # Context for evaluation
+        context = {
+            "events": self.events,
+            "metadata": self.metadata
+        }
+        
+        return self.record_llm_evaluation("game", context)
     
     @abstractmethod
     def compute_all(self) -> Dict[str, Any]:

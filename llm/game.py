@@ -60,16 +60,16 @@ class Game(ABC):
 
 class BaseGame:
     """
-    Базовый класс игры с поддержкой LangChain-агентов.
+    Base class for games with LangChain agents.
 
     Args:
-        agents (List[BaseAgent]): Список агентов.
-        state (Optional[Dict[str, Any]]): Начальное состояние игры.
+        agents (List[BaseAgent]): List of agents.
+        state (Optional[Dict[str, Any]]): Initial game state.
 
     Attributes:
-        agents (List[BaseAgent]): Агенты.
-        state (Dict[str, Any]): Текущее состояние игры.
-        history (List[Dict[str, Any]]): История ходов.
+        agents (List[BaseAgent]): Agents.
+        state (Dict[str, Any]): Current game state.
+        history (List[Dict[str, Any]]): Game history.
     """
 
     def __init__(
@@ -83,7 +83,7 @@ class BaseGame:
 
     def step(self) -> None:
         """
-        Совершить один шаг игры: каждый агент делает ход.
+        Make one game step: each agent makes a move.
         """
         for agent in self.agents:
             observation = self._get_observation(agent)
@@ -97,33 +97,32 @@ class BaseGame:
 
     def _get_observation(self, agent: BaseAgent) -> Dict[str, Any]:
         """
-        Получить наблюдение для агента (можно переопределить в наследниках).
+        Get observation for an agent (can be overridden in subclasses).
 
         Args:
-            agent (BaseAgent): Агент.
+            agent (BaseAgent): Agent.
 
         Returns:
-            Dict[str, Any]: Наблюдение.
+            Dict[str, Any]: Observation.
         """
         return {"state": self.state, "agent": agent.name}
 
     def _apply_action(self, agent: BaseAgent, action: str) -> None:
         """
-        Применить действие агента к состоянию игры (заглушка, переопределять в наследниках).
+        Apply agent's action to the game state (stub, can be overridden in subclasses).
 
         Args:
-            agent (BaseAgent): Агент.
-            action (str): Действие.
+            agent (BaseAgent): Agent.
+            action (str): Action.
         """
-        # Пример: просто логируем действие
-        print(f"{agent.name} совершил действие: {action}")
+        print(f"{agent.name} made an action: {action}")
 
     def run(self, steps: int = 1) -> None:
         """
-        Запустить игру на заданное число шагов.
+        Run the game for a given number of steps.
 
         Args:
-            steps (int): Количество шагов.
+            steps (int): Number of steps.
         """
         for _ in range(steps):
             self.step()

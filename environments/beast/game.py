@@ -53,34 +53,29 @@ class EnhancedBeastGame:
         debug: bool = False
     ):
         self.llm = llm
-        self.num_players = min(max(num_players, 6), 8)  # Enforce 6-8 players
+        self.num_players = min(max(num_players, 6), 8)
         self.max_rounds = max_rounds
         self.output_dir = output_dir
         self.debug = debug
         
-        # Game state
         self.current_round = 1
         self.players: List[str] = []
         self.agents: Dict[str, BeastAgent] = {}
         self.eliminated_players: List[str] = []
         self.game_history: List[Dict[str, Any]] = []
         
-        # Strategic elements
         self.trust_matrix: Dict[str, Dict[str, TrustLevel]] = {}
         self.public_information: Dict[str, Any] = {}
         self.alliance_registry: List[Dict[str, Any]] = []
         self.information_pool: Dict[str, List[str]] = {}
         
-        # Game balance
-        self.pressure_level = 1  # Escalates each round
+        self.pressure_level = 1
         self.available_challenges = list(ChallengeType)
         
     def initialize_game(self) -> None:
         """Initialize players with secret roles and hidden information"""
-        # Create player names
         self.players = [f"Player_{i+1}" for i in range(self.num_players)]
         
-        # Assign secret roles (ensure variety)
         available_roles = list(SecretRole)
         assigned_roles = []
         for i in range(self.num_players):
@@ -90,7 +85,6 @@ class EnhancedBeastGame:
                 assigned_roles.append(random.choice(available_roles))
         random.shuffle(assigned_roles)
         
-        # Initialize agents with enhanced capabilities
         for i, player_name in enumerate(self.players):
             initial_wealth = random.randint(50000, 150000)
             initial_influence = random.randint(0, 3)
@@ -106,14 +100,12 @@ class EnhancedBeastGame:
             
             self.agents[player_name] = agent
             
-        # Initialize trust matrix
         for player1 in self.players:
             self.trust_matrix[player1] = {}
             for player2 in self.players:
                 if player1 != player2:
                     self.trust_matrix[player1][player2] = TrustLevel.MEDIUM
                     
-        # Initialize information pools
         for player in self.players:
             self.information_pool[player] = []
         
@@ -143,7 +135,6 @@ class EnhancedBeastGame:
                 action = agent.intelligence_gathering_phase(available_targets)
                 phase_results["investigations"][player_name] = action.investigate_players
                 
-                # Process investigations
                 discovered_info = []
                 for target in action.investigate_players:
                     if target in active_players:
@@ -153,7 +144,6 @@ class EnhancedBeastGame:
                 
                 phase_results["intelligence_discovered"][player_name] = discovered_info
                 
-                # Process misinformation
                 if action.misinformation and action.target_of_misinformation:
                     self._spread_misinformation(player_name, action.target_of_misinformation, action.misinformation)
                     phase_results["misinformation"][player_name] = {
@@ -172,8 +162,7 @@ class EnhancedBeastGame:
         target_agent = self.agents[target]
         discovered = []
         
-        # Random chance to discover different types of information
-        if random.random() < 0.6:  # 60% chance to learn wealth level
+        if random.random() < 0.6:
             if target_agent.wealth > 100000:
                 discovered.append(f"{target} appears to be wealthy (high resources)")
             elif target_agent.wealth < 70000:
@@ -181,16 +170,16 @@ class EnhancedBeastGame:
             else:
                 discovered.append(f"{target} has moderate wealth levels")
         
-        if random.random() < 0.4:  # 40% chance to learn about alliances
+        if random.random() < 0.4:
             if target_agent.current_alliances:
                 ally = random.choice(target_agent.current_alliances[0]) if target_agent.current_alliances[0] else None
                 if ally and ally != target:
                     discovered.append(f"{target} appears to be allied with {ally}")
         
-        if random.random() < 0.3:  # 30% chance to learn about role abilities
+        if random.random() < 0.3:
             discovered.append(f"{target} seems to have special strategic capabilities")
             
-        if random.random() < 0.2:  # 20% chance to learn secret information
+        if random.random() < 0.2:
             if target_agent.secret_information:
                 secret = random.choice(target_agent.secret_information)
                 discovered.append(f"Intelligence suggests: {secret}")
@@ -199,10 +188,8 @@ class EnhancedBeastGame:
     
     def _spread_misinformation(self, spreader: str, target: str, misinformation: str) -> None:
         """Spread misinformation in the information pool"""
-        # Add to information pool where other players might pick it up
         fake_info = f"RUMOR about {target}: {misinformation}"
         
-        # Spread to random other players
         active_players = [p for p in self.players if p not in self.eliminated_players and p != spreader]
         recipients = random.sample(active_players, min(2, len(active_players)))
         
@@ -241,10 +228,8 @@ class EnhancedBeastGame:
                         "deception_strategy": action.deception_strategy
                     }
                     
-                    # Update agent alliance tracking
                     agent.current_alliances.append([player_name] + action.target_players)
                     
-                    # Update trust levels for alliance members
                     for ally in action.target_players:
                         agent.update_trust(ally, "increase")
                         if ally in self.agents:
@@ -276,14 +261,12 @@ class EnhancedBeastGame:
             "challenge_results": {}
         }
         
-        # Generate challenge-specific details
         challenge_details = self._generate_challenge_details(challenge_type)
         phase_results["challenge_details"] = challenge_details
         
         active_players = [p for p in self.players if p not in self.eliminated_players]
         participant_actions = {}
         
-        # Collect all players' actions
         for player_name in active_players:
             agent = self.agents[player_name]
             try:
@@ -298,11 +281,9 @@ class EnhancedBeastGame:
                 if self.debug:
                     print(f"  ❌ Error in challenge phase for {player_name}: {e}")
         
-        # Process challenge results
         challenge_results = self._process_challenge_results(challenge_type, participant_actions, challenge_details)
         phase_results["challenge_results"] = challenge_results
         
-        # Apply challenge effects
         self._apply_challenge_effects(challenge_results)
         
         return phase_results
@@ -346,17 +327,15 @@ class EnhancedBeastGame:
         """Process the results of strategic challenges"""
         results = {"winners": {}, "effects": {}, "summary": ""}
         
-        if challenge_type == ChallengeType.AUCTION:
-            # Process auction bids
+        if challenge_type == ChallengeType.AUCTION: 
             bids_by_item = {}
             for player, action in actions.items():
                 if action.bid_amount > 0:
-                    item = action.decision  # Which item they're bidding on
+                    item = action.decision
                     if item not in bids_by_item:
                         bids_by_item[item] = []
                     bids_by_item[item].append((player, action.bid_amount))
             
-            # Determine winners
             for item, bids in bids_by_item.items():
                 if bids:
                     winner, winning_bid = max(bids, key=lambda x: x[1])
@@ -364,41 +343,36 @@ class EnhancedBeastGame:
                     results["effects"][winner] = {"item_won": item, "cost": winning_bid}
                     
         elif challenge_type == ChallengeType.DILEMMA:
-            # Count cooperators vs defectors
             cooperators = [p for p, a in actions.items() if "cooperate" in a.decision.lower()]
             defectors = [p for p, a in actions.items() if "defect" in a.decision.lower()]
             
-            if len(defectors) == 0:  # All cooperate
+            if len(defectors) == 0:
                 for player in cooperators:
                     results["effects"][player] = {"wealth_change": details["cooperate_reward"]}
-            elif len(cooperators) == 0:  # All defect
+            elif len(cooperators) == 0:
                 for player in defectors:
                     results["effects"][player] = {"wealth_change": details["defect_penalty"]}
-            else:  # Mixed
+            else:
                 for player in defectors:
                     results["effects"][player] = {"wealth_change": details["mixed_defector_gain"]}
                 for player in cooperators:
                     results["effects"][player] = {"wealth_change": details["mixed_cooperator_loss"]}
                     
         elif challenge_type == ChallengeType.TRUST:
-            # Process truth vs lie decisions
             for player, action in actions.items():
                 if "truth" in action.decision.lower():
                     results["effects"][player] = {"trust_change": details["truth_trust_gain"]}
                 else:
-                    # Risk of being caught lying
                     if random.random() < details["detection_chance"]:
                         results["effects"][player] = {"trust_change": -2, "caught_lying": True}
                     else:
                         results["effects"][player] = {"deception_success": True}
                         
         elif challenge_type == ChallengeType.SACRIFICE:
-            # Find volunteers and group choice
             volunteers = [p for p, a in actions.items() if "volunteer" in a.decision.lower()]
             if volunteers:
                 sacrificed = random.choice(volunteers)
                 results["effects"][sacrificed] = {"wealth_change": details["sacrifice_cost"], "trust_gain": details["trust_gain"]}
-                # Everyone else benefits
                 for player in actions.keys():
                     if player != sacrificed:
                         if player not in results["effects"]:
@@ -413,12 +387,10 @@ class EnhancedBeastGame:
             if player in self.agents:
                 agent = self.agents[player]
                 
-                # Apply wealth changes
                 if "wealth_change" in effects:
                     agent.wealth += effects["wealth_change"]
-                    agent.wealth = max(0, agent.wealth)  # Prevent negative wealth
+                    agent.wealth = max(0, agent.wealth)
                 
-                # Apply trust changes
                 if "trust_change" in effects:
                     for other_player in self.players:
                         if other_player != player and other_player not in self.eliminated_players:
@@ -427,7 +399,6 @@ class EnhancedBeastGame:
                             else:
                                 agent.update_trust(other_player, "decrease")
                 
-                # Apply influence changes
                 if "influence_change" in effects:
                     agent.influence_points += effects["influence_change"]
                     agent.influence_points = max(0, agent.influence_points)
@@ -446,18 +417,15 @@ class EnhancedBeastGame:
         
         active_players = [p for p in self.players if p not in self.eliminated_players]
         
-        # Multiple rounds of negotiations
-        for negotiation_round in range(2):  # 2 rounds of negotiations
+        for negotiation_round in range(2):
             if self.debug:
                 print(f"  💬 Negotiation Round {negotiation_round + 1}")
             
-            # Randomly pair players for conversations
             random.shuffle(active_players)
             pairs = [(active_players[i], active_players[i+1]) for i in range(0, len(active_players)-1, 2)]
             
             for player1, player2 in pairs:
                 try:
-                    # Both players negotiate
                     context = {
                         "round": self.current_round,
                         "pressure_level": self.pressure_level,
@@ -478,7 +446,6 @@ class EnhancedBeastGame:
                     
                     phase_results["conversations"].append(conversation)
                     
-                    # Process offers
                     if action1.offer_amount > 0:
                         accepted = self.agents[player2].handle_offer(player1, action1.offer_amount)
                         if accepted:
@@ -493,7 +460,6 @@ class EnhancedBeastGame:
                             self.agents[player1].wealth += action2.offer_amount
                             phase_results["offers_accepted"][f"{player2}_to_{player1}"] = action2.offer_amount
                     
-                    # Update trust based on deception levels
                     if action1.deception_level > 0.5:
                         self.agents[player2].update_trust(player1, "decrease")
                     if action2.deception_level > 0.5:
@@ -537,7 +503,6 @@ class EnhancedBeastGame:
             except Exception as e:
                 if self.debug:
                     print(f"  ❌ Error in voting for {player_name}: {e}")
-                # Random fallback vote
                 votes[player_name] = VoteAction(
                     target=random.choice(available_targets),
                     public_reasoning="Strategic elimination",
@@ -545,7 +510,6 @@ class EnhancedBeastGame:
                     alliance_coordination=False
                 )
         
-        # Count votes
         vote_counts = {}
         for voter, vote_action in votes.items():
             target = vote_action.target
@@ -553,25 +517,20 @@ class EnhancedBeastGame:
                 vote_counts[target] = 0
             vote_counts[target] += 1
         
-        # Determine elimination (handle ties)
         if vote_counts:
             max_votes = max(vote_counts.values())
             tied_players = [player for player, count in vote_counts.items() if count == max_votes]
             
-            if len(tied_players) > 1:
-                # Tiebreaker - random among tied players
+            if len(tied_players) > 1:   
                 eliminated_player = random.choice(tied_players)
             else:
                 eliminated_player = tied_players[0]
         else:
-            # No valid votes - random elimination
             eliminated_player = random.choice(active_players)
         
-        # Apply elimination
         self.eliminated_players.append(eliminated_player)
         eliminated_wealth = self.agents[eliminated_player].wealth
         
-        # Elimination twist - distribute some wealth
         remaining_active = [p for p in active_players if p != eliminated_player]
         if remaining_active:
             wealth_bonus = eliminated_wealth // len(remaining_active)
@@ -605,35 +564,26 @@ class EnhancedBeastGame:
             "phase_results": {}
         }
         
-        # Update all agents with current round
         for agent in self.agents.values():
             agent.current_round = self.current_round
         
-        # Phase 1: Intelligence Gathering
         round_results["phase_results"]["intelligence"] = self.run_intelligence_gathering_phase()
         
-        # Phase 2: Alliance Formation
         round_results["phase_results"]["alliances"] = self.run_alliance_formation_phase()
         
-        # Phase 3: Strategic Challenge
         round_results["phase_results"]["challenge"] = self.run_strategic_challenge_phase()
         
-        # Phase 4: Negotiations
         round_results["phase_results"]["negotiations"] = self.run_negotiation_phase()
         
-        # Phase 5: Voting
         voting_results = self.run_voting_phase()
         round_results["phase_results"]["voting"] = voting_results
         
-        # Check game end conditions
         active_players = [p for p in self.players if p not in self.eliminated_players]
         round_results["active_players_remaining"] = len(active_players)
         round_results["game_continues"] = len(active_players) > 2 and self.current_round < self.max_rounds
         
-        # Escalate pressure for next round
         self.pressure_level = min(5, self.pressure_level + 0.5)
         
-        # Save round state
         self.game_history.append(round_results)
         
         if self.debug:
@@ -654,7 +604,6 @@ class EnhancedBeastGame:
         
         self.initialize_game()
         
-        # Main game loop
         while True:
             round_results = self.run_single_round()
             
@@ -663,10 +612,8 @@ class EnhancedBeastGame:
                 
             self.current_round += 1
         
-        # Determine final results
         active_players = [p for p in self.players if p not in self.eliminated_players]
         
-        # Final rankings by wealth
         final_rankings = []
         for player in active_players:
             agent = self.agents[player]
@@ -677,8 +624,7 @@ class EnhancedBeastGame:
                 "influence": agent.influence_points,
                 "status": "survivor"
             })
-        
-        # Add eliminated players
+
         for player in self.eliminated_players:
             agent = self.agents[player]
             final_rankings.append({
@@ -689,7 +635,6 @@ class EnhancedBeastGame:
                 "status": "eliminated"
             })
         
-        # Sort by wealth (winners)
         final_rankings.sort(key=lambda x: x["wealth"], reverse=True)
         
         game_results = {
@@ -740,9 +685,8 @@ def run_enhanced_beast_game(
 # Legacy compatibility function
 def run_beast_game(llm: BaseLanguageModel, num_players: int = 10, max_rounds: int = 5, output_dir: str = "./results", debug: bool = False) -> Dict[str, Any]:
     """Legacy compatibility wrapper"""
-    # Convert old parameters to new enhanced version
-    enhanced_num_players = min(8, max(6, num_players))  # Clamp to 6-8 range
-    enhanced_max_rounds = max(max_rounds, 8)  # Minimum 8 rounds for full strategic experience
+    enhanced_num_players = min(8, max(6, num_players))
+    enhanced_max_rounds = max(max_rounds, 8)
     
     return run_enhanced_beast_game(llm, enhanced_num_players, enhanced_max_rounds, output_dir, debug)
 
@@ -762,17 +706,14 @@ class BeastGame:
         
     def init_game(self) -> str:
         """Initialize the game and return settings description."""
-        # Extract parameters from args
         num_players = getattr(self.args, 'num_players', 6)
         max_rounds = getattr(self.args, 'max_rounds', 8)
         debug = getattr(self.args, 'debug', False)
         output_dir = getattr(self.args, 'output_dir', './results/beast')
         
-        # Ensure valid parameters for enhanced game
         num_players = min(8, max(6, num_players))
         max_rounds = max(8, max_rounds)
         
-        # Create the enhanced game
         self.enhanced_game = EnhancedBeastGame(
             llm=self.llm,
             num_players=num_players,
@@ -781,7 +722,6 @@ class BeastGame:
             debug=debug
         )
         
-        # Initialize the enhanced game
         self.enhanced_game.initialize_game()
         
         return f"Enhanced Beast Game: {num_players} players, {max_rounds} max rounds"
@@ -791,17 +731,13 @@ class BeastGame:
         if self.enhanced_game is None:
             raise RuntimeError("Game not initialized. Call init_game() first.")
         
-        # Redirect debug output to log file if needed
         original_debug = self.enhanced_game.debug
         if hasattr(log_file, 'write'):
-            # For file-like objects, we'll capture the output differently
-            self.enhanced_game.debug = False  # Disable console debug
+            self.enhanced_game.debug = False
             
         try:
-            # Run the enhanced game
             results = self.enhanced_game.run_game()
             
-            # Write game details to log file
             if hasattr(log_file, 'write'):
                 log_file.write(f"Enhanced Beast Game Results:\n")
                 log_file.write(f"Winner: {results.get('winner', 'Unknown')}\n")
@@ -809,13 +745,11 @@ class BeastGame:
                 log_file.write(f"Survivors: {results.get('survivors', [])}\n")
                 log_file.write(f"Game Duration: {results.get('game_duration', 0):.2f}s\n")
                 
-                # Write final rankings
                 log_file.write("\nFinal Rankings:\n")
                 for i, player_data in enumerate(results.get('final_rankings', []), 1):
                     log_file.write(f"{i}. {player_data['player']} ({player_data['role']}): "
                                  f"{player_data['wealth']} wealth, {player_data['status']}\n")
                 
-                # Write round summaries
                 log_file.write("\nRound Summaries:\n")
                 for round_data in results.get('game_history', []):
                     round_num = round_data['round']
@@ -827,5 +761,4 @@ class BeastGame:
             return results
             
         finally:
-            # Restore original debug setting
             self.enhanced_game.debug = original_debug

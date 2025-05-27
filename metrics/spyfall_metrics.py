@@ -1,18 +1,10 @@
 from typing import Dict, List, Tuple, Union, Any, Set, Optional
 import numpy as np
-from sklearn.metrics import f1_score, matthews_corrcoef
-from sklearn.feature_extraction.text import TfidfVectorizer
-import re
-import requests
-import torch
 import os
 from datetime import datetime
 import json
 import logging
-import time
-from collections import defaultdict, Counter
 from langchain_core.language_models.base import BaseLanguageModel
-from langchain_core.messages import HumanMessage, SystemMessage
 
 from metrics.base_metrics import BaseMetrics
 
@@ -34,9 +26,9 @@ class SpyfallMetrics(BaseMetrics):
         super().__init__(game_type="spyfall")
         self.model = model
         self.metrics = {}
-        self.inference_data = []  # Store detailed inference metrics
-        self.strategic_analysis = {}  # Store strategic patterns
-        self.game_state = {}  # Track current game state
+        self.inference_data = []    
+        self.strategic_analysis = {}  
+        self.game_state = {}  
     
     def compute_all(self) -> Dict[str, Any]:
         """
@@ -46,8 +38,6 @@ class SpyfallMetrics(BaseMetrics):
         Returns:
             Dict[str, Any]: Complete metrics suite
         """
-        # For Spyfall metrics, we don't use the event-based approach
-        # Instead, we calculate from game logs in calculate_metrics
         return self.computed_metrics
     
     def calculate_metrics(self, results_dir: str) -> Dict[str, Any]:
@@ -66,7 +56,6 @@ class SpyfallMetrics(BaseMetrics):
             logger.warning("No games found in results directory: %s", results_dir)
             return {"error": "No game logs found", "games_total": 0}
         
-        # Core metrics
         self.metrics = {
             "games_total": len(game_logs),
             "timestamp": datetime.now().isoformat(),
@@ -79,17 +68,13 @@ class SpyfallMetrics(BaseMetrics):
             "behavioral_analysis": self._calculate_behavioral_analysis(game_logs)
         }
         
-        # LLM as judge evaluation
         if self.model:
             self.metrics["llm_evaluation"] = self._calculate_llm_judge_metrics(game_logs)
         
-        # Generate comprehensive report
         self.metrics["detailed_report"] = self._generate_detailed_report()
         
-        # Convert numpy types to JSON-serializable types
         self.metrics = self._convert_numpy_types(self.metrics)
         
-        # Store in computed_metrics for base class compatibility
         self.computed_metrics = self.metrics
         
         return self.metrics
@@ -145,7 +130,6 @@ class SpyfallMetrics(BaseMetrics):
         villager_players = set()
         
         for game in game_logs:
-            # Extract game setup
             game_setup = game.get("game_setup", {})
             spy_name = game_setup.get("spy_name", "")
             spy_word = game_setup.get("spy_word", "")
@@ -154,7 +138,6 @@ class SpyfallMetrics(BaseMetrics):
             if spy_name:
                 spy_players.add(spy_name)
             
-            # Extract players from game data
             if "players" in game_setup:
                 all_players = game_setup["players"]
                 players.update(all_players)
@@ -162,22 +145,17 @@ class SpyfallMetrics(BaseMetrics):
                     if player != spy_name:
                         villager_players.add(player)
             
-            # Count inferences from game rounds
             rounds = game.get("rounds", [])
             for round_data in rounds:
-                # Description phase inferences
                 descriptions = round_data.get("descriptions", {})
                 inference_metrics["description_inferences"] += len(descriptions)
                 
-                # Voting phase inferences
                 votes = round_data.get("votes", {})
                 inference_metrics["voting_inferences"] += len(votes)
                 
-                # Extract players from round data
                 players.update(descriptions.keys())
                 players.update(votes.keys())
-        
-        # Initialize player-specific metrics
+
         for player in players:
             inference_metrics["response_quality"][player] = 0.0
             inference_metrics["strategic_coherence"][player] = 0.0
@@ -186,7 +164,6 @@ class SpyfallMetrics(BaseMetrics):
             inference_metrics["deception_effectiveness"][player] = 0.0
             inference_metrics["information_extraction"][player] = 0.0
         
-        # Analyze player performance across games
         for game in game_logs:
             game_setup = game.get("game_setup", {})
             spy_name = game_setup.get("spy_name", "")
@@ -195,40 +172,32 @@ class SpyfallMetrics(BaseMetrics):
                 player_decisions = self._extract_player_decisions_spyfall(player, game)
                 
                 if player_decisions:
-                    # Quality analysis
                     quality_score = self._analyze_decision_quality_spyfall(player_decisions, player == spy_name)
                     inference_metrics["response_quality"][player] = quality_score
                     
-                    # Strategic coherence
                     coherence_score = self._analyze_strategic_coherence_spyfall(player_decisions, player == spy_name)
                     inference_metrics["strategic_coherence"][player] = coherence_score
                     
-                    # Role consistency
                     consistency_score = self._analyze_role_consistency_spyfall(player_decisions, player == spy_name)
                     inference_metrics["role_consistency"][player] = consistency_score
                     
-                    # Deception effectiveness (mainly for spies)
                     if player == spy_name:
                         deception_score = self._analyze_deception_effectiveness_spyfall(player_decisions, game)
                         inference_metrics["deception_effectiveness"][player] = deception_score
                     
-                    # Information extraction effectiveness (mainly for villagers)
                     if player != spy_name:
                         extraction_score = self._analyze_information_extraction_spyfall(player_decisions, game)
                         inference_metrics["information_extraction"][player] = extraction_score
                     
-                    # Error rate analysis
                     error_rate = self._calculate_error_rate_spyfall(player_decisions)
                     inference_metrics["error_rate"][player] = error_rate
                     inference_metrics["total_errors"] += int(error_rate * len(player_decisions["descriptions"]) + len(player_decisions["votes"]))
         
-        # Calculate totals
         inference_metrics["total_inferences"] = (
             inference_metrics["description_inferences"] + 
             inference_metrics["voting_inferences"]
         )
         
-        # Add role-specific analysis
         inference_metrics["spy_performance"] = {
             "average_quality": np.mean([inference_metrics["response_quality"][spy] for spy in spy_players]) if spy_players else 0.0,
             "average_deception": np.mean([inference_metrics["deception_effectiveness"][spy] for spy in spy_players]) if spy_players else 0.0
@@ -251,7 +220,6 @@ class SpyfallMetrics(BaseMetrics):
         
         rounds = game.get("rounds", [])
         for round_num, round_data in enumerate(rounds):
-            # Extract descriptions
             descriptions = round_data.get("descriptions", {})
             if player in descriptions:
                 decisions["descriptions"].append({
@@ -259,8 +227,7 @@ class SpyfallMetrics(BaseMetrics):
                     "content": descriptions[player],
                     "context": round_data
                 })
-            
-            # Extract votes
+
             votes = round_data.get("votes", {})
             if player in votes:
                 decisions["votes"].append({
@@ -275,12 +242,10 @@ class SpyfallMetrics(BaseMetrics):
         """Analyze the quality of a player's decisions."""
         quality_scores = []
         
-        # Analyze description quality
         for desc_data in player_decisions["descriptions"]:
             desc_quality = self._evaluate_description_quality(desc_data, is_spy)
             quality_scores.append(desc_quality)
         
-        # Analyze voting quality
         for vote_data in player_decisions["votes"]:
             vote_quality = self._evaluate_voting_quality(vote_data, is_spy)
             quality_scores.append(vote_quality)
@@ -290,11 +255,10 @@ class SpyfallMetrics(BaseMetrics):
     def _analyze_strategic_coherence_spyfall(self, player_decisions: Dict[str, Any], is_spy: bool) -> float:
         """Analyze strategic coherence across descriptions and votes."""
         if len(player_decisions["descriptions"]) < 2:
-            return 1.0  # Can't measure coherence with less than 2 decisions
+            return 1.0  
         
         coherence_scores = []
         
-        # Analyze description coherence
         descriptions = player_decisions["descriptions"]
         for i in range(1, len(descriptions)):
             prev_desc = descriptions[i-1]
@@ -302,7 +266,6 @@ class SpyfallMetrics(BaseMetrics):
             coherence = self._evaluate_description_coherence(prev_desc, curr_desc, is_spy)
             coherence_scores.append(coherence)
         
-        # Analyze vote-description alignment
         if player_decisions["votes"] and player_decisions["descriptions"]:
             vote_desc_alignment = self._evaluate_vote_description_alignment(
                 player_decisions["descriptions"], 
@@ -317,12 +280,10 @@ class SpyfallMetrics(BaseMetrics):
         """Analyze how consistently player acts according to their role."""
         consistency_scores = []
         
-        # Check if descriptions are appropriate for role
         for desc_data in player_decisions["descriptions"]:
             consistency = self._evaluate_role_consistency(desc_data, is_spy)
             consistency_scores.append(consistency)
         
-        # Check if voting behavior is appropriate for role
         for vote_data in player_decisions["votes"]:
             consistency = self._evaluate_vote_role_consistency(vote_data, is_spy)
             consistency_scores.append(consistency)
@@ -336,15 +297,13 @@ class SpyfallMetrics(BaseMetrics):
         
         deception_scores = []
         
-        # Analyze how well spy descriptions blend in
         for desc_data in player_decisions["descriptions"]:
             deception_score = self._evaluate_spy_deception(desc_data, game)
             deception_scores.append(deception_score)
         
-        # Check if spy was detected (outcome-based measure)
         game_result = game.get("game_result", {})
         if game_result.get("winner") == "spy":
-            outcome_bonus = 0.3  # Bonus for successful deception
+            outcome_bonus = 0.3  
         else:
             outcome_bonus = 0.0
         
@@ -358,18 +317,16 @@ class SpyfallMetrics(BaseMetrics):
         
         extraction_scores = []
         
-        # Check voting accuracy
         spy_name = game.get("game_setup", {}).get("spy_name", "")
         for vote_data in player_decisions["votes"]:
             if vote_data["target"] == spy_name:
-                extraction_scores.append(1.0)  # Correctly identified spy
+                extraction_scores.append(1.0)  
             else:
-                extraction_scores.append(0.0)  # Incorrect identification
-        
-        # Check if villagers won (outcome-based measure)
+                extraction_scores.append(0.0)  
+
         game_result = game.get("game_result", {})
         if game_result.get("winner") == "villager":
-            outcome_bonus = 0.2  # Bonus for successful spy detection
+            outcome_bonus = 0.2  
         else:
             outcome_bonus = 0.0
         

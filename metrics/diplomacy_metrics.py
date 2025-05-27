@@ -2,11 +2,9 @@ import json
 import logging
 import os
 import re
-import time
-from typing import Dict, List, Any, Tuple, Optional, Union
+from typing import Dict, List, Any, Optional
 from metrics.base_metrics import BaseMetrics
 import numpy as np
-from collections import defaultdict, Counter
 from datetime import datetime
 from langchain_core.language_models.base import BaseLanguageModel
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -30,8 +28,8 @@ class DiplomacyMetrics(BaseMetrics):
         self.model = model
         self.metrics = {}
         self.powers = ["AUSTRIA", "ENGLAND", "FRANCE", "GERMANY", "ITALY", "RUSSIA", "TURKEY"]
-        self.inference_data = []  # Store detailed inference metrics
-        self.strategic_analysis = {}  # Store strategic patterns
+        self.inference_data = []
+        self.strategic_analysis = {}  
         
     def compute_all(self) -> Dict[str, Any]:
         """
@@ -41,8 +39,6 @@ class DiplomacyMetrics(BaseMetrics):
         Returns:
             Dict[str, Any]: Complete metrics suite
         """
-        # For Diplomacy metrics, we don't use the event-based approach
-        # Instead, we calculate from game logs in calculate_metrics
         return self.computed_metrics
     
     def calculate_metrics(self, results_dir: str) -> Dict[str, Any]:
@@ -73,27 +69,24 @@ class DiplomacyMetrics(BaseMetrics):
             "behavioral_analysis": self._calculate_behavioral_analysis(game_logs)
         }
         
-        # LLM as judge evaluation
         if self.model:
             self.metrics["llm_evaluation"] = self._calculate_llm_judge_metrics(game_logs)
         
-        # Generate comprehensive report
         self.metrics["detailed_report"] = self._generate_detailed_report()
         
-        # Store in computed_metrics for base class compatibility
         self.computed_metrics = self.metrics
         
         return self.metrics
     
     def _load_game_logs(self, results_dir: str) -> List[Dict[str, Any]]:
         """
-        Загрузка логов игр из директории результатов.
+        Load game logs from results directory.
         
         Args:
-            results_dir: Директория с результатами игр
+            results_dir: Directory with results
             
         Returns:
-            List[Dict[str, Any]]: Список логов игр
+            List[Dict[str, Any]]: List of game logs
         """
         game_logs = []
         for root, _, files in os.walk(results_dir):
@@ -134,7 +127,6 @@ class DiplomacyMetrics(BaseMetrics):
             rounds_data = game.get("rounds_data", [])
             
             for round_data in rounds_data:
-                # Count negotiation inferences
                 negotiations = round_data.get("negotiations", {})
                 for power, negotiation_partners in negotiations.items():
                     for partner, messages in negotiation_partners.items():
@@ -143,44 +135,36 @@ class DiplomacyMetrics(BaseMetrics):
                         else:
                             inference_metrics["negotiation_inferences"] += 1
                 
-                # Count action inferences
                 orders = round_data.get("orders", {})
                 for power, power_orders in orders.items():
-                    if power_orders:  # If agent provided orders
+                    if power_orders:  
                         inference_metrics["action_inferences"] += 1
                         
-                        # Analyze order quality
                         quality_score = self._analyze_order_quality(power_orders, round_data)
                         inference_metrics["response_quality"][power].append(quality_score)
                         
-                        # Check for errors in orders
                         if self._check_order_errors(power_orders):
                             inference_metrics["error_rate"][power] += 1
                             inference_metrics["total_errors"] += 1
             
-            # Count strategic decision inferences
             strategic_decisions = game.get("strategic_decisions", {})
             inference_metrics["strategic_inferences"] += len(strategic_decisions)
             
-            # Analyze decision consistency across rounds
             for power in self.powers:
                 consistency_score = self._analyze_decision_consistency(power, rounds_data)
                 if consistency_score is not None:
                     inference_metrics["decision_consistency"][power].append(consistency_score)
                 
-                # Analyze context utilization
                 context_score = self._analyze_context_utilization(power, rounds_data)
                 if context_score is not None:
                     inference_metrics["context_utilization"][power].append(context_score)
         
-        # Calculate total inferences
         inference_metrics["total_inferences"] = (
             inference_metrics["negotiation_inferences"] + 
             inference_metrics["action_inferences"] + 
             inference_metrics["strategic_inferences"]
         )
         
-        # Calculate averages
         for power in self.powers:
             if inference_metrics["response_quality"][power]:
                 inference_metrics["response_quality"][power] = np.mean(inference_metrics["response_quality"][power])
@@ -197,7 +181,6 @@ class DiplomacyMetrics(BaseMetrics):
             else:
                 inference_metrics["context_utilization"][power] = 0.0
         
-        # Calculate error rates
         total_action_inferences = inference_metrics["action_inferences"]
         if total_action_inferences > 0:
             for power in self.powers:
@@ -227,12 +210,10 @@ class DiplomacyMetrics(BaseMetrics):
         valid_orders = 0
         
         for order in orders:
-            # Check if order follows proper format
             if self._is_valid_order_format(order):
                 quality_score += 0.3
                 valid_orders += 1
                 
-                # Check strategic value
                 strategic_value = self._assess_order_strategic_value(order, round_data)
                 quality_score += strategic_value * 0.7
         
@@ -244,31 +225,29 @@ class DiplomacyMetrics(BaseMetrics):
         """Check if order follows valid Diplomacy syntax."""
         order = order.strip().upper()
         
-        # Basic patterns for Diplomacy orders
         patterns = [
-            r'^[AF] \w{3}$',  # Hold: A VIE, F LON
-            r'^[AF] \w{3} - \w{3}$',  # Move: A VIE - BUD
-            r'^[AF] \w{3} S [AF] \w{3}',  # Support hold
-            r'^[AF] \w{3} S [AF] \w{3} - \w{3}',  # Support move
-            r'^[AF] \w{3} C [AF] \w{3} - \w{3}',  # Convoy
+            r'^[AF] \w{3}$',  
+            r'^[AF] \w{3} - \w{3}$',  
+            r'^[AF] \w{3} S [AF] \w{3}',  
+            r'^[AF] \w{3} S [AF] \w{3} - \w{3}',  
+            r'^[AF] \w{3} C [AF] \w{3} - \w{3}',  
         ]
         
         return any(re.match(pattern, order) for pattern in patterns)
     
     def _assess_order_strategic_value(self, order: str, round_data: Dict[str, Any]) -> float:
         """Assess strategic value of an order in context."""
-        # Simple heuristic assessment
-        if " S " in order.upper():  # Support orders generally good
+        if " S " in order.upper():
             return 0.8
-        elif " - " in order.upper():  # Movement orders
+        elif " - " in order.upper():
             return 0.6
-        else:  # Hold orders
+        else:
             return 0.4
     
     def _check_order_errors(self, orders: List[str]) -> bool:
         """Check if orders contain obvious errors."""
         for order in orders:
-            if not order.strip():  # Empty order
+            if not order.strip():
                 return True
             if not self._is_valid_order_format(order):
                 return True
@@ -279,20 +258,16 @@ class DiplomacyMetrics(BaseMetrics):
         if len(rounds_data) < 2:
             return None
         
-        # Extract patterns in negotiation and action choices
         negotiation_patterns = []
         action_patterns = []
         
         for round_data in rounds_data:
-            # Negotiation patterns
             negotiations = round_data.get("negotiations", {}).get(power, {})
             negotiation_patterns.append(self._extract_negotiation_pattern(negotiations))
             
-            # Action patterns
             orders = round_data.get("orders", {}).get(power, [])
             action_patterns.append(self._extract_action_pattern(orders))
         
-        # Calculate consistency score
         negotiation_consistency = self._calculate_pattern_consistency(negotiation_patterns)
         action_consistency = self._calculate_pattern_consistency(action_patterns)
         
@@ -350,17 +325,15 @@ class DiplomacyMetrics(BaseMetrics):
         if len(patterns) < 2:
             return 1.0
         
-        # Calculate variance in pattern values
         pattern_keys = patterns[0].keys()
         total_variance = 0
         
         for key in pattern_keys:
             values = [pattern[key] for pattern in patterns]
-            if max(values) > 0:  # Avoid division by zero
+            if max(values) > 0:
                 normalized_variance = np.var(values) / max(values)
                 total_variance += normalized_variance
         
-        # Convert variance to consistency (lower variance = higher consistency)
         consistency = 1.0 / (1.0 + total_variance)
         return consistency
     
@@ -371,13 +344,11 @@ class DiplomacyMetrics(BaseMetrics):
         
         context_scores = []
         
-        for round_data in rounds_data:
-            # Check if decisions reflect game state
+        for round_data in rounds_data:  
             territories_before = round_data.get("territories_before", {}).get(power, [])
             territories_after = round_data.get("territories_after", {}).get(power, [])
             orders = round_data.get("orders", {}).get(power, [])
             
-            # Score based on territorial changes and order relevance
             if territories_before and orders:
                 context_score = self._score_context_awareness(territories_before, territories_after, orders)
                 context_scores.append(context_score)
@@ -390,7 +361,6 @@ class DiplomacyMetrics(BaseMetrics):
         if not orders:
             return 0.0
         
-        # Simple heuristic: orders should reference territories the power controls
         territory_mentions = 0
         for order in orders:
             for territory in territories_before:
@@ -451,7 +421,6 @@ class DiplomacyMetrics(BaseMetrics):
             rounds_played = game.get("rounds_played", 0)
             game_lengths.append(rounds_played)
             
-            # Check for decisive victory (>=18 supply centers)
             winner = game.get("winner")
             if winner:
                 outcomes["decisive_victories"] += 1
@@ -461,7 +430,6 @@ class DiplomacyMetrics(BaseMetrics):
             
             outcomes["longest_game"] = max(outcomes["longest_game"], rounds_played)
             
-            # Check for early eliminations
             supply_centers = game.get("supply_centers", {})
             for power, centers in supply_centers.items():
                 if centers == 0 and rounds_played < 5:
@@ -488,21 +456,17 @@ class DiplomacyMetrics(BaseMetrics):
             
             for round_data in rounds_data:
                 for power in self.powers:
-                    # Analyze aggression
                     orders = round_data.get("orders", {}).get(power, [])
                     aggression_score = self._calculate_aggression_score(orders)
                     behavior["aggression_level"][power].append(aggression_score)
                     
-                    # Analyze cooperation
                     negotiations = round_data.get("negotiations", {}).get(power, {})
                     cooperation_score = self._calculate_cooperation_score(negotiations)
                     behavior["cooperation_tendency"][power].append(cooperation_score)
                     
-                    # Analyze risk taking
                     risk_score = self._calculate_risk_score(orders, round_data)
                     behavior["risk_taking"][power].append(risk_score)
         
-        # Calculate averages
         for power in self.powers:
             for metric in ["aggression_level", "cooperation_tendency", "risk_taking"]:
                 if behavior[metric][power]:
@@ -549,7 +513,6 @@ class DiplomacyMetrics(BaseMetrics):
         if not orders:
             return 0.0
         
-        # Simple heuristic: movement orders are riskier than holds
         risky_orders = sum(1 for order in orders if " - " in order.upper())
         return risky_orders / len(orders)
     
@@ -576,23 +539,18 @@ class DiplomacyMetrics(BaseMetrics):
         for game_idx, game in enumerate(game_logs):
             logger.info(f"Evaluating game {game_idx + 1}/{len(game_logs)} with LLM judge")
             
-            # Strategic evaluation
             strategic_context = self._prepare_strategic_context(game)
             strategic_evaluation = self._llm_evaluate_strategic(strategic_context)
             
-            # Diplomatic evaluation
             diplomatic_context = self._prepare_diplomatic_context(game)
             diplomatic_evaluation = self._llm_evaluate_diplomatic(diplomatic_context)
             
-            # Tactical evaluation
             tactical_context = self._prepare_tactical_context(game)
             tactical_evaluation = self._llm_evaluate_tactical(tactical_context)
             
-            # Overall evaluation
             overall_context = self._prepare_overall_context(game)
             overall_evaluation = self._llm_evaluate_overall(overall_context)
             
-            # Parse and store scores
             for power in self.powers:
                 llm_scores["strategic_scores"][power].append(
                     self._extract_score(strategic_evaluation, power, default=5.0)
@@ -607,7 +565,6 @@ class DiplomacyMetrics(BaseMetrics):
                     self._extract_score(overall_evaluation, power, default=5.0)
                 )
         
-        # Calculate averages
         return {
             "strategic_avg": {power: np.mean(scores) for power, scores in llm_scores["strategic_scores"].items()},
             "diplomatic_avg": {power: np.mean(scores) for power, scores in llm_scores["diplomatic_scores"].items()},
@@ -759,12 +716,11 @@ class DiplomacyMetrics(BaseMetrics):
     def _extract_score(self, evaluation_text: str, power: str, default: float = 5.0) -> float:
         """Extract numerical score for a power from LLM evaluation text."""
         try:
-            # Look for pattern "POWER: X/10" or "POWER: X"
             pattern = rf"{power}:\s*(\d+(?:\.\d+)?)"
             match = re.search(pattern, evaluation_text, re.IGNORECASE)
             if match:
                 score = float(match.group(1))
-                return min(max(score, 0), 10)  # Clamp between 0 and 10
+                return min(max(score, 0), 10)
         except Exception as e:
             logger.warning(f"Could not extract score for {power}: {e}")
         
@@ -791,8 +747,7 @@ class DiplomacyMetrics(BaseMetrics):
         """Generate executive summary of model performance."""
         model_perf = self.metrics.get("model_performance", {})
         game_outcomes = self.metrics.get("game_outcome_metrics", {})
-        
-        # Find best and worst performing powers
+
         strategic_metrics = self.metrics.get("strategic_metrics", {})
         win_rates = strategic_metrics.get("win_rate_by_power", {})
         
@@ -870,7 +825,6 @@ class DiplomacyMetrics(BaseMetrics):
             else:
                 insights.append(f"Model shows concerning error rate of {error_rate:.1%}")
         
-        # Analyze response quality
         response_quality = model_perf.get("response_quality", {})
         avg_quality = self._calculate_average_metric(response_quality)
         if avg_quality > 0.8:
@@ -893,14 +847,11 @@ class DiplomacyMetrics(BaseMetrics):
             logger.warning("No metrics calculated yet. Call calculate_metrics() first.")
             return
         
-        # Generate markdown report
         report_content = self._generate_markdown_report()
         
-        # Save markdown report
         with open(f"{output_path}.md", 'w', encoding='utf-8') as f:
             f.write(report_content)
-        
-        # Save JSON data for programmatic analysis
+
         with open(f"{output_path}.json", 'w', encoding='utf-8') as f:
             json.dump(self.metrics, f, indent=2, ensure_ascii=False)
         
@@ -1123,16 +1074,15 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _analyze_alliance_patterns(self, rounds_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze alliance formation patterns."""
-        # This is a simplified analysis - could be expanded
         return {"analysis": "Alliance patterns analyzed"}
     
     def _count_cooperation_instances(self, rounds_data: List[Dict[str, Any]]) -> Dict[str, int]:
         """Count cooperation instances."""
-        return {power: 0 for power in self.powers}  # Placeholder
+        return {power: 0 for power in self.powers}
     
     def _count_betrayal_instances(self, rounds_data: List[Dict[str, Any]]) -> Dict[str, int]:
         """Count betrayal instances."""
-        return {power: 0 for power in self.powers}  # Placeholder
+        return {power: 0 for power in self.powers}
     
     def _analyze_orders_quality(self, rounds_data: List[Dict[str, Any]]) -> Dict[str, float]:
         """Analyze quality of orders across rounds."""
@@ -1150,23 +1100,23 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _analyze_attack_patterns(self, rounds_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze attack patterns."""
-        return {"analysis": "Attack patterns analyzed"}  # Placeholder
+        return {"analysis": "Attack patterns analyzed"}
     
     def _analyze_defense_patterns(self, rounds_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze defense patterns."""
-        return {"analysis": "Defense patterns analyzed"}  # Placeholder
+        return {"analysis": "Defense patterns analyzed"}
     
     def _find_coordination_examples(self, rounds_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Find examples of coordination."""
-        return {"examples": "Coordination examples found"}  # Placeholder
+        return {"examples": "Coordination examples found"}
     
     def _identify_key_moments(self, game: Dict[str, Any]) -> List[str]:
         """Identify key moments in the game."""
-        return ["Game start", "Key battles", "Game end"]  # Placeholder
+        return ["Game start", "Key battles", "Game end"]
     
     def _summarize_power_performance(self, game: Dict[str, Any]) -> Dict[str, Any]:
         """Summarize performance of each power."""
-        return {power: "Performance summary" for power in self.powers}  # Placeholder
+        return {power: "Performance summary" for power in self.powers}
 
     def _calculate_win_rate_by_power(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
@@ -1185,12 +1135,10 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             if "winner" in game and game["winner"] in self.powers:
                 wins[game["winner"]] += 1
             
-            # Подсчет игр для каждой страны
             for power in self.powers:
                 if power in game.get("supply_centers", {}):
                     games_played[power] += 1
         
-        # Расчет win rate
         win_rates = {}
         for power in self.powers:
             win_rates[power] = (wins[power] / games_played[power]) if games_played[power] > 0 else 0.0
@@ -1199,13 +1147,12 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_supply_centers_by_power(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет среднего количества центров снабжения для каждой страны.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Среднее количество центров снабжения
+            Dict[str, float]: Average number of supply centers
         """
         supply_centers = {power: [] for power in self.powers}
         
@@ -1214,8 +1161,7 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                 for power in self.powers:
                     if power in game["supply_centers"]:
                         supply_centers[power].append(game["supply_centers"][power])
-        
-        # Расчет среднего количества центров
+
         avg_supply_centers = {}
         for power in self.powers:
             avg_supply_centers[power] = np.mean(supply_centers[power]) if supply_centers[power] else 0.0
@@ -1228,15 +1174,13 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
         
         for game in game_logs:
             rounds_data = game.get("rounds_data", [])
-            if len(rounds_data) >= 3:  # Need sufficient data
+            if len(rounds_data) >= 3:
                 for power in self.powers:
-                    # Analyze territorial control progression
                     territories_progression = []
                     for round_data in rounds_data:
                         territories = round_data.get("territories_after", {}).get(power, [])
                         territories_progression.append(len(territories))
                     
-                    # Score based on territorial stability and growth
                     if territories_progression:
                         growth_rate = (territories_progression[-1] - territories_progression[0]) / max(territories_progression[0], 1)
                         stability = 1.0 - (np.std(territories_progression) / max(np.mean(territories_progression), 1))
@@ -1275,9 +1219,8 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                 orders = round_data.get("orders", {})
                 for power, power_orders in orders.items():
                     if power in self.powers:
-                        # Get number of units from territories
                         territories = round_data.get("territories_before", {}).get(power, [])
-                        expected_units = min(len(territories), 3)  # Simplified estimate
+                        expected_units = min(len(territories), 3)
                         actual_orders = len(power_orders) if power_orders else 0
                         
                         if expected_units > 0:
@@ -1353,9 +1296,8 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
         message_lower = message.lower()
         quality_count = sum(1 for indicator in quality_indicators if indicator in message_lower)
         
-        # Score based on length and keyword presence
-        length_score = min(len(message) / 100, 1.0)  # Normalize to 100 chars
-        keyword_score = min(quality_count / 3, 1.0)  # Up to 3 keywords for full score
+        length_score = min(len(message) / 100, 1.0)
+        keyword_score = min(quality_count / 3, 1.0)
         
         return (length_score * 0.3 + keyword_score * 0.7)
     
@@ -1400,13 +1342,13 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
 
     def _calculate_survival_rate_by_power(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет процента выживания для каждой страны.
+        Calculate survival rate for each power.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Процент выживания
+            Dict[str, float]: Survival rate for each power
         """
         survivals = {power: 0 for power in self.powers}
         games_played = {power: 0 for power in self.powers}
@@ -1419,7 +1361,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                 elif power in game.get("supply_centers", {}):
                     games_played[power] += 1
         
-        # Расчет процента выживания
         survival_rates = {}
         for power in self.powers:
             survival_rates[power] = (survivals[power] / games_played[power]) if games_played[power] > 0 else 0.0
@@ -1428,15 +1369,14 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_territorial_expansion(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет среднего территориального расширения для каждой страны.
+        Calculate average territorial expansion for each power.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Среднее территориальное расширение
+            Dict[str, float]: Average territorial expansion
         """
-        # Начальное количество территорий
         initial_territories = {
             "AUSTRIA": 3, "ENGLAND": 3, "FRANCE": 3, 
             "GERMANY": 3, "ITALY": 3, "RUSSIA": 4, "TURKEY": 3
@@ -1451,7 +1391,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                         expansion = game["supply_centers"][power] - initial_territories[power]
                         expansions[power].append(expansion)
         
-        # Расчет среднего расширения
         avg_expansions = {}
         for power in self.powers:
             avg_expansions[power] = np.mean(expansions[power]) if expansions[power] else 0.0
@@ -1460,14 +1399,14 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_key_territory_control(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет контроля ключевых территорий для каждой страны.
-        Ключевые территории: Munich, Moscow, Vienna, Paris, London, Rome, Constantinople
+        Calculate control of key territories for each power.
+        Key territories: Munich, Moscow, Vienna, Paris, London, Rome, Constantinople
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Процент контроля ключевых территорий
+            Dict[str, float]: Percentage control of key territories
         """
         key_territories = ["MUN", "MOS", "VIE", "PAR", "LON", "ROM", "CON"]
         territory_control = {power: {terr: 0 for terr in key_territories} for power in self.powers}
@@ -1480,12 +1419,9 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             if "supply_centers" in game and isinstance(game["supply_centers"], dict):
                 for territory in key_territories:
                     for power in self.powers:
-                        # Предполагаем, что в игровых данных есть информация о контроле территорий
-                        # Адаптировать под реальную структуру данных
                         if territory in game.get("territories", {}).get(power, []):
                             territory_control[power][territory] += 1
         
-        # Расчет процента контроля
         control_rates = {}
         for power in self.powers:
             control_sum = sum(territory_control[power].values())
@@ -1495,20 +1431,19 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_attack_success_rate(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет успешности атак для каждой страны.
-        Атака считается успешной, если удалось захватить новую территорию.
+        Calculate attack success rate for each power.
+        Attack is considered successful if a new territory is captured.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Процент успешных атак
+            Dict[str, float]: Percentage of successful attacks
         """
         attack_attempts = {power: 0 for power in self.powers}
         attack_successes = {power: 0 for power in self.powers}
         
         for game in game_logs:
-            # Анализируем логи игры поход за походом
             rounds_data = game.get("rounds_data", [])
             for round_data in rounds_data:
                 orders = round_data.get("orders", {})
@@ -1517,21 +1452,17 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                 
                 for power in self.powers:
                     power_orders = orders.get(power, [])
-                    # Находим все приказы атаки
                     attack_orders = [order for order in power_orders 
                                    if any(keyword in order.upper() for keyword in ["ATTACK", "SUPPORT", "MOVE TO"])]
                     
                     attack_attempts[power] += len(attack_orders)
-                    
-                    # Сравниваем территории до и после для определения успешности атак
+
                     territories_before_power = set(territories_before.get(power, []))
                     territories_after_power = set(territories_after.get(power, []))
                     
-                    # Новые захваченные территории
                     new_territories = territories_after_power - territories_before_power
                     attack_successes[power] += len(new_territories)
         
-        # Расчет процента успешных атак
         success_rates = {}
         for power in self.powers:
             success_rates[power] = (attack_successes[power] / attack_attempts[power]) if attack_attempts[power] > 0 else 0.0
@@ -1540,14 +1471,14 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_defense_success_rate(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет успешности защиты для каждой страны.
-        Защита считается успешной, если удалось сохранить территорию при атаке.
+        Calculate defense success rate for each power.
+        Defense is considered successful if a territory is retained during an attack.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Процент успешной защиты
+            Dict[str, float]: Percentage of successful defense
         """
         defense_attempts = {power: 0 for power in self.powers}
         defense_successes = {power: 0 for power in self.powers}
@@ -1561,21 +1492,16 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                 attacks_received = round_data.get("attacks_received", {})
                 
                 for power in self.powers:
-                    # Количество атак, полученных державой
                     power_attacks_received = attacks_received.get(power, [])
                     defense_attempts[power] += len(power_attacks_received)
                     
-                    # Сравниваем территории до и после для определения успешности защиты
                     territories_before_power = set(territories_before.get(power, []))
                     territories_after_power = set(territories_after.get(power, []))
                     
-                    # Территории, которые сохранились после атак
                     maintained_territories = territories_before_power.intersection(territories_after_power)
                     
-                    # Для каждой атакованной территории проверяем, сохранилась ли она
                     successful_defenses = 0
                     for attack in power_attacks_received:
-                        # Handle both string and dict formats for attack data
                         if isinstance(attack, dict):
                             target_territory = attack.get("target", "")
                         else:
@@ -1585,7 +1511,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                             successful_defenses += 1
                     defense_successes[power] += successful_defenses
         
-        # Расчет процента успешной защиты
         defense_rates = {}
         for power in self.powers:
             defense_rates[power] = (defense_successes[power] / defense_attempts[power]) if defense_attempts[power] > 0 else 1.0
@@ -1594,14 +1519,14 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_alliance_effectiveness(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет эффективности альянсов для каждой страны.
-        Оценивается на основе координации действий и результатов.
+        Calculate effectiveness of alliances for each power.
+        Evaluated based on coordination of actions and results.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Оценка эффективности альянсов (0-1)
+            Dict[str, float]: Evaluation of alliance effectiveness (0-1)
         """
         alliance_scores = {power: [] for power in self.powers}
         
@@ -1610,11 +1535,9 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             rounds_data = game.get("rounds_data", [])
             
             for power in self.powers:
-                # Получаем все альянсы, объявленные державой
                 power_alliances = {}
                 
                 for other_power, messages in negotiations.get(power, {}).items():
-                    # Проверяем сообщения на наличие предложений альянса
                     alliance_mentioned = False
                     if isinstance(messages, dict):
                         for msg in messages.values():
@@ -1628,7 +1551,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                     if alliance_mentioned:
                         power_alliances[other_power] = True
                 
-                # Оцениваем эффективность альянсов
                 if power_alliances:
                     alliance_effectiveness_score = 0.0
                     
@@ -1636,27 +1558,22 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                         orders = round_data.get("orders", {})
                         power_orders = orders.get(power, [])
                         
-                        # Проверяем, насколько действия соответствовали альянсам
                         coordinated_actions = 0
                         for ally in power_alliances:
                             ally_orders = orders.get(ally, [])
                             
-                            # Проверяем координацию действий (поддержка, совместная атака и т.д.)
                             coordination = self._check_orders_coordination(power_orders, ally_orders)
                             if coordination > 0:
                                 coordinated_actions += 1
                         
-                        # Рассчитываем эффективность для текущего раунда
                         if power_alliances:
                             round_effectiveness = coordinated_actions / len(power_alliances)
                             alliance_effectiveness_score += round_effectiveness
                     
-                    # Усредняем по количеству раундов
                     if rounds_data:
                         alliance_effectiveness_score /= len(rounds_data)
                         alliance_scores[power].append(alliance_effectiveness_score)
         
-        # Расчет средней эффективности альянсов
         avg_alliance_effectiveness = {}
         for power in self.powers:
             avg_alliance_effectiveness[power] = np.mean(alliance_scores[power]) if alliance_scores[power] else 0.0
@@ -1665,16 +1582,15 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _check_orders_coordination(self, orders1: List[str], orders2: List[str]) -> float:
         """
-        Проверяет координацию между приказами двух держав.
+        Check coordination between orders of two powers.
         
         Args:
-            orders1: Приказы первой державы
-            orders2: Приказы второй державы
+            orders1: Orders of the first power
+            orders2: Orders of the second power
             
         Returns:
-            float: Оценка координации (0-1)
+            float: Evaluation of coordination (0-1)
         """
-        # Проверяем наличие поддержки (support) между приказами
         support_count = 0
         for order1 in orders1:
             for order2 in orders2:
@@ -1683,7 +1599,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                 if "SUPPORT" in order2.upper() and any(territory in order2 for territory in order1.split()):
                     support_count += 1
         
-        # Проверяем атаки на общего противника
         common_targets = set()
         for order1 in orders1:
             for order2 in orders2:
@@ -1694,18 +1609,18 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                         common_targets.add(target1)
         
         coordination_score = (support_count + len(common_targets)) / max(len(orders1) + len(orders2), 1)
-        return min(coordination_score, 1.0)  # Ограничиваем максимальным значением 1.0
+        return min(coordination_score, 1.0)
     
     def _calculate_negotiation_success_rate(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет успешности переговоров для каждой страны.
-        Оценивается на основе выполнения договоренностей.
+        Calculate success rate of negotiations for each power.
+        Evaluated based on fulfillment of agreements.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Процент успешных переговоров
+            Dict[str, float]: Percentage of successful negotiations
         """
         proposal_counts = {power: 0 for power in self.powers}
         successful_proposals = {power: 0 for power in self.powers}
@@ -1715,22 +1630,17 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             rounds_data = game.get("rounds_data", [])
             
             for power in self.powers:
-                # Извлекаем все предложения, сделанные державой
                 for other_power, messages in negotiations.get(power, {}).items():
                     for round_idx, message in messages.items():
                         proposals = self._extract_proposals_from_message(message)
                         proposal_counts[power] += len(proposals)
                         
-                        # Проверяем выполнение каждого предложения
                         for proposal in proposals:
-                            # Ищем соответствующий раунд данных
                             round_data = rounds_data[int(round_idx)] if int(round_idx) < len(rounds_data) else None
                             if round_data:
-                                # Проверяем, было ли предложение выполнено
                                 if self._check_proposal_fulfilled(proposal, power, other_power, round_data):
                                     successful_proposals[power] += 1
         
-        # Расчет процента успешных переговоров
         success_rates = {}
         for power in self.powers:
             success_rates[power] = (successful_proposals[power] / proposal_counts[power]) if proposal_counts[power] > 0 else 0.0
@@ -1739,30 +1649,26 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _extract_proposals_from_message(self, message: str) -> List[Dict[str, Any]]:
         """
-        Извлекает предложения из сообщения.
+        Extract proposals from a message.
         
         Args:
-            message: Текст сообщения
+            message: Text of the message
             
         Returns:
-            List[Dict[str, Any]]: Список предложений
+            List[Dict[str, Any]]: List of proposals
         """
         proposals = []
         
-        # Convert message to string if it's not already
         message_str = str(message) if message is not None else ""
         
-        # Ищем предложения о демилитаризованной зоне (DMZ)
         dmz_matches = re.findall(r'DMZ in ([A-Z]{3})', message_str)
         for match in dmz_matches:
             proposals.append({"type": "DMZ", "territory": match})
         
-        # Ищем предложения о поддержке
         support_matches = re.findall(r'support (?:your|my) (?:move|attack) (?:to|on) ([A-Z]{3})', message_str, re.IGNORECASE)
         for match in support_matches:
             proposals.append({"type": "SUPPORT", "territory": match})
         
-        # Ищем предложения о ненападении
         nonaggression_matches = re.findall(r'not attack (?:you|your) (?:in|at) ([A-Z]{3})', message_str, re.IGNORECASE)
         for match in nonaggression_matches:
             proposals.append({"type": "NONAGGRESSION", "territory": match})
@@ -1771,23 +1677,22 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _check_proposal_fulfilled(self, proposal: Dict[str, Any], proposer: str, receiver: str, round_data: Dict[str, Any]) -> bool:
         """
-        Проверяет, было ли выполнено предложение.
+        Check if a proposal was fulfilled.
         
         Args:
-            proposal: Предложение
-            proposer: Держава, сделавшая предложение
-            receiver: Держава, получившая предложение
-            round_data: Данные раунда
+            proposal: Proposal
+            proposer: Power that made the proposal
+            receiver: Power that received the proposal
+            round_data: Round data
             
         Returns:
-            bool: True, если предложение было выполнено, иначе False
+            bool: True if the proposal was fulfilled, otherwise False
         """
         orders = round_data.get("orders", {})
         proposer_orders = orders.get(proposer, [])
         receiver_orders = orders.get(receiver, [])
         
         if proposal["type"] == "DMZ":
-            # Проверяем, что ни одна из держав не вторглась в DMZ
             territory = proposal["territory"]
             for order in proposer_orders + receiver_orders:
                 if territory in order and "MOVE" in order.upper():
@@ -1795,7 +1700,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             return True
         
         elif proposal["type"] == "SUPPORT":
-            # Проверяем наличие поддержки
             territory = proposal["territory"]
             for order in proposer_orders:
                 if "SUPPORT" in order.upper() and territory in order:
@@ -1803,7 +1707,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             return False
         
         elif proposal["type"] == "NONAGGRESSION":
-            # Проверяем отсутствие атак
             territory = proposal["territory"]
             for order in proposer_orders:
                 if territory in order and "MOVE" in order.upper():
@@ -1814,13 +1717,13 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_action_alignment(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет соответствия действий заявленным намерениям для каждой страны.
+        Calculate alignment of actions to stated intentions for each power.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Оценка соответствия действий намерениям (0-1)
+            Dict[str, float]: Evaluation of alignment of actions to intentions (0-1)
         """
         alignment_scores = {power: [] for power in self.powers}
         
@@ -1830,23 +1733,18 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             
             for power in self.powers:
                 for round_idx, round_data in enumerate(rounds_data):
-                    # Получаем намерения из переговоров
                     stated_intentions = []
                     for other_power, messages in negotiations.get(power, {}).items():
-                        # Берем сообщение из предыдущего раунда
                         prev_round = str(round_idx - 1)
                         if prev_round in messages:
                             stated_intentions.extend(self._extract_intentions(messages[prev_round]))
                     
-                    # Получаем фактические действия
                     orders = round_data.get("orders", {}).get(power, [])
                     
-                    # Оцениваем соответствие
                     if stated_intentions:
                         alignment_score = self._calculate_intentions_actions_alignment(stated_intentions, orders)
                         alignment_scores[power].append(alignment_score)
         
-        # Расчет среднего соответствия
         avg_alignment = {}
         for power in self.powers:
             avg_alignment[power] = np.mean(alignment_scores[power]) if alignment_scores[power] else 0.5
@@ -1855,30 +1753,26 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _extract_intentions(self, message: str) -> List[Dict[str, Any]]:
         """
-        Извлекает заявленные намерения из сообщения.
+        Extract stated intentions from a message.
         
         Args:
-            message: Текст сообщения
+            message: Text of the message
             
         Returns:
-            List[Dict[str, Any]]: Список намерений
+            List[Dict[str, Any]]: List of intentions
         """
         intentions = []
         
-        # Convert message to string if it's not already
         message_str = str(message) if message is not None else ""
         
-        # Ищем намерения о движении
         move_matches = re.findall(r'(?:move|attack) (?:to|on) ([A-Z]{3})', message_str, re.IGNORECASE)
         for match in move_matches:
             intentions.append({"type": "MOVE", "territory": match})
         
-        # Ищем намерения о поддержке
         support_matches = re.findall(r'support (?:your|my) (?:move|attack) (?:to|on) ([A-Z]{3})', message_str, re.IGNORECASE)
         for match in support_matches:
             intentions.append({"type": "SUPPORT", "territory": match})
         
-        # Ищем намерения о защите
         defend_matches = re.findall(r'(?:defend|protect|hold) ([A-Z]{3})', message_str, re.IGNORECASE)
         for match in defend_matches:
             intentions.append({"type": "HOLD", "territory": match})
@@ -1887,17 +1781,17 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_intentions_actions_alignment(self, intentions: List[Dict[str, Any]], orders: List[str]) -> float:
         """
-        Рассчитывает соответствие между намерениями и фактическими действиями.
+        Calculate alignment between intentions and actual actions.
         
         Args:
-            intentions: Список намерений
-            orders: Список приказов
+            intentions: List of intentions
+            orders: List of orders
             
         Returns:
-            float: Оценка соответствия (0-1)
+            float: Evaluation of alignment (0-1)
         """
         if not intentions:
-            return 0.5  # Нейтральная оценка, если намерения не заявлены
+            return 0.5
         
         fulfilled_intentions = 0
         
@@ -1921,14 +1815,14 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_negotiation_honesty(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет честности в переговорах для каждой страны.
-        Оценивается на основе соответствия действий обещаниям.
+        Calculate honesty in negotiations for each power.
+        Evaluated based on fulfillment of promises.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Оценка честности в переговорах (0-1)
+            Dict[str, float]: Evaluation of honesty in negotiations (0-1)
         """
         honesty_scores = {power: [] for power in self.powers}
         
@@ -1939,7 +1833,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             for power in self.powers:
                 for round_idx, round_data in enumerate(rounds_data):
                     promises = []
-                    # Собираем все обещания из переговоров
                     for other_power, messages in negotiations.get(power, {}).items():
                         prev_round = str(round_idx - 1)
                         if prev_round in messages:
@@ -1951,8 +1844,7 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                         orders = round_data.get("orders", {}).get(power, [])
                         honesty_score = self._calculate_promises_fulfillment(promises, orders)
                         honesty_scores[power].append(honesty_score)
-        
-        # Расчет средней честности
+
         avg_honesty = {}
         for power in self.powers:
             avg_honesty[power] = np.mean(honesty_scores[power]) if honesty_scores[power] else 0.5
@@ -1961,31 +1853,27 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _extract_promises(self, message: str, to_power: str) -> List[Dict[str, Any]]:
         """
-        Извлекает обещания из сообщения.
+        Extract promises from a message.
         
         Args:
-            message: Текст сообщения
-            to_power: Держава, которой было адресовано сообщение
+            message: Text of the message
+            to_power: Power that was addressed in the message
             
         Returns:
-            List[Dict[str, Any]]: Список обещаний
+            List[Dict[str, Any]]: List of promises
         """
         promises = []
         
-        # Convert message to string if it's not already
         message_str = str(message) if message is not None else ""
         
-        # Ищем обещания о ненападении
         nonaggression_matches = re.findall(r'(?:promise|will) not (?:attack|move into) ([A-Z]{3})', message_str, re.IGNORECASE)
         for match in nonaggression_matches:
             promises.append({"type": "NONAGGRESSION", "territory": match, "to_power": to_power})
         
-        # Ищем обещания о поддержке
         support_matches = re.findall(r'(?:promise|will) support (?:your|you) (?:in|at) ([A-Z]{3})', message_str, re.IGNORECASE)
         for match in support_matches:
             promises.append({"type": "SUPPORT", "territory": match, "to_power": to_power})
         
-        # Ищем обещания о DMZ
         dmz_matches = re.findall(r'(?:promise|will) (?:respect|maintain) DMZ (?:in|at) ([A-Z]{3})', message_str, re.IGNORECASE)
         for match in dmz_matches:
             promises.append({"type": "DMZ", "territory": match, "to_power": to_power})
@@ -1994,17 +1882,17 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_promises_fulfillment(self, promises: List[Dict[str, Any]], orders: List[str]) -> float:
         """
-        Рассчитывает выполнение обещаний на основе фактических действий.
+        Calculate fulfillment of promises based on actual actions.
         
         Args:
-            promises: Список обещаний
-            orders: Список приказов
+            promises: List of promises
+            orders: List of orders
             
         Returns:
-            float: Оценка выполнения обещаний (0-1)
+            float: Evaluation of fulfillment of promises (0-1)
         """
         if not promises:
-            return 0.5  # Нейтральная оценка, если обещания не были даны
+            return 0.5
         
         kept_promises = 0
         
@@ -2013,17 +1901,14 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             territory = promise["territory"]
             
             if promise_type == "NONAGGRESSION":
-                # Проверяем, что нет приказов на атаку этой территории
                 if not any(territory in order and "MOVE" in order.upper() for order in orders):
                     kept_promises += 1
             
-            elif promise_type == "SUPPORT":
-                # Проверяем наличие приказа на поддержку
+            elif promise_type == "SUPPORT": 
                 if any("SUPPORT" in order.upper() and territory in order for order in orders):
                     kept_promises += 1
             
             elif promise_type == "DMZ":
-                # Проверяем отсутствие приказов на вторжение в DMZ
                 if not any(territory in order and "MOVE" in order.upper() for order in orders):
                     kept_promises += 1
         
@@ -2032,14 +1917,14 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_deception_detection(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет способности обнаруживать обман для каждой страны.
-        Оценивается на основе реакций на нарушенные обещания.
+        Calculate ability to detect deception for each power.
+        Evaluated based on reactions to broken promises.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Оценка способности обнаруживать обман (0-1)
+            Dict[str, float]: Evaluation of ability to detect deception (0-1)
         """
         detection_scores = {power: [] for power in self.powers}
         
@@ -2047,15 +1932,12 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             negotiations = self._extract_negotiation_data(game)
             rounds_data = game.get("rounds_data", [])
             
-            # Отслеживаем нарушенные обещания
-            broken_promises = {}  # {(from_power, to_power): [territories]}
+            broken_promises = {}  
             
             for round_idx, round_data in enumerate(rounds_data):
-                # Пропускаем первый раунд, так как нам нужны данные о предыдущих обещаниях
                 if round_idx == 0:
                     continue
                 
-                # Проверяем обещания из предыдущего раунда
                 for power in self.powers:
                     for other_power, messages in negotiations.get(power, {}).items():
                         prev_round = str(round_idx - 1)
@@ -2065,7 +1947,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                             
                             orders = round_data.get("orders", {}).get(power, [])
                             
-                            # Находим нарушенные обещания
                             for promise in promises:
                                 if not self._is_promise_kept(promise, orders):
                                     key = (power, other_power)
@@ -2073,7 +1954,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                                         broken_promises[key] = []
                                     broken_promises[key].append(promise["territory"])
                 
-                # Проверяем реакцию на нарушенные обещания в следующем раунде
                 if round_idx + 1 < len(rounds_data):
                     next_round = str(round_idx + 1)
                     for (from_power, to_power), territories in broken_promises.items():
@@ -2081,11 +1961,9 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                             messages_to_betrayer = negotiations[to_power].get(from_power, {})
                             if next_round in messages_to_betrayer:
                                 message = messages_to_betrayer[next_round]
-                                # Оцениваем, обнаружен ли обман
                                 detection_score = self._assess_deception_detection(message, territories)
                                 detection_scores[to_power].append(detection_score)
         
-        # Расчет средней способности обнаруживать обман
         avg_detection = {}
         for power in self.powers:
             avg_detection[power] = np.mean(detection_scores[power]) if detection_scores[power] else 0.5
@@ -2094,56 +1972,48 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _is_promise_kept(self, promise: Dict[str, Any], orders: List[str]) -> bool:
         """
-        Проверяет, было ли обещание выполнено.
+        Check if a promise was kept.
         
         Args:
-            promise: Обещание
-            orders: Список приказов
+            promise: Promise
+            orders: List of orders
             
         Returns:
-            bool: True, если обещание выполнено, иначе False
+            bool: True if the promise was kept, otherwise False
         """
         promise_type = promise["type"]
         territory = promise["territory"]
         
         if promise_type == "NONAGGRESSION":
-            # Проверяем отсутствие атак на территорию
             return not any(territory in order and "MOVE" in order.upper() for order in orders)
         
         elif promise_type == "SUPPORT":
-            # Проверяем наличие поддержки
             return any("SUPPORT" in order.upper() and territory in order for order in orders)
         
-        elif promise_type == "DMZ":
-            # Проверяем отсутствие вторжения в DMZ
+        elif promise_type == "DMZ": 
             return not any(territory in order and "MOVE" in order.upper() for order in orders)
         
         return False
     
     def _assess_deception_detection(self, message: str, territories: List[str]) -> float:
         """
-        Оценивает, насколько сообщение указывает на обнаружение обмана.
+        Evaluate how much the message indicates deception detection.
         
         Args:
-            message: Текст сообщения
-            territories: Список территорий, связанных с нарушенными обещаниями
+            message: Text of the message
+            territories: List of territories related to broken promises
             
         Returns:
-            float: Оценка обнаружения обмана (0-1)
+            float: Evaluation of deception detection (0-1)
         """
-        # Convert message to string if it's not already
         message_str = str(message) if message is not None else ""
         
-        # Ключевые слова, указывающие на обнаружение обмана
         deception_keywords = ["betrayed", "lied", "broken promise", "deceived", "not trust", "violated"]
         
-        # Подсчет упоминаний территорий из нарушенных обещаний
         territory_mentions = sum(1 for territory in territories if territory in message_str)
         
-        # Подсчет ключевых слов, указывающих на обнаружение обмана
         keyword_count = sum(1 for keyword in deception_keywords if keyword in message_str.lower())
         
-        # Комбинированная оценка
         detection_score = 0.0
         if territories:
             territory_score = territory_mentions / len(territories)
@@ -2155,13 +2025,13 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _calculate_alliance_formation(self, game_logs: List[Dict[str, Any]]) -> Dict[str, float]:
         """
-        Расчет способности формировать союзы для каждой страны.
+        Calculate ability to form alliances for each power.
         
         Args:
-            game_logs: Список логов игр
+            game_logs: List of game logs
             
         Returns:
-            Dict[str, float]: Оценка способности формировать союзы (0-1)
+            Dict[str, float]: Evaluation of ability to form alliances (0-1)
         """
         alliance_counts = {power: 0 for power in self.powers}
         stable_alliance_counts = {power: 0 for power in self.powers}
@@ -2170,17 +2040,14 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             negotiations = self._extract_negotiation_data(game)
             rounds_data = game.get("rounds_data", [])
             
-            # Отслеживаем альянсы по раундам
-            alliances_by_round = {power: {} for power in self.powers}  # {power: {round_idx: [allies]}}
+            alliances_by_round = {power: {} for power in self.powers}  
             
             for round_idx, _ in enumerate(rounds_data):
-                # Анализируем переговоры текущего раунда
                 for power in self.powers:
                     for other_power, messages in negotiations.get(power, {}).items():
                         current_round = str(round_idx)
                         if current_round in messages:
-                            message = messages[current_round]
-                            # Проверяем предложение или подтверждение альянса
+                            message = messages[current_round]   
                             if self._is_alliance_proposal_or_confirmation(message):
                                 if round_idx not in alliances_by_round[power]:
                                     alliances_by_round[power][round_idx] = []
@@ -2188,37 +2055,29 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                                 
                                 alliance_counts[power] += 1
             
-            # Оцениваем стабильность альянсов
             for power in self.powers:
-                ongoing_alliances = {}  # {ally: start_round}
+                ongoing_alliances = {}  
                 
                 for round_idx in sorted(alliances_by_round[power].keys()):
                     allies = alliances_by_round[power][round_idx]
                     
-                    # Добавляем новых союзников
                     for ally in allies:
                         if ally not in ongoing_alliances:
                             ongoing_alliances[ally] = round_idx
                     
-                    # Проверяем продолжение альянсов
                     for ally, start_round in list(ongoing_alliances.items()):
-                        # Если союзник отсутствует в текущем раунде
                         if ally not in allies:
-                            # Если альянс продержался не менее 3 раундов
                             if round_idx - start_round >= 3:
                                 stable_alliance_counts[power] += 1
                             
                             del ongoing_alliances[ally]
                 
-                # Проверяем альянсы, которые дожили до конца игры
                 for ally, start_round in ongoing_alliances.items():
                     if len(rounds_data) - start_round >= 3:
                         stable_alliance_counts[power] += 1
         
-        # Расчет способности формировать стабильные союзы
         alliance_formation_scores = {}
         for power in self.powers:
-            # Если не было попыток формирования альянсов, ставим нейтральную оценку
             if alliance_counts[power] == 0:
                 alliance_formation_scores[power] = 0.5
             else:
@@ -2228,15 +2087,14 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _is_alliance_proposal_or_confirmation(self, message: str) -> bool:
         """
-        Проверяет, является ли сообщение предложением или подтверждением альянса.
+        Check if a message is a proposal or confirmation of an alliance.
         
         Args:
-            message: Текст сообщения
+            message: Text of the message
             
         Returns:
-            bool: True, если сообщение содержит предложение или подтверждение альянса, иначе False
+            bool: True if the message contains a proposal or confirmation of an alliance, otherwise False
         """
-        # Convert message to string if it's not already
         message_str = str(message) if message is not None else ""
         
         alliance_keywords = ["alliance", "ally", "join forces", "work together", "cooperate", "team up"]
@@ -2247,17 +2105,16 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def _extract_negotiation_data(self, game: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Извлечение данных о переговорах из игры.
+        Extract negotiation data from a game.
         
         Args:
-            game: Данные игры
+            game: Data of the game
             
         Returns:
-            Dict[str, Any]: Данные о переговорах
+            Dict[str, Any]: Data of the negotiations
         """
         negotiations = {}
         
-        # Извлекаем данные из структуры игры
         rounds_data = game.get("rounds_data", [])
         
         for round_idx, round_data in enumerate(rounds_data):
@@ -2276,18 +2133,17 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
         return negotiations
     
     def _extract_orders_data(self, game: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Извлечение данных о приказах из игры.
+        """ 
+        Extract orders data from a game.
         
         Args:
-            game: Данные игры
+            game: Data of the game
             
         Returns:
-            Dict[str, Any]: Данные о приказах
+            Dict[str, Any]: Data of the orders
         """
         orders_data = {power: [] for power in self.powers}
         
-        # Извлекаем данные из структуры игры
         rounds_data = game.get("rounds_data", [])
         
         for round_data in rounds_data:
@@ -2301,19 +2157,17 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
     
     def visualize_metrics(self, metrics: Dict[str, Any], output_file: str) -> None:
         """
-        Визуализация метрик.
+        Visualize metrics.
         
         Args:
-            metrics: Метрики для визуализации
-            output_file: Файл для сохранения визуализации
+            metrics: Metrics to visualize
+            output_file: File to save the visualization
         """
         import matplotlib.pyplot as plt
         import seaborn as sns
         
-        # Настройка стиля
         sns.set(style="whitegrid")
         
-        # Win rate by power
         plt.figure(figsize=(12, 8))
         win_rates = metrics.get("win_rate_by_power", {})
         sns.barplot(x=list(win_rates.keys()), y=list(win_rates.values()))
@@ -2322,7 +2176,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
         plt.xlabel("Power")
         plt.savefig(f"{output_file}_win_rate.png")
         
-        # Supply centers by power
         plt.figure(figsize=(12, 8))
         supply_centers = metrics.get("supply_centers_by_power", {})
         sns.barplot(x=list(supply_centers.keys()), y=list(supply_centers.values()))
@@ -2331,7 +2184,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
         plt.xlabel("Power")
         plt.savefig(f"{output_file}_supply_centers.png")
         
-        # LLM judge metrics
         if "llm_judge_overall" in metrics:
             plt.figure(figsize=(12, 8))
             llm_scores = metrics.get("llm_judge_overall", {})
@@ -2341,7 +2193,6 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
             plt.xlabel("Power")
             plt.savefig(f"{output_file}_llm_judge.png")
         
-        # Radar chart for LLM judge categories
         if "llm_judge_strategic" in metrics:
             plt.figure(figsize=(12, 8))
             categories = ["Strategic", "Diplomatic", "Tactical", "Overall"]
@@ -2353,11 +2204,10 @@ Generated: {self.metrics.get('timestamp', 'Unknown')}
                     metrics.get("llm_judge_tactical", {}).get(power, 0),
                     metrics.get("llm_judge_overall", {}).get(power, 0)
                 ]
-                values += values[:1]  # Close the polygon
+                values += values[:1]  
                 
-                # Angles for each category
                 angles = np.linspace(0, 2*np.pi, len(categories), endpoint=False).tolist()
-                angles += angles[:1]  # Close the polygon
+                angles += angles[:1]  
                 
                 plt.polar(angles, values, label=power)
             
@@ -2450,7 +2300,6 @@ Games Analyzed: {metrics_data.get('games_total', 0)}
             for power, centers in sorted(supply_centers.items(), key=lambda x: x[1], reverse=True):
                 report += f"- **{power}**: {centers:.1f}\n"
         
-        # Strategic metrics
         if strategic_metrics:
             report += f"""
 ### Strategic Performance
@@ -2464,7 +2313,6 @@ Games Analyzed: {metrics_data.get('games_total', 0)}
                 elif isinstance(metric_value, (int, float)):
                     report += f"- **{metric_name.replace('_', ' ').title()}**: {metric_value:.3f}\n"
         
-        # Tactical and Diplomatic metrics
         tactical_metrics = metrics_data.get('tactical_metrics', {})
         diplomatic_metrics = metrics_data.get('diplomatic_metrics', {})
         
@@ -2494,7 +2342,6 @@ Games Analyzed: {metrics_data.get('games_total', 0)}
                             report += f"- **{power}**: {value:.3f}\n"
                     report += "\n"
         
-        # LLM evaluation if available
         llm_evaluation = metrics_data.get('llm_evaluation', {})
         if llm_evaluation and not llm_evaluation.get('error'):
             report += f"""
@@ -2510,7 +2357,6 @@ Games Analyzed: {metrics_data.get('games_total', 0)}
                         report += f"- **{power}**: {score:.1f}/10\n"
                     report += "\n"
         
-        # Behavioral analysis
         behavioral_analysis = metrics_data.get('behavioral_analysis', {})
         if behavioral_analysis:
             report += f"""
@@ -2525,7 +2371,6 @@ Games Analyzed: {metrics_data.get('games_total', 0)}
                             report += f"- **{power}**: {value:.3f}\n"
                     report += "\n"
         
-        # Recommendations
         recommendations = detailed_report.get('recommendations', [])
         if recommendations:
             report += """
@@ -2537,7 +2382,7 @@ Games Analyzed: {metrics_data.get('games_total', 0)}
         
         report += f"""
 ---
-*Report generated by PolitAgent Diplomacy Metrics v2.0*
+*Report generated by PolitAgent Diplomacy Metrics v1.0*
 """
         
         return report

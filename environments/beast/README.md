@@ -1,178 +1,226 @@
-# Beast Game Environment - Enhanced Strategic Edition
+# Beast Game Environment - Strategic Simulation Platform
 
-Beast is an advanced strategic survival game where language model agents must navigate complex social dynamics, form secret alliances, manage hidden information, and make critical decisions under pressure to survive and accumulate wealth.
+Beast is a sophisticated social strategy game designed to evaluate language model capabilities in handling complex multi-agent interactions, strategic reasoning, information asymmetry, and political decision-making. This advanced simulation platform challenges LLMs to navigate ambiguous social dynamics, manage hidden information, and make consequential decisions under escalating pressure.
 
-## Game Overview
+## Strategic Testing Framework
 
-Inspired by MrBeast's strategic challenge designs, this enhanced version features:
-- **6-8 agents** compete in a high-stakes survival game with escalating pressure
-- **Secret Information System** - Players have hidden roles, resources, and private information
-- **Multi-Phase Challenges** - Each round has multiple decision points and strategic dilemmas
-- **Alliance & Betrayal Mechanics** - Complex relationship systems with trust/betrayal tracking
-- **Elimination Pressure** - Time limits and escalating stakes force quick decisions
-- **Information Warfare** - Players can spread misinformation and gather intelligence
-- **Strategic Resource Management** - Multiple currencies (wealth, influence, information, immunity)
+Beast serves as a controlled environment to rigorously assess language models' abilities in:
 
-## Enhanced Game Rules
+- **Strategic Deception & Detection**: Balancing information disclosure and uncovering others' hidden intentions
+- **Coalition Formation & Betrayal**: Building temporary alliances while preparing for potential defection
+- **Information Warfare**: Distributing selective information and countering misinformation
+- **Multi-agent Coordination**: Negotiating complex multi-party agreements under conflicting incentives
+- **Risk Assessment & Management**: Making decisions under uncertainty with incomplete information
+- **Reputation Dynamics**: Managing perceived trustworthiness across sequential interactions
+- **Resource Optimization**: Allocating limited resources efficiently across competing objectives
 
-### Initial Setup
-1. **6-8 players** start with randomized hidden resources:
-   - **Wealth**: 50,000-150,000 (hidden from others)
-   - **Influence Points**: 0-3 (used for special actions)
-   - **Secret Role**: Each player gets a hidden role with special abilities
-   - **Private Information**: Each player knows 1-2 secrets about other players
+## Game Architecture
 
-### Secret Roles
-- **The Insider**: Knows elimination target each round, can influence host decisions
-- **The Banker**: Can secretly manipulate wealth transfers
-- **The Spy**: Can discover other players' hidden information
-- **The Manipulator**: Can spread false information effectively
-- **The Guardian**: Can protect one player from elimination each round
-- **The Saboteur**: Can block other players' special actions
+### Enhanced Game Mechanics
 
-### Game Phases (Each Round)
+Beast implements a sophisticated multi-phase game structure:
 
-#### Phase 1: Intelligence Gathering (3 minutes)
-- Players can choose 2 other players to investigate
-- May discover: wealth levels, secret alliances, planned votes
-- Can spread misinformation to others
-- Risk: Being caught lying reduces trust meter
+#### 1. Intelligence Gathering Phase
+- Players investigate others to discover hidden information
+- Strategic spread of information and misinformation
+- Resource allocation between information collection and security
+- Trust level tracking across player interactions
 
-#### Phase 2: Secret Alliance Formation (5 minutes)
-- Players can form private alliances (max 3 players per alliance)
-- Alliance members share certain information
-- Can create false alliances to deceive others
-- Betraying an alliance has severe trust penalties
+#### 2. Alliance Formation Phase
+- Secret coalition building with formalized agreements
+- Strategic positioning within the social network
+- Balance between commitment and flexibility
+- Hidden alliance objectives and incentive structures
 
-#### Phase 3: Strategic Challenge (Varies)
-Different challenges each round:
-- **Resource Auction**: Bid on immunity, information, or wealth
-- **Prisoner's Dilemma**: Cooperate or defect for rewards/penalties
-- **Trust Test**: Reveal true information or lie for strategic advantage
-- **Sacrifice Choice**: Choose who loses resources for group benefit
+#### 3. Strategic Challenge Phase
+- Asymmetric resource competitions
+- Prisoner's dilemma and collective action problems
+- Individual vs. group interest dynamics
+- Variable-sum game scenarios with multiple equilibria
 
-#### Phase 4: Negotiation & Bribes (10 minutes)
-- Open negotiations with time pressure
-- Secret wealth transfers and promises
-- Information trading and deals
-- Last-minute alliance switching
+#### 4. Negotiation Phase
+- Multi-party bargaining under time pressure
+- Credible commitment mechanisms
+- Information trading and strategic disclosure
+- Complex offer evaluation and counterproposal dynamics
 
-#### Phase 5: Elimination Vote (2 minutes)
-- Each player votes to eliminate one other player
-- **Twist**: Random "Save" cards can protect players
-- **Twist**: Some rounds have double eliminations
-- **Twist**: Eliminated players can choose revenge targets
+#### 5. Elimination Voting Phase
+- Strategic voting with incomplete information
+- Coalition coordination for voting blocs
+- Reputation-based decision making
+- Anticipation of future round implications
 
-### Advanced Mechanics
+### Advanced Features
 
-#### Trust System
-- Each player has a trust rating with every other player (hidden)
-- Trust affects negotiation success rates and information sharing
-- Betrayals and lies damage trust permanently
-- High trust enables more effective alliances
+- **Hidden Information Architecture**: Layered information access with varying visibility
+- **Trust System**: Dynamic trust metrics that evolve based on behavior
+- **Multiple Resources**: Management of wealth, influence points, and information
+- **Role-Based Asymmetry**: Special abilities that create strategic depth
+- **Time Pressure**: Forcing quick decisions that reveal reasoning quality
+- **Multi-Round Dynamics**: Actions in early rounds affect later strategic options
 
-#### Information Economy
-Players can trade different types of information:
-- **Public Info**: Known to everyone (current wealth rankings)
-- **Semi-Secret**: Known to few (alliance memberships)
-- **Secret**: Known to one (hidden roles, private resources)
-- **False Info**: Deliberately planted misinformation
+## Comprehensive Metrics System
 
-#### Pressure Escalation
-- **Round 1-2**: Learning phase, low stakes
-- **Round 3-4**: Medium pressure, first betrayals
-- **Round 5-6**: High stakes, desperate alliances
-- **Final Rounds**: Maximum pressure, all-or-nothing decisions
+Beast employs a sophisticated metrics framework to evaluate agent performance across multiple dimensions:
 
-#### Win Conditions
-Multiple victory paths:
-1. **Wealth Victory**: Accumulate most total resources
-2. **Survival Victory**: Be the last player standing
-3. **Influence Victory**: Complete secret role objectives
-4. **Alliance Victory**: Win as part of final alliance (shared victory)
+### 1. Model Performance Metrics
 
-## Enhanced Features
+- **Inference Quality**: Evaluates raw response quality across different game phases
+- **Decision Consistency**: Measures strategic coherence across multiple rounds
+- **Context Utilization**: Assesses how effectively agents use available information
+- **Error Analysis**: Tracks logical inconsistencies and decision flaws
+- **Response Patterns**: Identifies characteristic reasoning approaches
 
-### Strategic Depth
-- **Hidden Information**: Creates uncertainty and bluffing opportunities
-- **Multiple Resources**: Players must balance wealth, influence, and relationships
-- **Role Abilities**: Special powers create asymmetric gameplay
-- **Time Pressure**: Forces quick decisions and prevents endless deliberation
+### 2. Strategic Intelligence Assessment
 
-### Diplomatic Complexity
-- **Secret Communications**: Private alliance channels
-- **Misinformation Campaigns**: Strategic lying and deception
-- **Reputation Tracking**: Long-term consequences for actions
-- **Betrayal Mechanics**: Risk/reward for breaking agreements
+- **Strategic Depth Index**: Measures multi-step planning capabilities
+- **Adaptability Score**: Evaluates response to changing game conditions
+- **Hidden Information Usage**: Assesses ability to operate with incomplete information
+- **Counterfactual Reasoning**: Measures anticipation of others' potential actions
+- **Equilibrium Analysis**: Evaluates convergence to game-theoretic optimal strategies
 
-### Psychological Elements
-- **Paranoia**: Hidden information creates suspicion
-- **Pressure Cooker**: Time limits and elimination threats
-- **Social Deduction**: Players must read intentions and spot lies
-- **Risk Management**: Balancing aggressive and defensive strategies
+### 3. Social Intelligence Metrics
 
-## Technical Improvements
+- **Alliance Stability**: Measures coalition formation effectiveness
+- **Trust Cultivation**: Tracks ability to build and maintain trust
+- **Betrayal Timing**: Analyzes optimal defection decision-making
+- **Reputation Management**: Evaluates strategic identity projection
+- **Social Network Position**: Measures centrality in alliance structures
+- **Persuasion Effectiveness**: Quantifies success in changing others' decisions
 
-### Structured Decision Making
-- **Pydantic Models**: All decisions use structured output for reliability
-- **Decision Trees**: Complex multi-step decision processes
-- **Time Management**: Strict timing controls prevent game stalls
-- **Error Handling**: Fallback mechanisms for invalid decisions
+### 4. Economic Performance Analysis
 
-### Advanced AI Behavior
-- **Memory Systems**: Track relationships and past actions
-- **Strategic Planning**: Multi-round planning capabilities
-- **Personality Simulation**: Different AI behavioral patterns
-- **Adaptive Strategies**: Learn from other players' patterns
+- **Wealth Accumulation**: Final and average wealth metrics
+- **Transaction Efficiency**: Value creation through strategic exchanges
+- **Resource Allocation**: Optimal distribution across competing needs
+- **Risk-Adjusted Returns**: Performance accounting for strategic exposure
 
-### Metrics & Analysis
-- **Trust Evolution**: Track relationship changes over time
-- **Decision Quality**: Analyze strategic effectiveness
-- **Information Flow**: Monitor misinformation spread
-- **Alliance Dynamics**: Study cooperation patterns
+### 5. Political Agent Metrics
 
-## Game Balance
+- **Influence Maximization**: Ability to shape group decisions
+- **Coalition Leadership**: Effectiveness in directing alliance actions
+- **Information Control**: Success in managing knowledge distribution
+- **Public vs. Private Messaging**: Strategic differences in communication channels
+- **Power Projection**: Capability to affect outcomes through reputation
+- **Narrative Control**: Ability to frame explanations favorable to one's position
 
-### Preventing Stagnation
-- **Maximum Round Limit**: Game ends after 8 rounds regardless
-- **Escalating Stakes**: Each round has higher penalties for inaction
-- **Automatic Eliminations**: Random eliminations if no consensus
-- **Time Pressure**: Strict time limits on all phases
+### 6. Behavioral Analysis
 
-### Encouraging Strategic Play
-- **Multiple Victory Paths**: Different strategies can succeed
-- **Hidden Information**: Rewards intelligence gathering and deduction
-- **Alliance Benefits**: Cooperation provides real advantages
-- **Betrayal Payoffs**: Well-timed betrayals are highly rewarded
+- **Risk Preference Profiling**: Reveals agent risk tolerance patterns
+- **Reciprocity Patterns**: Measures response to cooperative/competitive actions
+- **Truth-Telling Tendency**: Tracks honesty across different contexts
+- **First-Mover Behavior**: Analyzes initiative-taking vs. reactive strategies
+- **Learning Curve**: Measures adaptation to game dynamics over time
 
-### Testing AI Capabilities
-- **Information Asymmetry**: Tests ability to reason with incomplete information
-- **Social Dynamics**: Evaluates understanding of trust and relationships
-- **Strategic Planning**: Requires multi-step thinking and adaptation
-- **Deception & Detection**: Tests ability to lie convincingly and spot lies
-- **Risk Assessment**: Evaluates decision-making under uncertainty
+## LLM Capability Assessment
 
-This enhanced Beast game provides a rigorous test of AI agents' strategic thinking, social intelligence, and ability to navigate complex multi-agent environments with hidden information and conflicting incentives.
+Through the Beast simulation platform, we can assess several critical capabilities of language models:
 
-## File Structure
+### 1. Strategic Reasoning
+
+- **Multi-step Planning**: Ability to reason across sequential rounds
+- **Bayesian Updating**: Appropriately revising beliefs with new evidence
+- **Game-Theoretic Understanding**: Recognizing and exploiting strategic equilibria
+- **Hidden Information Reasoning**: Operating effectively with partial visibility
+- **Counterfactual Analysis**: Exploring alternative decision paths
+
+### 2. Social Intelligence
+
+- **Theory of Mind**: Understanding others' knowledge states and intentions
+- **Alliance Psychology**: Managing group dynamics and coalition formation
+- **Trust Calibration**: Appropriate trust levels for different agents
+- **Reputation Dynamics**: Understanding how actions affect perceived trustworthiness
+- **Strategic Empathy**: Using understanding of others' motivations for advantage
+
+### 3. Political Reasoning
+
+- **Power Dynamics**: Understanding formal and informal influence structures
+- **Coalition Politics**: Managing alliances and voting blocs
+- **Strategic Communication**: Selective information sharing for advantage
+- **Legitimacy Building**: Creating narratives that justify actions
+- **Crisis Management**: Optimal responses under elimination pressure
+
+### 4. Decision Quality Under Uncertainty
+
+- **Risk Assessment**: Accurately evaluating probabilistic outcomes
+- **Time-Pressure Performance**: Maintaining reasoning quality under constraints
+- **Information Valuation**: Correctly prioritizing different types of knowledge
+- **Decision Consistency**: Avoiding contradictory or incoherent strategies
+- **Adaptive Decision-Making**: Adjusting strategies as game state evolves
+
+## Research Applications
+
+The Beast environment serves as an experimental platform for research into:
+
+### Political Agent Development
+
+- **Strategic Interaction**: Testing multi-agent coordination in mixed-motive settings
+- **Information Asymmetry**: Evaluating performance under variable information conditions
+- **Coalition Dynamics**: Studying alliance formation and maintenance under stress
+- **Reputation Systems**: Developing robust models of trust and betrayal
+- **Information Warfare Resilience**: Testing resistance to strategic misinformation
+
+### LLM Capability Assessment
+
+- **Strategic Depth**: Measuring multi-round planning capabilities
+- **Social Intelligence**: Evaluating understanding of complex social dynamics
+- **Economic Reasoning**: Testing resource optimization under constraints
+- **Theory of Mind**: Assessing models' ability to represent others' mental states
+- **Decision Quality**: Evaluating choices under uncertainty and time pressure
+
+### Political Theory Applications
+
+- **Institutional Design**: Testing how rule structures affect outcomes
+- **Voting System Analysis**: Comparing different voting mechanisms
+- **Information Environment Effects**: Studying how information availability shapes decisions
+- **Power Distribution**: Analyzing formal and informal influence structures
+- **Coalition Stability**: Investigating factors that strengthen or weaken alliances
+
+## Technical Implementation
+
+### File Structure
 
 ```
 beast/
-├── game.py               # Main game implementation with game loop
-├── agents/               # Agent implementations
-│   ├── base_agent.py     # BeastAgent class with bargaining and voting logic
+├── game.py               # Enhanced strategic game implementation
+├── agents/               # Agent implementations with strategic capabilities
+│   ├── base_agent.py     # Advanced agent with multi-phase decision logic
 │   └── __init__.py       # Package exports
 ├── utils/                # Utility functions
-│   ├── prompt.py         # Prompt template handling
-│   └── utils.py          # Helper functions
-├── prompts/              # Prompt text files
-│   ├── role_prompt.txt               # Basic role description for players
-│   ├── choose_conversation_prompt.txt # Instructions for choosing conversation partners
-│   ├── conversation_prompt.txt       # Guidelines for negotiation conversations
-│   ├── wealth_status_prompt.txt      # Format for displaying current wealth status
-│   └── voting_results_prompt.txt     # Format for displaying voting results
+│   ├── prompt.py         # Strategic prompt engineering templates
+│   └── utils.py          # Helper functions for game mechanics
+├── prompts/              # Specialized prompt templates for each game phase
 └── __init__.py           # Package exports
 ```
+
+### Metrics Implementation
+
+The metrics system integrates with the PolitAgent framework and provides:
+
+1. **Multi-dimensional Analysis**: Performance metrics across strategic, social, economic dimensions
+2. **Phase-Specific Evaluation**: Targeted metrics for each game phase
+3. **Comparative Analysis**: Cross-model performance comparison
+4. **Behavioral Profiling**: Identification of strategic tendencies and patterns
+5. **LLM-as-Judge**: Optional evaluation using an external model to assess gameplay quality
+
+### Game Flow
+
+1. **Initialization**:
+   - Create players with randomized wealth, roles, and special abilities
+   - Initialize trust matrix and information tracking systems
+
+2. **Game Loop (each round)**:
+   - Intelligence Gathering: Information collection and misinformation spread
+   - Alliance Formation: Secret coalition building and strategy coordination
+   - Strategic Challenge: Asymmetric resource competitions
+   - Negotiation: Multi-party bargaining under time pressure
+   - Elimination Voting: Strategic voting with coalition coordination
+   - Update game state and apply pressure escalation
+
+3. **Game Resolution**:
+   - Final wealth determination
+   - Victory condition evaluation
+   - Comprehensive metrics calculation
 
 ## Running the Game
 
@@ -190,6 +238,12 @@ python -m core.benchmark --games beast --models openai --runs_per_game 3 \
     --max_rounds 7
 ```
 
+### Full Benchmark Mode
+
+```bash
+python -m core.benchmark --full_benchmark --games beast --models openai --specific_model gpt-4
+```
+
 ## Configuration Options
 
 | Parameter | Description | Default |
@@ -197,64 +251,52 @@ python -m core.benchmark --games beast --models openai --runs_per_game 3 \
 | `--model_name` | LLM provider to use | `openai` |
 | `--output_dir` | Directory for saving game results | `./results/beast` |
 | `--max_rounds` | Number of elimination rounds | `5` |
+| `--num_players` | Number of players in the game | `6` |
 | `--debug` | Enable verbose logging | `False` |
+| `--use_llm_evaluation` | Enable LLM-as-judge evaluation | `False` |
 
-## Advanced Features
+## Analysis Examples
 
-### Structured Output
+The environment produces rich datasets that enable:
 
-Beast uses Pydantic models for structured LLM outputs to improve reliability:
+1. **Strategic Profile Analysis**: Identifying characteristic reasoning patterns
+2. **Social Network Visualization**: Mapping alliance structures and influence flows
+3. **Economic Performance Comparisons**: Quantifying resource optimization capabilities
+4. **Decision Quality Assessment**: Evaluating optimality of key strategic choices
+5. **Multi-Agent Dynamics**: Studying emergent patterns in complex interactions
 
-- `BargainResponse`: Captures negotiation messages and offers
-- `VoteResponse`: Ensures proper vote formatting
+By systematically varying game parameters and model types, researchers can isolate specific capabilities and limitations of language models in strategic political environments.
 
-The system includes fallback mechanisms to handle potential output parsing errors.
+## Political Agent Implications
 
-### Game State Tracking
+The Beast environment offers valuable insights for political agent development:
 
-The game saves detailed state information at each round:
-- Wealth of all players
-- Elimination status
-- Voting results
-- Conversation history
+### 1. Strategic Communication
 
-These files are saved to the specified output directory for later analysis.
+- **Information Control**: How agents strategically share or withhold information
+- **Selective Disclosure**: Revealing enough to build trust while concealing key details
+- **Coalition Signaling**: Using specific language to coordinate with allies
+- **Public vs. Private Communication**: Strategic differences in messaging channels
 
-## Game Logic
+### 2. Trust and Power Dynamics
 
-1. **Initialization**:
-   - Create 10 players with random initial wealth
-   - Initialize agent conversation histories
+- **Trust Building**: How consistent, helpful actions establish credibility
+- **Power Projection**: Using reputation to influence outcomes without direct action
+- **Legitimacy Construction**: Creating narratives that justify strategic positions
+- **Authority Challenges**: How coalitions form to counter dominant players
 
-2. **Conversation Stage**:
-   - Update all agents with current wealth status
-   - Agents choose opponents to converse with
-   - Players engage in conversations and can make wealth transfers
-   - Each conversation consists of multiple messages and potential offers
+### 3. Institutional Design
 
-3. **Voting Stage**:
-   - Each player votes for another player
-   - Player with most votes is eliminated but receives a 250,000 wealth bonus
-   - All players are informed about voting results
+- **Voting System Effects**: How different voting mechanisms affect outcomes
+- **Information Access Rules**: How visibility constraints shape strategic options
+- **Resource Distribution**: How initial allocations influence power dynamics
+- **Time Pressure Effects**: How decision quality changes under constraints
 
-4. **Game End**:
-   - After 5 players are eliminated, the game ends
-   - Final rankings are determined by total wealth accumulated
-   - Results are saved to JSON for analysis
+### 4. Political Psychology
 
-## Game Results
+- **Risk Attitudes**: How uncertainty affects strategic decisions
+- **In-Group/Out-Group Dynamics**: How alliance structures affect perception
+- **Reciprocity Norms**: Patterns of cooperation and retaliation
+- **Attribution Biases**: How agents explain others' actions based on limited information
 
-The game returns a structured result dictionary with:
-- `eliminated_players`: List of eliminated players and their final wealth
-- `remaining_players`: List of surviving players and their wealth
-- `total_rounds`: Number of rounds played
-- `game`: Game identifier ("beast")
-
-## Extending the Game
-
-To customize the game behavior:
-
-1. Modify prompt files in the `prompts/` directory to change agent behavior
-2. Adjust conversation and voting logic in `game.py`
-3. Add new agent strategies by extending the `BeastAgent` class
-4. Implement additional bargaining mechanisms or voting strategies 
+Through systematic experimentation in the Beast environment, researchers can develop more sophisticated political agents capable of navigating the complex strategic terrain of multi-agent systems with incomplete information and mixed incentives. 

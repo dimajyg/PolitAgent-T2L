@@ -19,25 +19,18 @@ class TofuKingdomAgent(BaseAgent):
         self.all_players = all_players
         self.role = role
         
-        # Get game prompt template
         self.game_prompt_template = get_game_prompt_template()
         
-        # Get role prompt template
         self.role_prompt_template = get_role_prompt_template(role)
         
-        # Format the role prompt with player name
         role_prompt = format_prompt(self.role_prompt_template, player_name=player_name)
         
-        # Format the game prompt
         game_prompt = format_prompt(self.game_prompt_template)
         
-        # Combine the prompts
         prompt = f"{game_prompt}\n\nNow, you are player {player_name}\n{role_prompt}"
         
-        # Initialize the BaseAgent with the formatted prompt
         super().__init__(player_name, llm, prompt)
         
-        # Initialize the message history
         self.private_history = []
 
     def get_role_description(self) -> str:
@@ -82,10 +75,8 @@ class TofuKingdomAgent(BaseAgent):
         cnt = 0
         while True:
             try:
-                # Use the chat method from BaseAgent
                 res = super().chat(messages)
                 
-                # Remove markdown code block markers if present
                 res = res.strip()
                 if res.startswith('```json') and res.endswith('```'):
                     res = res[7:-3].strip()

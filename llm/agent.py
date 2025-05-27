@@ -4,25 +4,24 @@ try:
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.runnables import RunnableSequence
 except ImportError:
-    # Fallback for older langchain versions
     from langchain.llms.base import BaseLLM as BaseLanguageModel
     from langchain.prompts import ChatPromptTemplate
     RunnableSequence = None
 
 class BaseAgent:
     """
-    Базовый агент для игр с поддержкой LLM через LangChain.
+    Base agent for games with LLM support through LangChain.
 
     Args:
-        name (str): Имя агента.
-        llm (BaseLanguageModel): Языковая модель для генерации ходов.
-        prompt_template (str): Шаблон промпта для генерации действий.
+        name (str): Name of the agent.
+        llm (BaseLanguageModel): Language model for generating moves.
+        prompt_template (str): Prompt template for generating actions.
 
     Attributes:
-        name (str): Имя агента.
-        llm (BaseLanguageModel): Языковая модель.
-        prompt (ChatPromptTemplate): Шаблон для промпта.
-        chain (RunnableSequence): Цепочка LangChain для генерации действий.
+        name (str): Name of the agent.
+        llm (BaseLanguageModel): Language model.
+        prompt (ChatPromptTemplate): Prompt template.
+        chain (RunnableSequence): LangChain pipeline for generating actions.
     """
 
     def __init__(
@@ -35,7 +34,6 @@ class BaseAgent:
         self.llm = llm
         try:
             self.prompt = ChatPromptTemplate.from_template(prompt_template)
-            # Используем современный pipeline если доступен
             if RunnableSequence:
                 self.chain = self.prompt | self.llm
             else:
@@ -57,10 +55,8 @@ class BaseAgent:
         try:
             if self.chain:
                 response = self.chain.invoke(observation)
-                # Извлекаем содержимое из ответа LangChain
                 return response.content if hasattr(response, 'content') else str(response)
             else:
-                # Fallback для старых версий
                 return self.llm(str(observation))
         except Exception as e:
             return f"Error generating action: {e}"
@@ -80,7 +76,6 @@ class BaseAgent:
                 result = self.llm.invoke(messages)
                 return result.content if hasattr(result, 'content') else str(result)
             else:
-                # Fallback для старых версий
                 combined = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
                 return self.llm(combined)
         except Exception as e:

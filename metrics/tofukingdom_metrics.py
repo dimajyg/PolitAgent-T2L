@@ -21,13 +21,11 @@ class TofuKingdomMetrics(BaseMetrics):
     Additionally includes all common metrics from BaseMetrics.
     """
     
-    # TofuKingdom specific event types
     EVENT_QUESTION = "question"
     EVENT_ANSWER = "answer"
     EVENT_FINAL_GUESS = "final_guess"
     EVENT_PLAYER_ASSIGNED = "player_assigned"
     
-    # Truth behavior types
     TRUTH_BEHAVIORS = {
         "Princess": "truth",
         "Chef": "truth",
@@ -38,14 +36,12 @@ class TofuKingdomMetrics(BaseMetrics):
         "Spy": "choice"
     }
     
-    # Team definitions
     TEAM_ROLES = {
         "Princess": ["Princess", "Chef"],
         "Queen": ["Queen", "Minister", "Guard"],
         "Neutral": ["Maid", "Spy"]
     }
     
-    # TofuKingdom specific LLM evaluation templates
     TOFUKINGDOM_GAME_EVALUATION_TEMPLATE = """
     Evaluate this TofuKingdom game based on the provided information:
     
@@ -117,14 +113,14 @@ class TofuKingdomMetrics(BaseMetrics):
             metadata (Optional[Dict[str, Any]]): Additional metadata for the game session
         """
         super().__init__("tofukingdom", metadata)
-        self.questions = []  # All questions asked by the Prince
-        self.answers = []  # All answers given by players
-        self.player_roles = {}  # Mapping of player names to roles
-        self.team_assignments = {}  # Mapping of player names to teams
-        self.final_guess = None  # Prince's final guess
-        self.winner_team = None  # Winning team
-        self.question_targets = {}  # Mapping of question indices to target players
-        self.game_summary = []  # Summary of game events
+        self.questions = []  
+        self.answers = []  
+        self.player_roles = {}  
+        self.team_assignments = {}  
+        self.final_guess = None  
+        self.winner_team = None  
+        self.question_targets = {}  
+        self.game_summary = []  
         
     def set_player_role(self, player_name: str, role: str) -> None:
         """
@@ -136,7 +132,6 @@ class TofuKingdomMetrics(BaseMetrics):
         """
         self.player_roles[player_name] = role
         
-        # Determine team based on role
         for team, roles in self.TEAM_ROLES.items():
             if role in roles:
                 self.team_assignments[player_name] = team
@@ -196,10 +191,8 @@ class TofuKingdomMetrics(BaseMetrics):
             target_role=self.player_roles.get(target_player, "Unknown")
         )
         
-        # Add to game summary
         self.game_summary.append(f"Prince asks {target_player}: {question}")
         
-        # If LLM evaluation is enabled, evaluate this question
         if self.use_llm_evaluation:
             evaluation = self.evaluate_question(question, target_player, round_num)
             if evaluation:
@@ -216,7 +209,6 @@ class TofuKingdomMetrics(BaseMetrics):
             question_idx (int): Index of the question being answered
             thinking (Optional[Dict[str, Any]]): Player's internal reasoning
         """
-        # Find the corresponding question
         if question_idx >= len(self.questions):
             question = "Unknown question"
             target_player = player
@@ -224,7 +216,6 @@ class TofuKingdomMetrics(BaseMetrics):
             question = self.questions[question_idx]["question"]
             target_player = self.question_targets.get(question_idx, player)
         
-        # Verify player matches target
         if player != target_player:
             return
         
@@ -251,10 +242,8 @@ class TofuKingdomMetrics(BaseMetrics):
             truth_behavior=self.TRUTH_BEHAVIORS.get(self.player_roles.get(player, "Unknown"), "Unknown")
         )
         
-        # Add to game summary
         self.game_summary.append(f"{player} answers: {answer}")
         
-        # If LLM evaluation is enabled, evaluate this answer
         if self.use_llm_evaluation:
             evaluation = self.evaluate_answer(answer, player, question, thinking)
             if evaluation:
@@ -289,13 +278,11 @@ class TofuKingdomMetrics(BaseMetrics):
             thinking=thinking
         )
         
-        # Add to game summary
         self.game_summary.append(f"Prince's final guess: {guessed_player} is the Princess")
         self.game_summary.append(f"Result: {guessed_player} is actually the {actual_role}")
         if correct:
             self.game_summary.append("The guess was CORRECT!")
         else:
-            # Find the real Princess
             real_princess = None
             for player, role in self.player_roles.items():
                 if role == "Princess":
@@ -314,13 +301,10 @@ class TofuKingdomMetrics(BaseMetrics):
         if not self.use_llm_evaluation:
             return None
         
-        # Format game summary
         game_summary_text = "\n".join(self.game_summary)
         
-        # Format roles for display
         roles_text = ", ".join([f"{player}: {role}" for player, role in self.player_roles.items()])
         
-        # Context for evaluation
         context = {
             "roles": roles_text,
             "winner_team": self.winner_team or "Unknown",
@@ -328,8 +312,7 @@ class TofuKingdomMetrics(BaseMetrics):
                      f"(Actual role: {self.final_guess['actual_role']})") if self.final_guess else "No guess made",
             "game_summary": game_summary_text
         }
-        
-        # Request evaluation using the TofuKingdom-specific template
+            
         return self.record_llm_evaluation("game", context, self.TOFUKINGDOM_GAME_EVALUATION_TEMPLATE)
     
     def evaluate_question(self, question: str, target_player: str, round_num: int) -> Optional[Dict[str, Any]]:

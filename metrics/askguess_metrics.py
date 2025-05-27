@@ -1,7 +1,5 @@
-from typing import Dict, List, Tuple, Union, Any, Set, Optional
+from typing import Dict, List, Any, Optional
 import numpy as np
-from sklearn.metrics import f1_score
-import re
 import os
 from datetime import datetime
 
@@ -20,14 +18,12 @@ class AskGuessMetrics(BaseMetrics):
     Additionally includes all common metrics from BaseMetrics.
     """
     
-    # AskGuess specific event types
     EVENT_QUESTION = "question"
     EVENT_ANSWER = "answer"
     EVENT_GUESS = "guess"
     EVENT_CORRECT_GUESS = "correct_guess"
     EVENT_INCORRECT_GUESS = "incorrect_guess"
     
-    # AskGuess specific LLM evaluation templates
     ASKGUESS_GAME_EVALUATION_TEMPLATE = """
     Evaluate this AskGuess game based on the provided information:
     
@@ -128,19 +124,16 @@ class AskGuessMetrics(BaseMetrics):
         if not self.use_llm_evaluation:
             return None
             
-        # Build game summary from events
         question_events = [e for e in self.events if e["type"] == self.EVENT_QUESTION]
         answer_events = [e for e in self.events if e["type"] == self.EVENT_ANSWER]
         guess_events = [e for e in self.events if e["type"] in [self.EVENT_GUESS, self.EVENT_CORRECT_GUESS, self.EVENT_INCORRECT_GUESS]]
         
-        # Format Q&A exchanges
         qa_exchanges = []
         for i, (q_event, a_event) in enumerate(zip(question_events, answer_events)):
             question = q_event["data"].get("question", "No question")
             answer = a_event["data"].get("answer", "No answer")
             qa_exchanges.append(f"Round {i+1}:\nQ: {question}\nA: {answer}")
         
-        # Format guesses
         guess_summary = []
         for event in guess_events:
             round_num = event["data"].get("round", "?")
@@ -149,17 +142,14 @@ class AskGuessMetrics(BaseMetrics):
             result = "CORRECT" if is_correct else "INCORRECT"
             guess_summary.append(f"Round {round_num} Guess: {guess} - {result}")
         
-        # Build game summary
         game_summary = "Q&A Exchanges:\n" + "\n\n".join(qa_exchanges) + "\n\n"
         game_summary += "Guesses:\n" + "\n".join(guess_summary)
         
-        # Final outcome
         if self.correct_guess:
             game_summary += f"\n\nOutcome: Successfully guessed the word in round {self.correct_round} out of {self.total_rounds}."
         else:
             game_summary += f"\n\nOutcome: Failed to guess the word within {self.total_rounds} rounds."
         
-        # Context for evaluation
         context = {
             "target_word": self.target_word,
             "game_mode": self.game_mode,
@@ -167,7 +157,6 @@ class AskGuessMetrics(BaseMetrics):
             "game_summary": game_summary
         }
         
-        # Request evaluation using the AskGuess-specific template
         return self.record_llm_evaluation("game", context, self.ASKGUESS_GAME_EVALUATION_TEMPLATE)
     
     def evaluate_question(self, question: str, round_num: int) -> Optional[Dict[str, Any]]:
@@ -184,15 +173,13 @@ class AskGuessMetrics(BaseMetrics):
         if not self.use_llm_evaluation:
             return None
             
-        # Get previous Q&A exchanges
         previous_qa = []
         for i, (q, a) in enumerate(zip(self.questions, self.answers)):
-            if i < round_num - 1:  # Only include previous rounds
+            if i < round_num - 1:
                 previous_qa.append(f"Q{i+1}: {q['question']}\nA{i+1}: {a['answer']}")
         
         previous_qa_text = "\n\n".join(previous_qa)
         
-        # Context for evaluation
         context = {
             "target_word": self.target_word,
             "current_round": round_num,
@@ -201,7 +188,6 @@ class AskGuessMetrics(BaseMetrics):
             "question": question
         }
         
-        # Request evaluation using the AskGuess-specific template
         return self.record_llm_evaluation("question", context, self.ASKGUESS_QUESTION_EVALUATION_TEMPLATE)
     
     def record_question(self, question: str, round_num: int, thinking: Optional[str] = None) -> None:
@@ -228,7 +214,6 @@ class AskGuessMetrics(BaseMetrics):
             thinking=thinking
         )
         
-        # If LLM evaluation is enabled, evaluate this question
         if self.use_llm_evaluation:
             evaluation = self.evaluate_question(question, round_num)
             if evaluation:
@@ -309,10 +294,8 @@ class AskGuessMetrics(BaseMetrics):
         Returns:
             Dict[str, Any]: Dictionary of computed metrics
         """
-        # Call the parent method to get common metrics
         base_metrics = super().compute_all()
         
-        # Add AskGuess-specific metrics
         askguess_metrics = {
             "qa_metrics": self._compute_qa_metrics(),
             "guessing_metrics": self._compute_guessing_metrics(),
@@ -326,7 +309,6 @@ class AskGuessMetrics(BaseMetrics):
             }
         }
         
-        # Merge metrics
         self.computed_metrics.update(askguess_metrics)
         
         return self.computed_metrics
@@ -347,7 +329,6 @@ class AskGuessMetrics(BaseMetrics):
             "question_similarity": self._compute_question_similarity()
         }
         
-        # Analyze yes/no ratio in answers
         yes_count = sum(1 for a in self.answers if a["answer"].lower() in ["yes", "true", "correct", "right"])
         no_count = sum(1 for a in self.answers if a["answer"].lower() in ["no", "false", "incorrect", "wrong"])
         
@@ -355,7 +336,6 @@ class AskGuessMetrics(BaseMetrics):
         qa_metrics["no_ratio"] = no_count / len(self.answers) if self.answers else 0
         qa_metrics["binary_answer_ratio"] = (yes_count + no_count) / len(self.answers) if self.answers else 0
         
-        # Question information gain
         qa_metrics["information_gain"] = self._estimate_information_gain()
         
         return qa_metrics
@@ -392,35 +372,28 @@ class AskGuessMetrics(BaseMetrics):
         Returns:
             Dict[str, Any]: Convergence-related metrics
         """
-        # Simple convergence metrics
         convergence_metrics = {
             "rounds_played": len(self.questions),
             "converged": self.correct_guess is not None,
             "convergence_speed": 1.0 - ((self.correct_round - 1) / self.total_rounds) if self.correct_round else 0.0
         }
         
-        # Add similarity between guesses and target word if we have NLP tools
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer
             
             if self.guesses:
-                # Get all guesses
                 guess_texts = [g["guess"] for g in self.guesses]
                 
-                # Create a corpus with the target word and guesses
                 corpus = [self.target_word] + guess_texts
                 
-                # Calculate TF-IDF similarity
                 vectorizer = TfidfVectorizer()
                 tfidf_matrix = vectorizer.fit_transform(corpus)
                 
-                # Get similarity of each guess to the target word
                 similarities = []
                 target_vector = tfidf_matrix[0:1]
                 
                 for i in range(1, len(corpus)):
                     guess_vector = tfidf_matrix[i:i+1]
-                    # Calculate cosine similarity
                     similarity = (target_vector * guess_vector.T).A[0][0]
                     similarities.append(similarity)
                 
@@ -428,7 +401,6 @@ class AskGuessMetrics(BaseMetrics):
                 convergence_metrics["avg_guess_similarity"] = sum(similarities) / len(similarities)
                 convergence_metrics["max_guess_similarity"] = max(similarities)
         except:
-            # If we cannot calculate similarity, skip this metric
             pass
         
         return convergence_metrics
@@ -446,19 +418,15 @@ class AskGuessMetrics(BaseMetrics):
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer
             
-            # Get question texts
             question_texts = [q["question"] for q in self.questions]
             
-            # Calculate TF-IDF vectors
             vectorizer = TfidfVectorizer()
             tfidf_matrix = vectorizer.fit_transform(question_texts)
             
-            # Calculate similarity between consecutive questions
             similarities = []
             for i in range(len(question_texts) - 1):
                 q1_vector = tfidf_matrix[i:i+1]
                 q2_vector = tfidf_matrix[i+1:i+2]
-                # Calculate cosine similarity
                 similarity = (q1_vector * q2_vector.T).A[0][0]
                 similarities.append(similarity)
             
@@ -481,32 +449,25 @@ class AskGuessMetrics(BaseMetrics):
         if not self.questions or not self.answers:
             return {"avg_gain": 0, "cumulative_gain": 0}
             
-        # Simple proxy: yes/no questions provide more information
         binary_answers = []
         
         for answer in self.answers:
             text = answer["answer"].lower()
             if text in ["yes", "true", "correct", "right", "no", "false", "incorrect", "wrong"]:
-                # Binary questions typically provide more information
                 binary_answers.append(1.0)
             else:
-                # Non-binary questions provide less clear information
                 binary_answers.append(0.5)
         
-        # Estimate information gain for each question
-        # We assume later questions are more specific and provide more information
-        # if the agent is using what it learned
         gains = []
         for i, is_binary in enumerate(binary_answers):
-            # Adjust gain based on question position and answer type
-            position_factor = (i + 1) / len(binary_answers)  # Later questions can be more targeted
+            position_factor = (i + 1) / len(binary_answers)
             gain = is_binary * (0.5 + 0.5 * position_factor)
             gains.append(gain)
         
         return {
             "avg_gain": sum(gains) / len(gains),
             "cumulative_gain": sum(gains),
-            "normalized_gain": sum(gains) / len(gains) / 1.0,  # Normalized to [0,1]
+            "normalized_gain": sum(gains) / len(gains) / 1.0,
             "by_question": gains
         }
 
@@ -581,13 +542,11 @@ class AskGuessMetrics(BaseMetrics):
         for game in game_logs:
             qa_history = game.get('qa_history', [])
             
-            # Count inferences from Q&A history
             for qa_pair in qa_history:
                 if 'question' in qa_pair:
                     question_inferences += 1
                     total_inferences += 1
                     
-                    # Analyze question quality
                     q_quality = self._analyze_question_quality(qa_pair['question'])
                     quality_scores.append(q_quality)
                     
@@ -595,24 +554,19 @@ class AskGuessMetrics(BaseMetrics):
                     answer_inferences += 1
                     total_inferences += 1
                     
-                    # Analyze answer quality
                     a_quality = self._analyze_answer_quality(qa_pair['answer'])
                     quality_scores.append(a_quality)
             
-            # Count final guess inference
             if game.get('round', -1) >= 0:
                 guess_inferences += 1
                 total_inferences += 1
                 
-                # Analyze guess quality
                 guess_quality = self._analyze_guess_quality(game)
                 quality_scores.append(guess_quality)
             
-            # Count errors
             if 'error_type' in game and game['error_type'] != 'SuccessfulTrial':
                 total_errors += 1
             
-            # Analyze decision consistency
             consistency = self._analyze_decision_consistency_askguess(qa_history)
             if consistency is not None:
                 decision_consistency_scores.append(consistency)
@@ -638,20 +592,16 @@ class AskGuessMetrics(BaseMetrics):
         if not question or len(question.strip()) == 0:
             return 0.0
         
-        # Basic quality metrics
-        score = 0.5  # Base score
+        score = 0.5
         
-        # Length and specificity
         word_count = len(question.split())
-        if 5 <= word_count <= 20:  # Optimal length
+        if 5 <= word_count <= 20:
             score += 0.2
         
-        # Contains question words
         question_words = ['what', 'where', 'when', 'who', 'why', 'how', 'is', 'are', 'can', 'does', 'do']
         if any(word in question.lower() for word in question_words):
             score += 0.2
         
-        # Proper punctuation
         if question.strip().endswith('?'):
             score += 0.1
         
@@ -662,15 +612,12 @@ class AskGuessMetrics(BaseMetrics):
         if not answer or len(answer.strip()) == 0:
             return 0.0
         
-        # Basic quality metrics
-        score = 0.5  # Base score
+        score = 0.5
         
-        # Response length (informative but not too verbose)
         word_count = len(answer.split())
         if 3 <= word_count <= 30:
             score += 0.3
         
-        # Clear yes/no or descriptive response
         answer_lower = answer.lower()
         if any(word in answer_lower for word in ['yes', 'no', 'maybe', 'sometimes', 'usually']):
             score += 0.2
@@ -681,33 +628,29 @@ class AskGuessMetrics(BaseMetrics):
         """Analyze the quality of the final guess."""
         is_correct = game.get('error_type') == 'SuccessfulTrial'
         round_num = game.get('round', -1)
-        max_rounds = 10  # Default assumption
+        max_rounds = 10
         
         if is_correct:
-            # Reward earlier correct guesses
             efficiency_bonus = (max_rounds - round_num) / max_rounds if round_num >= 0 else 0
             return 0.7 + 0.3 * efficiency_bonus
         else:
-            return 0.3  # Incorrect guess gets low score
+            return 0.3
 
     def _analyze_decision_consistency_askguess(self, qa_history: List[Dict[str, Any]]) -> Optional[float]:
         """Analyze consistency of decisions throughout the game."""
         if len(qa_history) < 2:
             return None
-        
-        # Analyze question progression - should become more specific
+
         question_specificity_scores = []
         for qa in qa_history:
             if 'question' in qa:
                 question = qa['question']
-                # Simple specificity measure based on question length and keywords
-                specificity = len(question.split()) / 20.0  # Normalize
+                specificity = len(question.split()) / 20.0
                 question_specificity_scores.append(min(specificity, 1.0))
         
         if len(question_specificity_scores) < 2:
             return 0.5
         
-        # Calculate trend - questions should generally become more specific
         trend_score = 0.0
         for i in range(1, len(question_specificity_scores)):
             if question_specificity_scores[i] >= question_specificity_scores[i-1]:
@@ -753,10 +696,8 @@ class AskGuessMetrics(BaseMetrics):
         if not all_questions:
             return {"average_length": 0, "question_diversity": 0, "total_questions": 0}
         
-        # Calculate metrics
         avg_length = np.mean([len(q.split()) for q in all_questions])
         
-        # Simple diversity measure - unique questions ratio
         unique_questions = len(set(all_questions))
         diversity = unique_questions / len(all_questions) if all_questions else 0
         
@@ -776,11 +717,9 @@ class AskGuessMetrics(BaseMetrics):
             if len(qa_history) < 2:
                 continue
             
-            # Analyze information accumulation
             info_score = 0
             for i, qa in enumerate(qa_history):
                 if 'question' in qa and 'answer' in qa:
-                    # Simple information score based on answer detail
                     answer_detail = len(qa['answer'].split()) / 10.0
                     info_score += min(answer_detail, 1.0)
             
@@ -822,7 +761,6 @@ class AskGuessMetrics(BaseMetrics):
 
     def _calculate_llm_judge_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Calculate LLM judge evaluation metrics if available."""
-        # Placeholder for LLM judge metrics - would require LLM model
         return {
             "note": "LLM judge evaluation not implemented - requires LLM model configuration"
         }
@@ -866,7 +804,6 @@ class AskGuessMetrics(BaseMetrics):
         """Generate markdown format report."""
         report = "# AskGuess Game Analysis Report\n\n"
         
-        # Executive Summary
         report += "## Executive Summary\n\n"
         model_perf = metrics_data.get("model_performance", {})
         strategic = metrics_data.get("strategic_metrics", {})
@@ -877,7 +814,6 @@ class AskGuessMetrics(BaseMetrics):
         report += f"**Average Quality Score:** {model_perf.get('average_quality_score', 0):.2f}/1.0\n"
         report += f"**Decision Consistency:** {model_perf.get('decision_consistency', 0):.2f}/1.0\n\n"
         
-        # Model Performance
         report += "## Model Inference Performance\n\n"
         report += f"- **Total Inferences:** {model_perf.get('total_inferences', 0)}\n"
         
@@ -889,7 +825,6 @@ class AskGuessMetrics(BaseMetrics):
         report += f"- **Error Rate:** {model_perf.get('error_rate', 0):.1%}\n"
         report += f"- **Average Quality Score:** {model_perf.get('average_quality_score', 0):.2f}/1.0\n\n"
         
-        # Strategic Analysis
         report += "## Strategic Performance\n\n"
         report += f"- **Success Rate:** {strategic.get('success_rate', 0):.1%}\n"
         report += f"- **Average Rounds to Success:** {strategic.get('average_rounds_to_success', 0):.1f}\n"
@@ -897,20 +832,17 @@ class AskGuessMetrics(BaseMetrics):
         report += f"- **Successful Games:** {strategic.get('successful_games', 0)}\n"
         report += f"- **Failed Games:** {strategic.get('failed_games', 0)}\n\n"
         
-        # Question Quality
         report += "## Question Quality Analysis\n\n"
         quality = metrics_data.get("question_quality", {})
         report += f"- **Total Questions Asked:** {quality.get('total_questions', 0)}\n"
         report += f"- **Average Question Length:** {quality.get('average_length', 0):.1f} words\n"
         report += f"- **Question Diversity:** {quality.get('question_diversity', 0):.2f}\n"
         report += f"- **Unique Questions:** {quality.get('unique_questions', 0)}\n\n"
-        
-        # Convergence Analysis
+
         report += "## Convergence Analysis\n\n"
         convergence = metrics_data.get("convergence_analysis", {})
         report += f"- **Average Convergence Score:** {convergence.get('average_convergence_score', 0):.2f}/1.0\n\n"
         
-        # Success Patterns
         report += "## Success vs Failure Patterns\n\n"
         patterns = metrics_data.get("success_patterns", {})
         success_pat = patterns.get("successful_patterns", {})
@@ -919,7 +851,6 @@ class AskGuessMetrics(BaseMetrics):
         report += f"- **Successful Games - Avg Questions:** {success_pat.get('avg_questions', 0):.1f}\n"
         report += f"- **Failed Games - Avg Questions:** {failure_pat.get('avg_questions', 0):.1f}\n\n"
         
-        # Recommendations
         report += "## Recommendations\n\n"
         success_rate = strategic.get('success_rate', 0)
         efficiency = strategic.get('efficiency_score', 0)

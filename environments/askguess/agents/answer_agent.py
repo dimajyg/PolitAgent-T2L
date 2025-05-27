@@ -5,60 +5,55 @@ from typing import Dict, List, Any, Optional
 
 class AnswerAgent(BaseAgent):
     """
-    Агент-ответчик для игры AskGuess.
+    Answer agent for the AskGuess game.
     
     Args:
-        llm: LangChain-совместимая модель
-        object_name: Слово, которое нужно угадать
-        args: Аргументы игры
+        llm: LangChain-compatible model
+        object_name: Word to be guessed
+        args: Game arguments
     """
     def __init__(self, llm, object_name, args) -> None:
         self.object_name = object_name
         self.mode = args.mode
         self.prompt_template = get_answerer_prompt_template(self.mode)
         
-        # Получаем шаблон как строку для BaseAgent
         template_str = self.prompt_template.template
-        
-        # Инициализируем базовый класс
         super().__init__("Answerer", llm, template_str)
         
-        # Инициализируем private_history для хранения диалога
         self.private_history = []
         
-        # Формируем system prompt через PromptTemplate
         system_prompt = self.prompt_template.format(word=self.object_name)
         role_message = create_message("system", system_prompt)
         self.private_history.append(role_message)
  
     def get_role_description(self) -> str:
-        """Возвращает описание роли агента."""
+        """Returns the agent's role description."""
         return "The answerer in the Ask & Guess game"
 
     def chat(self, context: str) -> tuple:
-        """Отправляет сообщение пользователя и получает ответ."""
+        """Sends user message and gets response."""
         messages = self.private_history + [create_message("user", context)]
         response = super().chat(messages)
         return response, {"answer": response}
 
     def play(self) -> str:
-        """Генерирует ход агента на основе текущей истории."""
+        """Generates agent's move based on current history."""
         messages = self.private_history.copy()
         response = super().chat(messages)
         return response
     
     def answer(self) -> str:
-        """Генерирует ответ агента на основе текущей истории."""
+        """Generates agent's answer based on current history."""
         messages = self.private_history.copy()
         response = super().chat(messages)
         return response
 
     def update_history(self, message: Dict[str, str]) -> None:
-        """Добавляет сообщение в историю диалога."""
+        """Adds message to dialogue history."""
         self.private_history.append(message)
 
     def get_answer_prompt(self) -> str:
-        """Формирует промпт для ответа."""
+        """Forms prompt for answer."""
         prompt = "##system##"
         if hasattr(self, 'answer_role'):
             prompt += self.answer_role + "\n"
@@ -77,7 +72,7 @@ class AnswerAgent(BaseAgent):
         return prompt
     
     def get_describe_prompt(self) -> str:
-        """Формирует промпт для описания."""
+        """Forms prompt for description."""
         prompt = "##system##"
         if hasattr(self, 'describe_role'):
             prompt += self.describe_role + "\n"
