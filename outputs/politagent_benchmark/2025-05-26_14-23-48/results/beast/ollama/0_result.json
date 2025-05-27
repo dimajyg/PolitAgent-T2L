@@ -1,9 +1,0 @@
-{
-  "error": "model \"gemma:latest\" not found, try pulling it first (status code: 404)",
-  "metrics_file": "/Users/nikitakalinin/Documents/knowledge/\u0423\u043d\u0438\u0432\u0435\u0440/course_3/\u041a\u0443\u0440\u0441\u043e\u0432\u0430\u044f/code/PolitAgent-environments/outputs/politagent_benchmark/2025-05-26_14-23-48/results/beast/ollama/beast_metrics_2025-05-26_14-23-51.json",
-  "rounds_played": 1,
-  "log": "0.log",
-  "game_type": "beast",
-  "model": "ollama",
-  "timestamp": "2025-05-26T14:23:51.604284"
-}

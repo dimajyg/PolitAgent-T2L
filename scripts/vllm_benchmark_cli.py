@@ -2,7 +2,7 @@
 """
 Модуль для управления vLLM моделями с ограниченными ресурсами.
 Поддерживает последовательное тестирование моделей с автоматическим
-управлением памятью GPU.
+управлением памятью GPU и загрузкой моделей из HuggingFace.
 """
 
 import gc
@@ -15,8 +15,10 @@ from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 import json
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import GPUtil
+from huggingface_hub import snapshot_download, list_repo_files
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,9 @@ class VLLMModelConfig:
     trust_remote_code: bool = True
     port: int = 8000
     host: str = "127.0.0.1"
+    download_to_local: bool = True  # Загружать модель локально
+    local_models_dir: str = "./models"  # Директория для локальных моделей
+    force_download: bool = False  # Принудительная перезагрузка
 
 class VLLMResourceManager:
     """Менеджер ресурсов для vLLM."""
@@ -40,6 +45,48 @@ class VLLMResourceManager:
         self.max_gpu_memory_mb = max_gpu_memory_mb
         self.current_process = None
         self.current_model = None
+        
+    def download_model_from_hf(self, config: VLLMModelConfig) -> str:
+        """Загружает модель из HuggingFace Hub в локальную директорию."""
+        if not config.download_to_local:
+            return config.model_path
+            
+        # Создаем директорию для моделей
+        models_dir = Path(config.local_models_dir)
+        models_dir.mkdir(exist_ok=True)
+        
+        # Определяем имя модели для локального хранения
+        model_name = config.model_path.replace("/", "_")
+        local_model_path = models_dir / model_name
+        
+        # Проверяем, существует ли модель локально
+        if local_model_path.exists() and not config.force_download:
+            logger.info(f"📁 Модель {config.model_path} уже существует локально: {local_model_path}")
+            return str(local_model_path)
+        
+        try:
+            logger.info(f"⬇️ Загружаем модель {config.model_path} из HuggingFace...")
+            
+            # Удаляем существующую директорию при принудительной загрузке
+            if local_model_path.exists() and config.force_download:
+                logger.info(f"🗑️ Удаляем существующую модель для перезагрузки")
+                shutil.rmtree(local_model_path)
+            
+            # Загружаем модель
+            downloaded_path = snapshot_download(
+                repo_id=config.model_path,
+                local_dir=str(local_model_path),
+                token=os.getenv("HF_TOKEN"),  # Используем токен если есть
+                local_dir_use_symlinks=False
+            )
+            
+            logger.info(f"✅ Модель {config.model_path} успешно загружена в {downloaded_path}")
+            return str(local_model_path)
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка загрузки модели {config.model_path}: {e}")
+            logger.info(f"🔄 Используем оригинальный путь модели: {config.model_path}")
+            return config.model_path
         
     def get_gpu_memory_usage(self) -> float:
         """Получает использование памяти GPU в MB."""
@@ -92,9 +139,12 @@ class VLLMResourceManager:
             # Очищаем предыдущую модель
             self.cleanup_current_model()
             
+            # Загружаем модель из HuggingFace если необходимо
+            model_path = self.download_model_from_hf(config)
+            
             cmd = [
                 "python", "-m", "vllm.entrypoints.openai.api_server",
-                "--model", config.model_path,
+                "--model", model_path,
                 "--host", config.host,
                 "--port", str(config.port),
                 "--tensor-parallel-size", str(config.tensor_parallel_size),
@@ -339,41 +389,72 @@ class SequentialVLLMBenchmark:
         
         return report
 
-# Пример конфигурации моделей
-EXAMPLE_VLLM_MODELS = [
+# Конфигурация для более мощных моделей (требуют больше ресурсов)
+ADVANCED_VLLM_MODELS = [
     {
-        "model_path": "microsoft/DialoGPT-medium",
-        "display_name": "DialoGPT Medium",
+        "model_path": "microsoft/DialoGPT-large",
+        "display_name": "DialoGPT Large",
         "tensor_parallel_size": 1,
-        "gpu_memory_utilization": 0.6,
-        "max_model_len": 2048,
-        "port": 8000
-    },
-    {
-        "model_path": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-        "display_name": "TinyLlama 1.1B",
-        "tensor_parallel_size": 1,
-        "gpu_memory_utilization": 0.4,
-        "max_model_len": 2048,
-        "port": 8001
-    },
-    {
-        "model_path": "microsoft/DialoGPT-small",
-        "display_name": "DialoGPT Small",
-        "tensor_parallel_size": 1,
-        "gpu_memory_utilization": 0.3,
+        "gpu_memory_utilization": 0.8,
         "max_model_len": 1024,
-        "port": 8002
+        "port": 8000,
+        "download_to_local": True,
+        "local_models_dir": "./models"
+    },
+    {
+        "model_path": "Qwen/Qwen2-1.5B-Instruct",
+        "display_name": "Qwen2 1.5B Instruct",
+        "tensor_parallel_size": 1,
+        "gpu_memory_utilization": 0.7,
+        "max_model_len": 4096,
+        "port": 8001,
+        "download_to_local": True,
+        "local_models_dir": "./models"
+    },
+    {
+        "model_path": "Qwen/Qwen2-7B-Instruct",
+        "display_name": "Qwen2 7B Instruct",
+        "tensor_parallel_size": 1,
+        "gpu_memory_utilization": 0.9,
+        "max_model_len": 4096,
+        "port": 8002,
+        "download_to_local": True,
+        "local_models_dir": "./models"
     }
 ]
 
-async def main():
-    """Пример использования."""
+def setup_logging(level: str = "INFO") -> None:
+    """Настройка логирования."""
+    logging.basicConfig(
+        level=getattr(logging, level.upper()),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler('vllm_benchmark.log')
+        ]
+    )
+
+async def run_custom_model(model_path: str, display_name: str = None) -> Dict[str, Any]:
+    """Запускает бенчмарк для одной пользовательской модели."""
+    if not display_name:
+        display_name = model_path.split("/")[-1]
+    
+    # Создаем конфигурацию модели
+    model_config = {
+        "model_path": model_path,
+        "display_name": display_name,
+        "tensor_parallel_size": 1,
+        "gpu_memory_utilization": 0.8,
+        "max_model_len": 4096,
+        "port": 8000,
+        "download_to_local": True,
+        "local_models_dir": "./models",
+        "temperature": 0.7
+    }
+    
     # Создаем бенчмарк
     benchmark = SequentialVLLMBenchmark()
-    
-    # Добавляем модели из примера
-    benchmark.add_models_from_config(EXAMPLE_VLLM_MODELS)
+    benchmark.add_models_from_config([model_config])
     
     # Запускаем бенчмарк
     summary = await benchmark.run_sequential_benchmark()
@@ -383,6 +464,116 @@ async def main():
     print(report)
     
     return summary
+
+async def run_preset_models(preset: str = "example") -> Dict[str, Any]:
+    """Запускает бенчмарк для предустановленного набора моделей."""
+    if preset == "advanced":
+        models_config = ADVANCED_VLLM_MODELS
+    else:
+        raise ValueError(f"Неизвестный пресет: {preset}. Доступные: 'example', 'advanced'")
+    
+    # Создаем бенчмарк
+    benchmark = SequentialVLLMBenchmark()
+    benchmark.add_models_from_config(models_config)
+    
+    # Запускаем бенчмарк
+    summary = await benchmark.run_sequential_benchmark()
+    
+    # Генерируем отчет
+    report = benchmark.generate_comparison_report()
+    print(report)
+    
+    return summary
+
+async def main():
+    """Главная функция с CLI интерфейсом."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="vLLM Benchmark CLI - Тестирование моделей через vLLM",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Примеры использования:
+
+1. Запуск предустановленного набора моделей:
+   python vllm_benchmark_cli.py --preset example
+
+2. Запуск продвинутых моделей:
+   python vllm_benchmark_cli.py --preset advanced
+
+3. Тестирование одной модели:
+   python vllm_benchmark_cli.py --model TinyLlama/TinyLlama-1.1B-Chat-v1.0
+
+4. Тестирование модели с кастомным именем:
+   python vllm_benchmark_cli.py --model microsoft/DialoGPT-medium --name "Мой DialoGPT"
+
+5. Настройка логирования:
+   python vllm_benchmark_cli.py --preset example --log-level DEBUG
+        """
+    )
+    
+    parser.add_argument(
+        "--model", 
+        type=str,
+        help="HuggingFace модель для тестирования (например: TinyLlama/TinyLlama-1.1B-Chat-v1.0)"
+    )
+    
+    parser.add_argument(
+        "--name",
+        type=str,
+        help="Отображаемое имя модели (по умолчанию: последняя часть пути модели)"
+    )
+    
+    parser.add_argument(
+        "--preset",
+        type=str,
+        choices=["example", "advanced"],
+        default="example",
+        help="Предустановленный набор моделей для тестирования"
+    )
+    
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default="INFO",
+        help="Уровень логирования"
+    )
+    
+    parser.add_argument(
+        "--results-dir",
+        type=str,
+        default="vllm_benchmark_results",
+        help="Директория для сохранения результатов"
+    )
+    
+    args = parser.parse_args()
+    
+    # Настраиваем логирование
+    setup_logging(args.log_level)
+    
+    logger.info("🚀 Запуск vLLM Benchmark CLI")
+    
+    try:
+        if args.model:
+            # Тестируем одну модель
+            logger.info(f"🧪 Тестирование модели: {args.model}")
+            summary = await run_custom_model(args.model, args.name)
+        else:
+            # Тестируем предустановленный набор
+            logger.info(f"📊 Тестирование пресета: {args.preset}")
+            summary = await run_preset_models(args.preset)
+        
+        logger.info("✅ Бенчмарк завершен успешно!")
+        
+        return summary
+        
+    except KeyboardInterrupt:
+        logger.warning("⏹️ Бенчмарк прерван пользователем")
+        return None
+    except Exception as e:
+        logger.error(f"❌ Ошибка выполнения бенчмарка: {e}")
+        raise
 
 if __name__ == "__main__":
     asyncio.run(main())
