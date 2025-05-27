@@ -647,4 +647,564 @@ class TofuKingdomMetrics(BaseMetrics):
                 team: {"members": [p for p, t in self.team_assignments.items() if t == team]} 
                 for team in ["Princess", "Queen", "Neutral"]
             }
-        } 
+        }
+
+    def calculate_metrics(self, results_dir: str) -> Dict[str, Any]:
+        """
+        Calculate comprehensive metrics from game result files.
+        
+        Args:
+            results_dir: Directory containing game result files
+            
+        Returns:
+            Dict containing all calculated metrics
+        """
+        game_logs = self._load_game_logs(results_dir)
+        
+        if not game_logs:
+            return {"error": "No valid game logs found"}
+        
+        metrics_data = {
+            "timestamp": datetime.now().isoformat(),
+            "games_analyzed": len(game_logs),
+            "model_performance": self._calculate_model_inference_metrics(game_logs),
+            "strategic_metrics": self._calculate_strategic_metrics(game_logs),
+            "questioning_analysis": self._calculate_questioning_analysis(game_logs),
+            "role_performance": self._calculate_role_performance_metrics(game_logs),
+            "team_dynamics": self._calculate_team_dynamics_metrics(game_logs),
+            "success_patterns": self._calculate_success_patterns(game_logs),
+            "llm_judge_evaluation": self._calculate_llm_judge_metrics(game_logs) if hasattr(self, 'llm_model') else None
+        }
+        
+        return self._convert_numpy_types(metrics_data)
+
+    def _load_game_logs(self, results_dir: str) -> List[Dict[str, Any]]:
+        """Load and parse TofuKingdom game log files."""
+        game_logs = []
+        
+        if not os.path.exists(results_dir):
+            return game_logs
+            
+        for filename in os.listdir(results_dir):
+            if filename.endswith('.json') and 'tofukingdom' in filename.lower():
+                try:
+                    filepath = os.path.join(results_dir, filename)
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if self._is_valid_tofukingdom_log(data):
+                            game_logs.append(data)
+                except Exception as e:
+                    print(f"Error loading {filename}: {e}")
+                    
+        return game_logs
+
+    def _is_valid_tofukingdom_log(self, data: Dict[str, Any]) -> bool:
+        """Check if the loaded data is a valid TofuKingdom game log."""
+        required_fields = ['identities', 'qa_history']
+        return all(field in data for field in required_fields)
+
+    def _calculate_model_inference_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate comprehensive model inference metrics."""
+        total_inferences = 0
+        question_inferences = 0
+        answer_inferences = 0
+        guess_inferences = 0
+        total_errors = 0
+        
+        quality_scores = []
+        decision_consistency_scores = []
+        
+        for game in game_logs:
+            qa_history = game.get('qa_history', [])
+            
+            # Count inferences from Q&A history
+            for qa_pair in qa_history:
+                if 'question' in qa_pair:
+                    question_inferences += 1
+                    total_inferences += 1
+                    
+                    # Analyze question quality
+                    q_quality = self._analyze_question_quality_tofukingdom(qa_pair['question'])
+                    quality_scores.append(q_quality)
+                    
+                if 'answer' in qa_pair:
+                    answer_inferences += 1
+                    total_inferences += 1
+                    
+                    # Analyze answer quality
+                    a_quality = self._analyze_answer_quality_tofukingdom(qa_pair['answer'], qa_pair.get('player'))
+                    quality_scores.append(a_quality)
+            
+            # Count final guess inference
+            if 'prince_guess' in game:
+                guess_inferences += 1
+                total_inferences += 1
+                
+                # Analyze guess quality
+                guess_quality = self._analyze_guess_quality_tofukingdom(game)
+                quality_scores.append(guess_quality)
+            
+            # Count errors (if any error tracking is available)
+            if game.get('error') or game.get('exception'):
+                total_errors += 1
+            
+            # Analyze decision consistency
+            consistency = self._analyze_decision_consistency_tofukingdom(qa_history)
+            if consistency is not None:
+                decision_consistency_scores.append(consistency)
+        
+        return {
+            "total_inferences": total_inferences,
+            "question_inferences": question_inferences,
+            "answer_inferences": answer_inferences,
+            "guess_inferences": guess_inferences,
+            "average_quality_score": np.mean(quality_scores) if quality_scores else 0.0,
+            "decision_consistency": np.mean(decision_consistency_scores) if decision_consistency_scores else 0.0,
+            "total_errors": total_errors,
+            "error_rate": total_errors / len(game_logs) if game_logs else 0.0,
+            "inference_breakdown": {
+                "questions": question_inferences,
+                "answers": answer_inferences, 
+                "guesses": guess_inferences
+            }
+        }
+
+    def _analyze_question_quality_tofukingdom(self, question: str) -> float:
+        """Analyze the quality of a question in TofuKingdom context."""
+        if not question or len(question.strip()) == 0:
+            return 0.0
+        
+        # Basic quality metrics
+        score = 0.5  # Base score
+        
+        # Strategic question types
+        question_lower = question.lower()
+        if "princess" in question_lower:
+            score += 0.3  # Direct princess questions are high value
+        elif "identity" in question_lower or "role" in question_lower:
+            score += 0.2  # Identity questions are valuable
+        elif any(word in question_lower for word in ["truth", "lie", "honest"]):
+            score += 0.15  # Truth/lie probing is moderately valuable
+        
+        # Question structure
+        if question.strip().endswith('?'):
+            score += 0.1
+        
+        # Length appropriateness
+        word_count = len(question.split())
+        if 5 <= word_count <= 25:
+            score += 0.15
+        
+        return min(score, 1.0)
+
+    def _analyze_answer_quality_tofukingdom(self, answer: str, player: str) -> float:
+        """Analyze the quality of an answer in TofuKingdom context."""
+        if not answer or len(answer.strip()) == 0:
+            return 0.0
+        
+        # Basic quality metrics
+        score = 0.5  # Base score
+        
+        # Response appropriateness
+        word_count = len(answer.split())
+        if 3 <= word_count <= 50:
+            score += 0.3
+        
+        # Check for role-appropriate behavior (simplified)
+        answer_lower = answer.lower()
+        if any(word in answer_lower for word in ['yes', 'no', 'true', 'false']):
+            score += 0.1  # Clear responses are good
+        
+        # Avoid revealing too much information
+        if not any(word in answer_lower for word in ['princess', 'queen', 'spy', 'guard', 'minister', 'chef', 'maid']):
+            score += 0.1  # Not revealing roles directly
+        
+        return min(score, 1.0)
+
+    def _analyze_guess_quality_tofukingdom(self, game: Dict[str, Any]) -> float:
+        """Analyze the quality of the final guess."""
+        prince_guess = game.get('prince_guess', {})
+        is_correct = prince_guess.get('correct', False)
+        
+        if is_correct:
+            return 1.0  # Perfect score for correct guess
+        else:
+            return 0.2  # Low score for incorrect guess
+
+    def _analyze_decision_consistency_tofukingdom(self, qa_history: List[Dict[str, Any]]) -> Optional[float]:
+        """Analyze consistency of decisions throughout the game."""
+        if len(qa_history) < 2:
+            return None
+        
+        # Analyze if questions become more targeted over time
+        princess_focus_scores = []
+        for qa in qa_history:
+            if 'question' in qa:
+                question = qa['question'].lower()
+                # Score based on how focused the question is on finding the princess
+                focus_score = 0.0
+                if "princess" in question:
+                    focus_score = 1.0
+                elif "identity" in question:
+                    focus_score = 0.7
+                elif any(word in question for word in ["role", "truth", "lie"]):
+                    focus_score = 0.5
+                else:
+                    focus_score = 0.2
+                
+                princess_focus_scores.append(focus_score)
+        
+        if len(princess_focus_scores) < 2:
+            return 0.5
+        
+        # Calculate if there's increasing focus (good strategy)
+        trend_score = 0.0
+        for i in range(1, len(princess_focus_scores)):
+            if princess_focus_scores[i] >= princess_focus_scores[i-1]:
+                trend_score += 1.0
+        
+        return trend_score / (len(princess_focus_scores) - 1)
+
+    def _calculate_strategic_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate strategic performance metrics."""
+        success_rate = 0
+        princess_team_wins = 0
+        queen_team_wins = 0
+        neutral_impact = 0
+        
+        for game in game_logs:
+            winner = game.get('winner')
+            prince_guess = game.get('prince_guess', {})
+            
+            if prince_guess.get('correct', False):
+                success_rate += 1
+                princess_team_wins += 1
+            else:
+                queen_team_wins += 1
+        
+        success_rate = success_rate / len(game_logs) if game_logs else 0
+        
+        return {
+            "prince_success_rate": success_rate,
+            "princess_team_wins": princess_team_wins,
+            "queen_team_wins": queen_team_wins,
+            "total_games": len(game_logs),
+            "game_balance": abs(0.5 - success_rate),  # How balanced the game is
+            "strategic_depth": self._calculate_strategic_depth(game_logs)
+        }
+
+    def _calculate_strategic_depth(self, game_logs: List[Dict[str, Any]]) -> float:
+        """Calculate how strategically deep the games were."""
+        depth_scores = []
+        
+        for game in game_logs:
+            qa_history = game.get('qa_history', [])
+            questions = [qa.get('question', '') for qa in qa_history if 'question' in qa]
+            
+            if not questions:
+                depth_scores.append(0.0)
+                continue
+            
+            # Measure strategic depth by question diversity and complexity
+            unique_question_ratio = len(set(questions)) / len(questions) if questions else 0
+            avg_question_length = np.mean([len(q.split()) for q in questions])
+            strategic_words = sum(1 for q in questions if any(word in q.lower() for word in 
+                                ['princess', 'identity', 'truth', 'lie', 'role', 'honest']))
+            strategic_ratio = strategic_words / len(questions) if questions else 0
+            
+            depth = (unique_question_ratio * 0.4 + 
+                    min(avg_question_length / 15.0, 1.0) * 0.3 + 
+                    strategic_ratio * 0.3)
+            depth_scores.append(depth)
+        
+        return np.mean(depth_scores) if depth_scores else 0.0
+
+    def _calculate_questioning_analysis(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate questioning strategy analysis."""
+        all_questions = []
+        question_targets = []
+        question_timing = []
+        
+        for game in game_logs:
+            qa_history = game.get('qa_history', [])
+            for i, qa in enumerate(qa_history):
+                if 'question' in qa:
+                    all_questions.append(qa['question'])
+                    question_targets.append(qa.get('player', 'Unknown'))
+                    question_timing.append(i + 1)  # Question order
+        
+        if not all_questions:
+            return {"total_questions": 0}
+        
+        # Question type analysis
+        question_types = {
+            "direct_princess": sum(1 for q in all_questions if "princess" in q.lower()),
+            "identity_probe": sum(1 for q in all_questions if "identity" in q.lower() or "role" in q.lower()),
+            "truth_lie_probe": sum(1 for q in all_questions if any(word in q.lower() for word in ["truth", "lie", "honest"])),
+            "general_inquiry": 0
+        }
+        question_types["general_inquiry"] = len(all_questions) - sum(question_types.values())
+        
+        # Target distribution
+        target_distribution = {}
+        for target in question_targets:
+            target_distribution[target] = target_distribution.get(target, 0) + 1
+        
+        return {
+            "total_questions": len(all_questions),
+            "question_types": question_types,
+            "target_distribution": target_distribution,
+            "average_questions_per_game": len(all_questions) / len(game_logs) if game_logs else 0,
+            "question_diversity": len(set(all_questions)) / len(all_questions) if all_questions else 0
+        }
+
+    def _calculate_role_performance_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate performance metrics by role."""
+        role_stats = {}
+        
+        for game in game_logs:
+            identities = game.get('identities', {})
+            qa_history = game.get('qa_history', [])
+            
+            # Initialize role stats
+            for player, role in identities.items():
+                if role not in role_stats:
+                    role_stats[role] = {
+                        "questions_received": 0,
+                        "answers_given": 0,
+                        "detection_rate": 0,
+                        "performance_score": []
+                    }
+            
+            # Count interactions
+            for qa in qa_history:
+                if 'player' in qa and 'answer' in qa:
+                    player = qa['player']
+                    role = identities.get(player, 'Unknown')
+                    if role in role_stats:
+                        role_stats[role]["answers_given"] += 1
+                        
+                        # Analyze answer quality for this role
+                        answer_quality = self._analyze_answer_quality_tofukingdom(qa['answer'], player)
+                        role_stats[role]["performance_score"].append(answer_quality)
+                
+                if 'question' in qa and 'player' in qa:
+                    player = qa['player']
+                    role = identities.get(player, 'Unknown')
+                    if role in role_stats:
+                        role_stats[role]["questions_received"] += 1
+        
+        # Calculate averages
+        for role in role_stats:
+            scores = role_stats[role]["performance_score"]
+            role_stats[role]["average_performance"] = np.mean(scores) if scores else 0.0
+            role_stats[role]["performance_count"] = len(scores)
+        
+        return role_stats
+
+    def _calculate_team_dynamics_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate team dynamics and cooperation metrics."""
+        team_performance = {
+            "Princess": {"wins": 0, "games": 0, "avg_survival": 0},
+            "Queen": {"wins": 0, "games": 0, "avg_detection": 0},
+            "Neutral": {"wins": 0, "games": 0, "influence": 0}
+        }
+        
+        for game in game_logs:
+            winner = game.get('winner', 'Unknown')
+            prince_guess = game.get('prince_guess', {})
+            
+            # Count team games
+            for team in team_performance:
+                team_performance[team]["games"] += 1
+            
+            # Record wins
+            if prince_guess.get('correct', False):
+                team_performance["Princess"]["wins"] += 1
+            else:
+                team_performance["Queen"]["wins"] += 1
+        
+        # Calculate win rates
+        for team in team_performance:
+            games = team_performance[team]["games"]
+            if games > 0:
+                team_performance[team]["win_rate"] = team_performance[team]["wins"] / games
+            else:
+                team_performance[team]["win_rate"] = 0.0
+        
+        return team_performance
+
+    def _calculate_success_patterns(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze patterns in successful vs failed games."""
+        successful_patterns = {"avg_questions": 0, "common_strategies": []}
+        failed_patterns = {"avg_questions": 0, "common_errors": []}
+        
+        successful_games = []
+        failed_games = []
+        
+        for game in game_logs:
+            qa_count = len(game.get('qa_history', []))
+            prince_guess = game.get('prince_guess', {})
+            is_success = prince_guess.get('correct', False)
+            
+            if is_success:
+                successful_games.append(qa_count)
+            else:
+                failed_games.append(qa_count)
+        
+        successful_patterns["avg_questions"] = np.mean(successful_games) if successful_games else 0
+        failed_patterns["avg_questions"] = np.mean(failed_games) if failed_games else 0
+        
+        return {
+            "successful_patterns": successful_patterns,
+            "failed_patterns": failed_patterns,
+            "success_vs_failure_analysis": {
+                "avg_questions_success": successful_patterns["avg_questions"],
+                "avg_questions_failure": failed_patterns["avg_questions"],
+                "success_efficiency": (10.0 - successful_patterns["avg_questions"]) / 10.0 if successful_patterns["avg_questions"] > 0 else 0
+            }
+        }
+
+    def _calculate_llm_judge_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate LLM judge evaluation metrics if available."""
+        return {
+            "note": "LLM judge evaluation not implemented - requires LLM model configuration"
+        }
+
+    def _convert_numpy_types(self, obj: Any) -> Any:
+        """Convert numpy types to native Python types for JSON serialization."""
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {key: self._convert_numpy_types(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_numpy_types(item) for item in obj]
+        else:
+            return obj
+
+    def generate_report(self, metrics_data: Dict[str, Any], format_type: str = "markdown") -> str:
+        """
+        Generate comprehensive analysis report in specified format.
+        
+        Args:
+            metrics_data: Calculated metrics data
+            format_type: Format type ("markdown", "json", "txt")
+            
+        Returns:
+            str: Formatted report
+        """
+        if format_type == "markdown":
+            return self._generate_markdown_report(metrics_data)
+        elif format_type == "json":
+            return json.dumps(metrics_data, indent=2)
+        else:
+            return self._generate_text_report(metrics_data)
+
+    def _generate_markdown_report(self, metrics_data: Dict[str, Any]) -> str:
+        """Generate markdown format report."""
+        report = "# TofuKingdom Game Analysis Report\n\n"
+        
+        # Executive Summary
+        report += "## Executive Summary\n\n"
+        model_perf = metrics_data.get("model_performance", {})
+        strategic = metrics_data.get("strategic_metrics", {})
+        
+        report += f"**Games Analyzed:** {metrics_data.get('games_analyzed', 0)}\n"
+        report += f"**Total Model Inferences:** {model_perf.get('total_inferences', 0)}\n"
+        report += f"**Prince Success Rate:** {strategic.get('prince_success_rate', 0):.1%}\n"
+        report += f"**Average Quality Score:** {model_perf.get('average_quality_score', 0):.2f}/1.0\n"
+        report += f"**Decision Consistency:** {model_perf.get('decision_consistency', 0):.2f}/1.0\n\n"
+        
+        # Model Performance
+        report += "## Model Inference Performance\n\n"
+        report += f"- **Total Inferences:** {model_perf.get('total_inferences', 0)}\n"
+        
+        breakdown = model_perf.get('inference_breakdown', {})
+        report += f"  - Questions: {breakdown.get('questions', 0)}\n"
+        report += f"  - Answers: {breakdown.get('answers', 0)}\n"
+        report += f"  - Guesses: {breakdown.get('guesses', 0)}\n"
+        
+        report += f"- **Error Rate:** {model_perf.get('error_rate', 0):.1%}\n"
+        report += f"- **Average Quality Score:** {model_perf.get('average_quality_score', 0):.2f}/1.0\n\n"
+        
+        # Strategic Analysis
+        report += "## Strategic Performance\n\n"
+        report += f"- **Prince Success Rate:** {strategic.get('prince_success_rate', 0):.1%}\n"
+        report += f"- **Princess Team Wins:** {strategic.get('princess_team_wins', 0)}\n"
+        report += f"- **Queen Team Wins:** {strategic.get('queen_team_wins', 0)}\n"
+        report += f"- **Game Balance Score:** {strategic.get('game_balance', 0):.2f} (lower is more balanced)\n"
+        report += f"- **Strategic Depth:** {strategic.get('strategic_depth', 0):.2f}/1.0\n\n"
+        
+        # Questioning Analysis
+        report += "## Questioning Strategy Analysis\n\n"
+        questioning = metrics_data.get("questioning_analysis", {})
+        report += f"- **Total Questions:** {questioning.get('total_questions', 0)}\n"
+        report += f"- **Average Questions per Game:** {questioning.get('average_questions_per_game', 0):.1f}\n"
+        report += f"- **Question Diversity:** {questioning.get('question_diversity', 0):.2f}\n\n"
+        
+        question_types = questioning.get("question_types", {})
+        if question_types:
+            report += "### Question Type Distribution:\n"
+            report += f"- **Direct Princess Questions:** {question_types.get('direct_princess', 0)}\n"
+            report += f"- **Identity Probes:** {question_types.get('identity_probe', 0)}\n"
+            report += f"- **Truth/Lie Probes:** {question_types.get('truth_lie_probe', 0)}\n"
+            report += f"- **General Inquiries:** {question_types.get('general_inquiry', 0)}\n\n"
+        
+        # Role Performance
+        report += "## Role Performance Analysis\n\n"
+        role_perf = metrics_data.get("role_performance", {})
+        for role, stats in role_perf.items():
+            report += f"### {role}\n"
+            report += f"- **Questions Received:** {stats.get('questions_received', 0)}\n"
+            report += f"- **Answers Given:** {stats.get('answers_given', 0)}\n"
+            report += f"- **Average Performance:** {stats.get('average_performance', 0):.2f}/1.0\n\n"
+        
+        # Team Dynamics
+        report += "## Team Dynamics\n\n"
+        team_dynamics = metrics_data.get("team_dynamics", {})
+        for team, stats in team_dynamics.items():
+            if team in ["Princess", "Queen"]:
+                report += f"### {team} Team\n"
+                report += f"- **Win Rate:** {stats.get('win_rate', 0):.1%}\n"
+                report += f"- **Games Played:** {stats.get('games', 0)}\n\n"
+        
+        # Success Patterns
+        report += "## Success Patterns\n\n"
+        patterns = metrics_data.get("success_patterns", {})
+        success_pat = patterns.get("successful_patterns", {})
+        failure_pat = patterns.get("failed_patterns", {})
+        
+        report += f"- **Successful Games - Avg Questions:** {success_pat.get('avg_questions', 0):.1f}\n"
+        report += f"- **Failed Games - Avg Questions:** {failure_pat.get('avg_questions', 0):.1f}\n"
+        
+        analysis = patterns.get("success_vs_failure_analysis", {})
+        report += f"- **Success Efficiency:** {analysis.get('success_efficiency', 0):.2f}/1.0\n\n"
+        
+        # Recommendations
+        report += "## Recommendations\n\n"
+        success_rate = strategic.get('prince_success_rate', 0)
+        quality = model_perf.get('average_quality_score', 0)
+        depth = strategic.get('strategic_depth', 0)
+        
+        if success_rate < 0.4:
+            report += "- **Improve Success Rate:** Focus on better princess identification strategy\n"
+        if quality < 0.6:
+            report += "- **Enhance Question Quality:** Develop more strategic and targeted questions\n"
+        if depth < 0.5:
+            report += "- **Increase Strategic Depth:** Use more diverse and complex questioning approaches\n"
+        
+        balance = strategic.get('game_balance', 0)
+        if balance > 0.3:
+            report += "- **Game Balance:** Consider adjusting difficulty or strategy complexity\n"
+        
+        report += f"\n---\n*Report generated on {metrics_data.get('timestamp', 'Unknown')}*\n"
+        
+        return report
+
+    def _generate_text_report(self, metrics_data: Dict[str, Any]) -> str:
+        """Generate plain text format report."""
+        return self._generate_markdown_report(metrics_data).replace('#', '').replace('*', '')

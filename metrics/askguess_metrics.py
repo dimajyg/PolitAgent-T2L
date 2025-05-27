@@ -508,4 +508,434 @@ class AskGuessMetrics(BaseMetrics):
             "cumulative_gain": sum(gains),
             "normalized_gain": sum(gains) / len(gains) / 1.0,  # Normalized to [0,1]
             "by_question": gains
-        } 
+        }
+
+    def calculate_metrics(self, results_dir: str) -> Dict[str, Any]:
+        """
+        Calculate comprehensive metrics from game result files.
+        
+        Args:
+            results_dir: Directory containing game result files
+            
+        Returns:
+            Dict containing all calculated metrics
+        """
+        import json
+        
+        game_logs = self._load_game_logs(results_dir)
+        
+        if not game_logs:
+            return {"error": "No valid game logs found"}
+        
+        metrics_data = {
+            "timestamp": datetime.now().isoformat(),
+            "games_analyzed": len(game_logs),
+            "model_performance": self._calculate_model_inference_metrics(game_logs),
+            "strategic_metrics": self._calculate_strategic_metrics(game_logs),
+            "question_quality": self._calculate_question_quality_metrics(game_logs),
+            "convergence_analysis": self._calculate_convergence_analysis(game_logs),
+            "success_patterns": self._calculate_success_patterns(game_logs),
+            "llm_judge_evaluation": self._calculate_llm_judge_metrics(game_logs) if hasattr(self, 'llm_model') else None
+        }
+        
+        return self._convert_numpy_types(metrics_data)
+
+    def _load_game_logs(self, results_dir: str) -> List[Dict[str, Any]]:
+        """Load and parse AskGuess game log files."""
+        import json
+        
+        game_logs = []
+        
+        if not os.path.exists(results_dir):
+            return game_logs
+            
+        for filename in os.listdir(results_dir):
+            if filename.endswith('.json') and 'askguess' in filename.lower():
+                try:
+                    filepath = os.path.join(results_dir, filename)
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if self._is_valid_askguess_log(data):
+                            game_logs.append(data)
+                except Exception as e:
+                    print(f"Error loading {filename}: {e}")
+                    
+        return game_logs
+
+    def _is_valid_askguess_log(self, data: Dict[str, Any]) -> bool:
+        """Check if the loaded data is a valid AskGuess game log."""
+        required_fields = ['object', 'qa_history']
+        return all(field in data for field in required_fields)
+
+    def _calculate_model_inference_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate comprehensive model inference metrics."""
+        total_inferences = 0
+        question_inferences = 0
+        answer_inferences = 0
+        guess_inferences = 0
+        total_errors = 0
+        
+        quality_scores = []
+        decision_consistency_scores = []
+        
+        for game in game_logs:
+            qa_history = game.get('qa_history', [])
+            
+            # Count inferences from Q&A history
+            for qa_pair in qa_history:
+                if 'question' in qa_pair:
+                    question_inferences += 1
+                    total_inferences += 1
+                    
+                    # Analyze question quality
+                    q_quality = self._analyze_question_quality(qa_pair['question'])
+                    quality_scores.append(q_quality)
+                    
+                if 'answer' in qa_pair:
+                    answer_inferences += 1
+                    total_inferences += 1
+                    
+                    # Analyze answer quality
+                    a_quality = self._analyze_answer_quality(qa_pair['answer'])
+                    quality_scores.append(a_quality)
+            
+            # Count final guess inference
+            if game.get('round', -1) >= 0:
+                guess_inferences += 1
+                total_inferences += 1
+                
+                # Analyze guess quality
+                guess_quality = self._analyze_guess_quality(game)
+                quality_scores.append(guess_quality)
+            
+            # Count errors
+            if 'error_type' in game and game['error_type'] != 'SuccessfulTrial':
+                total_errors += 1
+            
+            # Analyze decision consistency
+            consistency = self._analyze_decision_consistency_askguess(qa_history)
+            if consistency is not None:
+                decision_consistency_scores.append(consistency)
+        
+        return {
+            "total_inferences": total_inferences,
+            "question_inferences": question_inferences,
+            "answer_inferences": answer_inferences,
+            "guess_inferences": guess_inferences,
+            "average_quality_score": np.mean(quality_scores) if quality_scores else 0.0,
+            "decision_consistency": np.mean(decision_consistency_scores) if decision_consistency_scores else 0.0,
+            "total_errors": total_errors,
+            "error_rate": total_errors / len(game_logs) if game_logs else 0.0,
+            "inference_breakdown": {
+                "questions": question_inferences,
+                "answers": answer_inferences, 
+                "guesses": guess_inferences
+            }
+        }
+
+    def _analyze_question_quality(self, question: str) -> float:
+        """Analyze the quality of a question."""
+        if not question or len(question.strip()) == 0:
+            return 0.0
+        
+        # Basic quality metrics
+        score = 0.5  # Base score
+        
+        # Length and specificity
+        word_count = len(question.split())
+        if 5 <= word_count <= 20:  # Optimal length
+            score += 0.2
+        
+        # Contains question words
+        question_words = ['what', 'where', 'when', 'who', 'why', 'how', 'is', 'are', 'can', 'does', 'do']
+        if any(word in question.lower() for word in question_words):
+            score += 0.2
+        
+        # Proper punctuation
+        if question.strip().endswith('?'):
+            score += 0.1
+        
+        return min(score, 1.0)
+
+    def _analyze_answer_quality(self, answer: str) -> float:
+        """Analyze the quality of an answer."""
+        if not answer or len(answer.strip()) == 0:
+            return 0.0
+        
+        # Basic quality metrics
+        score = 0.5  # Base score
+        
+        # Response length (informative but not too verbose)
+        word_count = len(answer.split())
+        if 3 <= word_count <= 30:
+            score += 0.3
+        
+        # Clear yes/no or descriptive response
+        answer_lower = answer.lower()
+        if any(word in answer_lower for word in ['yes', 'no', 'maybe', 'sometimes', 'usually']):
+            score += 0.2
+        
+        return min(score, 1.0)
+
+    def _analyze_guess_quality(self, game: Dict[str, Any]) -> float:
+        """Analyze the quality of the final guess."""
+        is_correct = game.get('error_type') == 'SuccessfulTrial'
+        round_num = game.get('round', -1)
+        max_rounds = 10  # Default assumption
+        
+        if is_correct:
+            # Reward earlier correct guesses
+            efficiency_bonus = (max_rounds - round_num) / max_rounds if round_num >= 0 else 0
+            return 0.7 + 0.3 * efficiency_bonus
+        else:
+            return 0.3  # Incorrect guess gets low score
+
+    def _analyze_decision_consistency_askguess(self, qa_history: List[Dict[str, Any]]) -> Optional[float]:
+        """Analyze consistency of decisions throughout the game."""
+        if len(qa_history) < 2:
+            return None
+        
+        # Analyze question progression - should become more specific
+        question_specificity_scores = []
+        for qa in qa_history:
+            if 'question' in qa:
+                question = qa['question']
+                # Simple specificity measure based on question length and keywords
+                specificity = len(question.split()) / 20.0  # Normalize
+                question_specificity_scores.append(min(specificity, 1.0))
+        
+        if len(question_specificity_scores) < 2:
+            return 0.5
+        
+        # Calculate trend - questions should generally become more specific
+        trend_score = 0.0
+        for i in range(1, len(question_specificity_scores)):
+            if question_specificity_scores[i] >= question_specificity_scores[i-1]:
+                trend_score += 1.0
+        
+        return trend_score / (len(question_specificity_scores) - 1)
+
+    def _calculate_strategic_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate strategic performance metrics."""
+        success_rate = 0
+        avg_rounds_to_success = 0
+        successful_games = []
+        
+        for game in game_logs:
+            is_success = game.get('error_type') == 'SuccessfulTrial'
+            if is_success:
+                success_rate += 1
+                round_num = game.get('round', -1)
+                if round_num >= 0:
+                    successful_games.append(round_num)
+        
+        success_rate = success_rate / len(game_logs) if game_logs else 0
+        avg_rounds_to_success = np.mean(successful_games) if successful_games else 0
+        
+        return {
+            "success_rate": success_rate,
+            "average_rounds_to_success": avg_rounds_to_success,
+            "successful_games": len(successful_games),
+            "failed_games": len(game_logs) - len(successful_games),
+            "efficiency_score": (1.0 - avg_rounds_to_success / 10.0) if avg_rounds_to_success > 0 else 0.0
+        }
+
+    def _calculate_question_quality_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate question quality metrics."""
+        all_questions = []
+        
+        for game in game_logs:
+            qa_history = game.get('qa_history', [])
+            for qa in qa_history:
+                if 'question' in qa:
+                    all_questions.append(qa['question'])
+        
+        if not all_questions:
+            return {"average_length": 0, "question_diversity": 0, "total_questions": 0}
+        
+        # Calculate metrics
+        avg_length = np.mean([len(q.split()) for q in all_questions])
+        
+        # Simple diversity measure - unique questions ratio
+        unique_questions = len(set(all_questions))
+        diversity = unique_questions / len(all_questions) if all_questions else 0
+        
+        return {
+            "average_length": avg_length,
+            "question_diversity": diversity,
+            "total_questions": len(all_questions),
+            "unique_questions": unique_questions
+        }
+
+    def _calculate_convergence_analysis(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze how well the model converges to the correct answer."""
+        convergence_patterns = []
+        
+        for game in game_logs:
+            qa_history = game.get('qa_history', [])
+            if len(qa_history) < 2:
+                continue
+            
+            # Analyze information accumulation
+            info_score = 0
+            for i, qa in enumerate(qa_history):
+                if 'question' in qa and 'answer' in qa:
+                    # Simple information score based on answer detail
+                    answer_detail = len(qa['answer'].split()) / 10.0
+                    info_score += min(answer_detail, 1.0)
+            
+            convergence_patterns.append(info_score / len(qa_history) if qa_history else 0)
+        
+        return {
+            "average_convergence_score": np.mean(convergence_patterns) if convergence_patterns else 0,
+            "convergence_patterns": len(convergence_patterns)
+        }
+
+    def _calculate_success_patterns(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze patterns in successful vs failed games."""
+        successful_patterns = {"avg_questions": 0, "common_strategies": []}
+        failed_patterns = {"avg_questions": 0, "common_errors": []}
+        
+        successful_games = []
+        failed_games = []
+        
+        for game in game_logs:
+            qa_count = len(game.get('qa_history', []))
+            is_success = game.get('error_type') == 'SuccessfulTrial'
+            
+            if is_success:
+                successful_games.append(qa_count)
+            else:
+                failed_games.append(qa_count)
+        
+        successful_patterns["avg_questions"] = np.mean(successful_games) if successful_games else 0
+        failed_patterns["avg_questions"] = np.mean(failed_games) if failed_games else 0
+        
+        return {
+            "successful_patterns": successful_patterns,
+            "failed_patterns": failed_patterns,
+            "success_vs_failure_analysis": {
+                "avg_questions_success": successful_patterns["avg_questions"],
+                "avg_questions_failure": failed_patterns["avg_questions"]
+            }
+        }
+
+    def _calculate_llm_judge_metrics(self, game_logs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate LLM judge evaluation metrics if available."""
+        # Placeholder for LLM judge metrics - would require LLM model
+        return {
+            "note": "LLM judge evaluation not implemented - requires LLM model configuration"
+        }
+
+    def _convert_numpy_types(self, obj: Any) -> Any:
+        """Convert numpy types to native Python types for JSON serialization."""
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {key: self._convert_numpy_types(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_numpy_types(item) for item in obj]
+        else:
+            return obj
+
+    def generate_report(self, metrics_data: Dict[str, Any], format_type: str = "markdown") -> str:
+        """
+        Generate comprehensive analysis report in specified format.
+        
+        Args:
+            metrics_data: Calculated metrics data
+            format_type: Format type ("markdown", "json", "txt")
+            
+        Returns:
+            str: Formatted report
+        """
+        import json
+        
+        if format_type == "markdown":
+            return self._generate_markdown_report(metrics_data)
+        elif format_type == "json":
+            return json.dumps(metrics_data, indent=2)
+        else:
+            return self._generate_text_report(metrics_data)
+
+    def _generate_markdown_report(self, metrics_data: Dict[str, Any]) -> str:
+        """Generate markdown format report."""
+        report = "# AskGuess Game Analysis Report\n\n"
+        
+        # Executive Summary
+        report += "## Executive Summary\n\n"
+        model_perf = metrics_data.get("model_performance", {})
+        strategic = metrics_data.get("strategic_metrics", {})
+        
+        report += f"**Games Analyzed:** {metrics_data.get('games_analyzed', 0)}\n"
+        report += f"**Total Model Inferences:** {model_perf.get('total_inferences', 0)}\n"
+        report += f"**Success Rate:** {strategic.get('success_rate', 0):.1%}\n"
+        report += f"**Average Quality Score:** {model_perf.get('average_quality_score', 0):.2f}/1.0\n"
+        report += f"**Decision Consistency:** {model_perf.get('decision_consistency', 0):.2f}/1.0\n\n"
+        
+        # Model Performance
+        report += "## Model Inference Performance\n\n"
+        report += f"- **Total Inferences:** {model_perf.get('total_inferences', 0)}\n"
+        
+        breakdown = model_perf.get('inference_breakdown', {})
+        report += f"  - Questions: {breakdown.get('questions', 0)}\n"
+        report += f"  - Answers: {breakdown.get('answers', 0)}\n"
+        report += f"  - Guesses: {breakdown.get('guesses', 0)}\n"
+        
+        report += f"- **Error Rate:** {model_perf.get('error_rate', 0):.1%}\n"
+        report += f"- **Average Quality Score:** {model_perf.get('average_quality_score', 0):.2f}/1.0\n\n"
+        
+        # Strategic Analysis
+        report += "## Strategic Performance\n\n"
+        report += f"- **Success Rate:** {strategic.get('success_rate', 0):.1%}\n"
+        report += f"- **Average Rounds to Success:** {strategic.get('average_rounds_to_success', 0):.1f}\n"
+        report += f"- **Efficiency Score:** {strategic.get('efficiency_score', 0):.2f}/1.0\n"
+        report += f"- **Successful Games:** {strategic.get('successful_games', 0)}\n"
+        report += f"- **Failed Games:** {strategic.get('failed_games', 0)}\n\n"
+        
+        # Question Quality
+        report += "## Question Quality Analysis\n\n"
+        quality = metrics_data.get("question_quality", {})
+        report += f"- **Total Questions Asked:** {quality.get('total_questions', 0)}\n"
+        report += f"- **Average Question Length:** {quality.get('average_length', 0):.1f} words\n"
+        report += f"- **Question Diversity:** {quality.get('question_diversity', 0):.2f}\n"
+        report += f"- **Unique Questions:** {quality.get('unique_questions', 0)}\n\n"
+        
+        # Convergence Analysis
+        report += "## Convergence Analysis\n\n"
+        convergence = metrics_data.get("convergence_analysis", {})
+        report += f"- **Average Convergence Score:** {convergence.get('average_convergence_score', 0):.2f}/1.0\n\n"
+        
+        # Success Patterns
+        report += "## Success vs Failure Patterns\n\n"
+        patterns = metrics_data.get("success_patterns", {})
+        success_pat = patterns.get("successful_patterns", {})
+        failure_pat = patterns.get("failed_patterns", {})
+        
+        report += f"- **Successful Games - Avg Questions:** {success_pat.get('avg_questions', 0):.1f}\n"
+        report += f"- **Failed Games - Avg Questions:** {failure_pat.get('avg_questions', 0):.1f}\n\n"
+        
+        # Recommendations
+        report += "## Recommendations\n\n"
+        success_rate = strategic.get('success_rate', 0)
+        efficiency = strategic.get('efficiency_score', 0)
+        quality = model_perf.get('average_quality_score', 0)
+        
+        if success_rate < 0.5:
+            report += "- **Improve Success Rate:** Focus on better question strategy and information gathering\n"
+        if efficiency < 0.5:
+            report += "- **Increase Efficiency:** Work on reaching correct conclusions with fewer questions\n"
+        if quality < 0.6:
+            report += "- **Enhance Question Quality:** Develop more specific and targeted questions\n"
+        
+        report += f"\n---\n*Report generated on {metrics_data.get('timestamp', 'Unknown')}*\n"
+        
+        return report
+
+    def _generate_text_report(self, metrics_data: Dict[str, Any]) -> str:
+        """Generate plain text format report."""
+        return self._generate_markdown_report(metrics_data).replace('#', '').replace('*', '')

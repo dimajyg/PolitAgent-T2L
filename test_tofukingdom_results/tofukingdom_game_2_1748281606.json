@@ -1,0 +1,62 @@
+{
+  "identities": {
+    "Frank": "Princess",
+    "Grace": "Chef",
+    "Henry": "Queen",
+    "Iris": "Guard",
+    "Jack": "Spy"
+  },
+  "qa_history": [
+    {
+      "question": "What is your daily routine?",
+      "player": "Grace",
+      "answer": "I wake early to prepare breakfast for everyone in the castle."
+    },
+    {
+      "question": "Do you have any special privileges?",
+      "player": "Frank",
+      "answer": "I try to help others and contribute to the community."
+    },
+    {
+      "question": "Are you loyal to the current ruler?",
+      "player": "Henry",
+      "answer": "Absolutely! I serve with complete dedication."
+    },
+    {
+      "question": "What is your opinion on the Princess?",
+      "player": "Iris",
+      "answer": "The Princess is wise and just, a true leader."
+    },
+    {
+      "question": "Do you have access to confidential information?",
+      "player": "Jack",
+      "answer": "Sometimes I overhear things, but I keep secrets well."
+    },
+    {
+      "question": "Are you the Princess?",
+      "player": "Grace",
+      "answer": "No, I'm just a humble servant."
+    },
+    {
+      "question": "Do you make important decisions?",
+      "player": "Frank",
+      "answer": "I try to help with decisions when asked."
+    },
+    {
+      "question": "Are you of noble birth?",
+      "player": "Henry",
+      "answer": "Yes, I come from a distinguished family."
+    }
+  ],
+  "prince_guess": {
+    "guessed_player": "Henry",
+    "actual_role": "Queen",
+    "correct": false
+  },
+  "winner": "Queen Team",
+  "game_metadata": {
+    "start_time": "2024-01-15T14:20:00Z",
+    "end_time": "2024-01-15T14:35:45Z",
+    "model_used": "gpt-4"
+  }
+}

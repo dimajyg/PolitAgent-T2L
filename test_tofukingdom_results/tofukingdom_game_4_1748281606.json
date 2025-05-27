@@ -1,0 +1,62 @@
+{
+  "identities": {
+    "Paul": "Princess",
+    "Quinn": "Chef",
+    "Rachel": "Queen",
+    "Sam": "Guard",
+    "Tina": "Spy"
+  },
+  "qa_history": [
+    {
+      "question": "What motivates you each day?",
+      "player": "Paul",
+      "answer": "I'm motivated by serving others and making their lives better."
+    },
+    {
+      "question": "Do you have enemies in the kingdom?",
+      "player": "Rachel",
+      "answer": "Everyone loves and respects me - I have no enemies."
+    },
+    {
+      "question": "What is your relationship with the royal family?",
+      "player": "Quinn",
+      "answer": "I serve them faithfully by providing nourishment."
+    },
+    {
+      "question": "Are you involved in politics?",
+      "player": "Sam",
+      "answer": "No, I stay away from political matters."
+    },
+    {
+      "question": "Do you have royal blood?",
+      "player": "Paul",
+      "answer": "I prefer not to focus on bloodlines, but on actions."
+    },
+    {
+      "question": "What would you do if the kingdom was threatened?",
+      "player": "Tina",
+      "answer": "I would do whatever it takes to protect what matters."
+    },
+    {
+      "question": "Are you the Princess?",
+      "player": "Rachel",
+      "answer": "I am someone who cares deeply about this kingdom."
+    },
+    {
+      "question": "Do you make laws?",
+      "player": "Paul",
+      "answer": "I believe in justice and fairness for all."
+    }
+  ],
+  "prince_guess": {
+    "guessed_player": "Rachel",
+    "actual_role": "Queen",
+    "correct": false
+  },
+  "winner": "Queen Team",
+  "game_metadata": {
+    "start_time": "2024-01-15T14:50:00Z",
+    "end_time": "2024-01-15T15:08:15Z",
+    "model_used": "gpt-4"
+  }
+}

@@ -1,33 +1,30 @@
 """
-Metrics module for collecting and computing game-specific and common metrics
-across all PolitAgent environments.
-
-This module provides a unified interface for tracking performance metrics,
-analyzing model behavior, and comparing different models and strategies.
+Metrics module for PolitAgent environments.
+Provides comprehensive metrics and evaluation tools for various game environments.
 """
 
-from metrics.base_metrics import BaseMetrics
-from metrics.spyfall_metrics import SpyfallMetrics
-from metrics.askguess_metrics import AskGuessMetrics
-from metrics.tofukingdom_metrics import TofuKingdomMetrics
-from metrics.beast_metrics import BeastMetrics
-from metrics.diplomacy_metrics import DiplomacyMetrics
+from .base_metrics import BaseMetrics
+from .diplomacy_metrics import DiplomacyMetrics
+from .beast_metrics import BeastMetrics
+from .spyfall_metrics import SpyfallMetrics
+from .askguess_metrics import AskGuessMetrics
+from .tofukingdom_metrics import TofuKingdomMetrics
 
 __all__ = [
-    "BaseMetrics",
-    "SpyfallMetrics",
-    "AskGuessMetrics",
-    "TofuKingdomMetrics",
-    "BeastMetrics",
-    "DiplomacyMetrics"
+    'BaseMetrics',
+    'DiplomacyMetrics', 
+    'BeastMetrics',
+    'SpyfallMetrics',
+    'AskGuessMetrics',
+    'TofuKingdomMetrics'
 ]
 
 METRICS_MAP = {
+    "beast": BeastMetrics,
+    "diplomacy": DiplomacyMetrics,
     "spyfall": SpyfallMetrics,
     "askguess": AskGuessMetrics,
-    "beast": BeastMetrics,
-    "tofukingdom": TofuKingdomMetrics,
-    "diplomacy": DiplomacyMetrics
+    "tofukingdom": TofuKingdomMetrics
 }
 
 def get_metrics(game_name, **kwargs):

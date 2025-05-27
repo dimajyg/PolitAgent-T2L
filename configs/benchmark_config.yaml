@@ -1,0 +1,201 @@
+# Конфигурация для бенчмарка PolitAgent
+
+# Общие настройки бенчмарка
+benchmark:
+  results_dir: "benchmark_results"
+  max_parallel_models: 2  # Количество моделей для параллельного тестирования
+  max_parallel_games: 1   # Количество игр одновременно для одной модели
+  
+  # Веса игр для расчета общего рейтинга (сумма должна быть 1.0)
+  game_weights:
+    diplomacy: 0.25    # Сложная стратегическая игра
+    beast: 0.20        # Социальная дедукция
+    spyfall: 0.20      # Быстрая дедукция
+    askguess: 0.15     # Логические вопросы
+    tofukingdom: 0.20  # Ролевая дедукция
+
+# Конфигурация игр
+games:
+  diplomacy:
+    enabled: true
+    num_games: 1      # Количество игр для усреднения
+    max_rounds: 3     # Максимум раундов в игре
+    num_players: 7    # Количество игроков
+    
+  beast:
+    enabled: true
+    num_games: 2
+    max_rounds: 5
+    num_players: 6
+    
+  spyfall:
+    enabled: true
+    num_games: 2
+    max_rounds: 4
+    num_players: 5
+    
+  askguess:
+    enabled: true
+    num_games: 2
+    max_rounds: 8
+    num_players: 2  # Один спрашивающий, один отвечающий
+    
+  tofukingdom:
+    enabled: true
+    num_games: 2
+    max_rounds: 6
+    num_players: 5
+
+# Конфигурация моделей для тестирования
+models:
+  # OpenAI модели (требуют OPENAI_API_KEY)
+  openai_gpt35:
+    provider: "openai"
+    model_name: "gpt-3.5-turbo"
+    display_name: "GPT-3.5 Turbo"
+    temperature: 0.7
+    enabled: true
+    
+  openai_gpt4o:
+    provider: "openai"
+    model_name: "gpt-4o"
+    display_name: "GPT-4o"
+    temperature: 0.7
+    enabled: false  # Отключен по умолчанию (дорогая модель)
+    
+  # Mistral AI модели (требуют MISTRAL_API_KEY)
+  mistral_tiny:
+    provider: "mistral"
+    model_name: "mistral-tiny"
+    display_name: "Mistral Tiny"
+    temperature: 0.7
+    enabled: true
+    
+  mistral_small:
+    provider: "mistral"
+    model_name: "mistral-small"
+    display_name: "Mistral Small"
+    temperature: 0.7
+    enabled: true
+    
+  mistral_medium:
+    provider: "mistral"
+    model_name: "mistral-medium"
+    display_name: "Mistral Medium"
+    temperature: 0.7
+    enabled: false  # Отключен по умолчанию
+    
+  ollama_mistral:
+    provider: "ollama"
+    model_name: "mistral"
+    display_name: "Ollama Mistral"
+    temperature: 0.7
+    enabled: true
+      
+  ollama_gemma:
+    provider: "ollama"
+    model_name: "gemma3:latest"
+    display_name: "Ollama Gemma"
+    temperature: 0.7
+    enabled: false 
+    
+  # Дополнительные настройки для специфических моделей
+  openai_gpt35_creative:
+    provider: "openai"
+    model_name: "gpt-3.5-turbo"
+    display_name: "GPT-3.5 Creative"
+    temperature: 0.9  # Более креативная температура
+    enabled: false
+    
+  openai_gpt35_conservative:
+    provider: "openai"
+    model_name: "gpt-3.5-turbo"
+    display_name: "GPT-3.5 Conservative"
+    temperature: 0.1  # Более консервативная температура
+    enabled: false
+
+# Профили для быстрого запуска разных типов бенчмарков
+profiles:
+  # Быстрый тест (для отладки)
+  quick:
+    games:
+      diplomacy:
+        num_games: 1
+        max_rounds: 2
+      beast:
+        num_games: 1
+        max_rounds: 3
+      spyfall:
+        num_games: 1
+        max_rounds: 3
+      askguess:
+        num_games: 1
+        max_rounds: 5
+      tofukingdom:
+        num_games: 1
+        max_rounds: 4
+    models:
+      - openai_gpt35
+      - ollama_llama2
+      
+  # Полный тест
+  full:
+    games:
+      diplomacy:
+        num_games: 3
+        max_rounds: 5
+      beast:
+        num_games: 4
+        max_rounds: 8
+      spyfall:
+        num_games: 4
+        max_rounds: 6
+      askguess:
+        num_games: 5
+        max_rounds: 10
+      tofukingdom:
+        num_games: 4
+        max_rounds: 8
+    models:
+      - openai_gpt35
+      - mistral_small
+      
+  # Только OpenAI модели
+  openai_only:
+    games:
+      diplomacy: {num_games: 2, max_rounds: 4}
+      beast: {num_games: 3, max_rounds: 6}
+      spyfall: {num_games: 3, max_rounds: 5}
+      askguess: {num_games: 3, max_rounds: 8}
+      tofukingdom: {num_games: 3, max_rounds: 6}
+    models:
+      - openai_gpt35
+      - openai_gpt4
+      - openai_gpt35_creative
+      - openai_gpt35_conservative
+      
+  # Только локальные модели (Ollama)
+  local_only:
+    games:
+      diplomacy: {num_games: 2, max_rounds: 4}
+      beast: {num_games: 3, max_rounds: 6}
+      spyfall: {num_games: 3, max_rounds: 5}
+      askguess: {num_games: 3, max_rounds: 8}
+      tofukingdom: {num_games: 3, max_rounds: 6}
+    models:
+
+# Дополнительные настройки
+logging:
+  level: "INFO"
+  file: "benchmark.log"
+  
+output:
+  generate_markdown_report: true
+  generate_json_report: true
+  generate_csv_summary: true
+  include_detailed_metrics: true
+  
+performance:
+  timeout_per_game: 300  # Максимальное время на одну игру в секундах
+  max_retries: 2         # Количество повторных попыток при ошибке
+  cleanup_temp_files: true 

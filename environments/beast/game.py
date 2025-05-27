@@ -27,7 +27,7 @@ from environments.beast.agents.base_agent import (
 from environments.beast.utils.utils import create_message
 from environments.beast.utils.prompt import format_prompt, get_voting_results_prompt_template
 try:
-from langchain_core.language_models.base import BaseLanguageModel
+    from langchain_core.language_models.base import BaseLanguageModel
 except ImportError:
     from langchain.llms.base import BaseLLM as BaseLanguageModel
 
@@ -498,8 +498,8 @@ class EnhancedBeastGame:
                         self.agents[player2].update_trust(player1, "decrease")
                     if action2.deception_level > 0.5:
                         self.agents[player1].update_trust(player2, "decrease")
-            
-        except Exception as e:
+                        
+                except Exception as e:
                     if self.debug:
                         print(f"    ❌ Error in negotiation between {player1} and {player2}: {e}")
         

@@ -1,0 +1,52 @@
+{
+  "identities": {
+    "Alice": "Princess",
+    "Bob": "Chef",
+    "Charlie": "Queen",
+    "Diana": "Minister",
+    "Eve": "Maid"
+  },
+  "qa_history": [
+    {
+      "question": "What is your role in the kingdom?",
+      "player": "Alice",
+      "answer": "I help manage the royal household and ensure everything runs smoothly."
+    },
+    {
+      "question": "Do you always tell the truth?",
+      "player": "Charlie",
+      "answer": "Of course! I would never deceive anyone in this kingdom."
+    },
+    {
+      "question": "Are you of royal blood?",
+      "player": "Alice",
+      "answer": "Yes, I am of royal lineage."
+    },
+    {
+      "question": "What do you think about the current leadership?",
+      "player": "Diana",
+      "answer": "The leadership is absolutely perfect and beyond reproach."
+    },
+    {
+      "question": "Do you work in the kitchen?",
+      "player": "Bob",
+      "answer": "Yes, I spend most of my time preparing meals."
+    },
+    {
+      "question": "Are you the Princess?",
+      "player": "Alice",
+      "answer": "Yes, I am the Princess."
+    }
+  ],
+  "prince_guess": {
+    "guessed_player": "Alice",
+    "actual_role": "Princess",
+    "correct": true
+  },
+  "winner": "Princess Team",
+  "game_metadata": {
+    "start_time": "2024-01-15T14:00:00Z",
+    "end_time": "2024-01-15T14:12:30Z",
+    "model_used": "gpt-4"
+  }
+}
