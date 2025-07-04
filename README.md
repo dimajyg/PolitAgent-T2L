@@ -247,6 +247,68 @@ This will create a virtual environment and install all required packages, includ
 poetry shell
 ```
 
+### 5. T2L (Text-to-LoRA) Setup
+
+To enable T2L functionality in `llm/t2l_chat.py`, follow these additional steps:
+
+#### Install T2L Dependencies
+
+After updating `pyproject.toml` with T2L dependencies, update your environment:
+
+```bash
+poetry lock
+poetry install
+```
+
+#### Download Pre-trained T2L Models
+
+T2L requires pre-trained checkpoints. Download them using the Hugging Face CLI:
+
+```bash
+# Install huggingface-hub CLI (already included in dependencies)
+huggingface-cli download microsoft/HyperLoRA-Llama3.1-8B-Instruct --local-dir ./trained_t2l/llama3.1-8b-instruct
+huggingface-cli download microsoft/HyperLoRA-Gemma2-9B-Instruct --local-dir ./trained_t2l/gemma2-9b-instruct
+```
+
+#### Hardware Requirements
+
+- **GPU Memory**: At least 16GB VRAM recommended for T2L inference
+- **System RAM**: 32GB+ recommended for large model loading
+- **Storage**: ~20GB for downloaded T2L checkpoints
+
+#### T2L Integration
+
+The `T2LChatModel` class in `llm/t2l_chat.py` provides:
+
+- **Dynamic LoRA Generation**: Creates task-specific adapters on-the-fly
+- **Multi-Tool Support**: Includes `T2LActTool`, `T2LTalkTool`, and `T2LSelfQuestionTool`
+- **LangChain Integration**: Compatible with existing agent frameworks
+- **Diplomatic Actions**: Specialized tools for negotiation and strategic communication
+
+#### Usage Example
+
+```python
+from llm.t2l_chat import T2LChatModel
+
+# Initialize T2L model with checkpoint path
+t2l_model = T2LChatModel(
+    checkpoint_path="./trained_t2l/llama3.1-8b-instruct",
+    model_name="llama3.1-8b-instruct"
+)
+
+# Use in agent-based scenarios
+agent = t2l_model.create_agent()
+response = agent.invoke({"input": "Negotiate a trade agreement"})
+```
+
+#### Troubleshooting
+
+- **CUDA Issues**: Ensure PyTorch is installed with CUDA support
+- **Memory Errors**: Reduce batch size or use model quantization
+- **Download Failures**: Check internet connection and Hugging Face access
+
+For more details, see the T2L documentation in the `text-to-lora/` directory.
+
 ## Supported Models
 
 PolitAgent uses a flexible model registry system to support multiple LLM providers:

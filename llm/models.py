@@ -2,11 +2,17 @@ import os
 import logging
 import importlib
 import pkgutil
+import os
 from typing import Dict, Any, Optional, Union, List, Callable
 
 from langchain_core.language_models.base import BaseLanguageModel
-from langchain_openai import ChatOpenAI
-from langchain_mistralai import ChatMistralAI
+
+# Import chat models to trigger registration
+try:
+    from . import openai_chat, mistral_chat, ollama_chat, t2l_chat
+except ImportError as e:
+    print(f"Warning: Could not import some chat models: {e}")
+    pass
 
 AVAILABLE_MODELS = {
     "openai": {
@@ -23,6 +29,9 @@ AVAILABLE_MODELS = {
         "mistral": {"max_tokens": 4096, "description": "Локальная модель Mistral"},
         "phi2": {"max_tokens": 2048, "description": "Легкая и быстрая модель"},
         "gemma": {"max_tokens": 4096, "description": "Модель Gemma от Google"},
+    },
+    "t2l": {
+        "gemma-2b-t2l": {"max_tokens": 256, "description": "Text-to-LoRA модель с динамическими адаптерами"},
     },
 }
 
@@ -41,6 +50,11 @@ DEFAULT_MODEL_SETTINGS = {
         "model": "llama2",
         "temperature": 0.7,
         "base_url": "http://localhost:11434",
+    },
+    "t2l": {
+        "checkpoint_path": "/Users/dtikhanovskii/Documents/PolitAgent-T2L/text-to-lora/trained_t2l/gemma_2b_t2l",
+        "temperature": 0.7,
+        "max_tokens": 256,
     }
 }
 
@@ -90,6 +104,8 @@ def get_model(
     model_config = {**defaults, **kwargs}
     
     if model_name == "openai":
+        if ChatOpenAI is None:
+            raise ImportError("langchain_openai is not installed. Please install it to use OpenAI models.")
         return ChatOpenAI(
             model_name=model_config["model"],
             temperature=model_config["temperature"],
@@ -98,6 +114,8 @@ def get_model(
         )
     
     elif model_name == "mistral":
+        if ChatMistralAI is None:
+            raise ImportError("langchain_mistralai is not installed. Please install it to use Mistral models.")
         return ChatMistralAI(
             model=model_config["model"],
             temperature=model_config["temperature"],
@@ -125,6 +143,15 @@ def get_model(
             base_url=base_url,
             request_timeout=60.0,
             **{k: v for k, v in kwargs.items() if k not in ["model", "temperature", "base_url"]}
+        )
+    
+    elif model_name == "t2l":
+        # Handle T2L model with specific parameters
+        return _MODEL_REGISTRY[model_name](
+            checkpoint_path=model_config.get("checkpoint_path"),
+            temperature=model_config["temperature"],
+            max_tokens=model_config.get("max_tokens", 256),
+            **{k: v for k, v in kwargs.items() if k not in ["checkpoint_path", "temperature", "max_tokens"]}
         )
     
     if model_name in _MODEL_REGISTRY:
@@ -321,4 +348,4 @@ try:
         def with_structured_output(self, schema, **kwargs):
             return self.llm.with_structured_output(schema, **kwargs)
 except ImportError:
-    pass 
+    pass
