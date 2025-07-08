@@ -3,16 +3,14 @@ import logging
 import importlib
 import pkgutil
 import os
+from dotenv import load_dotenv
 from typing import Dict, Any, Optional, Union, List, Callable
 
 from langchain_core.language_models.base import BaseLanguageModel
+from langchain_openai import ChatOpenAI
+from langchain_mistralai import ChatMistralAI
 
-# Import chat models to trigger registration
-try:
-    from . import openai_chat, mistral_chat, ollama_chat, t2l_chat
-except ImportError as e:
-    print(f"Warning: Could not import some chat models: {e}")
-    pass
+load_dotenv()
 
 AVAILABLE_MODELS = {
     "openai": {
@@ -52,7 +50,7 @@ DEFAULT_MODEL_SETTINGS = {
         "base_url": "http://localhost:11434",
     },
     "t2l": {
-        "checkpoint_path": "/Users/dtikhanovskii/Documents/PolitAgent-T2L/text-to-lora/trained_t2l/gemma_2b_t2l",
+        "checkpoint_path": "/home/alisa/Documents/FakeLizzyK/PolitAgent-T2L/text-to-lora/trained_t2l/gemma_2b_t2l",
         "temperature": 0.7,
         "max_tokens": 256,
     }
@@ -66,6 +64,13 @@ def register_model(name: str):
         _MODEL_REGISTRY[name] = cls
         return cls
     return decorator
+
+# Import chat models to trigger registration
+try:
+    from . import openai_chat, mistral_chat, ollama_chat, t2l_chat
+except ImportError as e:
+    print(f"Warning: Could not import some chat models: {e}")
+    pass
 
 def get_model(
     model_name: str, 

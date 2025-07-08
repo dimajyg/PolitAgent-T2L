@@ -291,6 +291,9 @@ def run_benchmark(args: argparse.Namespace) -> None:
                     game_args[model_arg] = random.choice(models_list)
                 else:
                     game_args[model_arg] = models_list[0]
+                    
+        if args.model_args:
+            game_args.update(args.model_args)
         
         if game_info["requires_phrases"]:
             phrases = load_phrases(game_type, argparse.Namespace(**game_args))
@@ -717,6 +720,10 @@ def main():
     
     parser.add_argument('--diplomacy_model_name', type=str, default=None,
                         help="Model for players in Diplomacy")
+
+    parser.add_argument('--model_args', type=json.loads, default=None,
+                        help='JSON string with additional model arguments')
+
     
     args = parser.parse_args()
     

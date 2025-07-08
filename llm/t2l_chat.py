@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Union, Type
 # --- third‑party ----------------------------------------------------------
 import torch
 import json
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftConfig, PeftModel
 
@@ -23,8 +23,8 @@ from langchain.output_parsers import PydanticOutputParser, OutputFixingParser
 from langchain.schema import AIMessage
 
 # --- project imports ------------------------------------------------------
-sys.path.append('/Users/dtikhanovskii/Documents/PolitAgent-T2L/text-to-lora')
-sys.path.append('/Users/dtikhanovskii/Documents/PolitAgent-T2L/text-to-lora/src')
+sys.path.append('/home/alisa/Documents/FakeLizzyK/PolitAgent-T2L/text-to-lora')
+sys.path.append('/home/alisa/Documents/FakeLizzyK/PolitAgent-T2L/text-to-lora/src')
 
 from hyper_llm_modulator.utils import get_layers
 from hyper_llm_modulator.hyper_modulator import load_hypermod_checkpoint
@@ -79,11 +79,27 @@ class T2LAdapterInput(BaseModel):
 
 class _BaseT2LTool(BaseTool):
     args_schema: Type[BaseModel] = T2LAdapterInput
-    model: Any
-    tokenizer: Any
-    lora_gen_fn: Any
-    task_prompt: str = ""
+
+    # приватные (не валидируются, не требуются в __init__)
+    _model: Any = PrivateAttr()
+    _tokenizer: Any = PrivateAttr()
+    _lora_gen_fn: Any = PrivateAttr()
+    _task_prompt: str = PrivateAttr(default="")
     _adapter_name: str = ""
+
+    def __init__(self,
+                 *,
+                 lora_gen_fn,
+                 task_prompt,
+                 model,
+                 tokenizer,
+                 **data):
+        super().__init__(**data)           # в BaseTool отправляем только ‘официальные’ поля
+        self._lora_gen_fn = lora_gen_fn
+        self._task_prompt = task_prompt
+        self._model = model
+        self._tokenizer = tokenizer
+
 
     def _run(self, prompt: str) -> str:  # noqa: D401
         try:
@@ -91,53 +107,52 @@ class _BaseT2LTool(BaseTool):
                 torch.cuda.empty_cache()
 
             lora_dir = f"/tmp/gen_lora/{self._adapter_name}"
-            self.lora_gen_fn(lora_dir=lora_dir, text=self.task_prompt + "\n" + prompt)
-            self.model.load_adapter(lora_dir, self._adapter_name)
-            self.model.set_adapter(self._adapter_name)
+            self._lora_gen_fn(lora_dir=lora_dir, task_desc=f"{self._task_prompt}\\n{prompt}")
+            self._model.load_adapter(lora_dir, self._adapter_name)
+            self._model.set_adapter(self._adapter_name)
 
-            chat_prompt = apply_chat_template([{"role": "user", "content": prompt}], self.tokenizer)
-            inputs = self.tokenizer(chat_prompt, return_tensors="pt").to(self.model.device)
+            chat_prompt = apply_chat_template([{"role": "user", "content": prompt}], self._tokenizer)
+            inputs = self._tokenizer(chat_prompt, return_tensors="pt").to(self._model.device)
 
             with torch.no_grad():
-                outputs = self.model.generate(
+                outputs = self._model.generate(
                     **inputs,
                     max_new_tokens=256,
                     do_sample=True,
                     temperature=0.7,
-                    pad_token_id=self.tokenizer.eos_token_id,
-                    use_cache=False,
+                    pad_token_id=self._tokenizer.eos_token_id,
                 )
-            return self.tokenizer.decode(outputs[0][inputs['input_ids'].shape[1]:], skip_special_tokens=True)
+            return self._tokenizer.decode(outputs[0][inputs['input_ids'].shape[1]:], skip_special_tokens=True)
         finally:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
 
 class T2LActTool(_BaseT2LTool):
-    name = "t2l_act_adapter"
-    description = (
+    name: str = "t2l_act_adapter"
+    description: str = (
         "Use this tool when you need to choose diplomatic action, order, or strategic move. "
         "Best for task-choosing, decision-making and strategic action decision."
     )
-    _adapter_name = "act"
+    _adapter_name: str = "act"
 
 
 class T2LTalkTool(_BaseT2LTool):
-    name = "t2l_talk_adapter"
-    description = (
+    name: str = "t2l_talk_adapter"
+    description: str = (
         "Use this tool when you need to generate diplomatic messages, "
         "negotiations, or conversations. Best for communication and dialogue tasks."
     )
-    _adapter_name = "talk"
+    _adapter_name: str = "talk"
 
 
 class T2LSelfQuestionTool(_BaseT2LTool):
-    name = "t2l_self_question_adapter"
-    description = (
+    name: str = "t2l_self_question_adapter"
+    description: str = (
         "Use this tool to pose incisive self‑queries, surface hidden assumptions and generate "
         "fresh insights that will strengthen later decisions."
     )
-    _adapter_name = "selfq"
+    _adapter_name: str = "selfq"
 
 # =============================================================================
 # Main wrapper
@@ -147,11 +162,11 @@ class T2LSelfQuestionTool(_BaseT2LTool):
 class T2LChatModel:
     """LangChain‑compatible wrapper for Text‑to‑LoRA with robust structured output."""
 
-    def __init__(self, checkpoint_path: Optional[str] = None, temperature: float = 0.7, max_tokens: int = 256, llm_model: str = "openai", **kwargs):
+    def __init__(self, checkpoint_path: Optional[str] = None, temperature: float = 0.7, max_tokens: int = 256, llm_model: str = "mistral", **kwargs):
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.llm_model_type = llm_model
-        self.checkpoint_path = checkpoint_path or "/Users/dtikhanovskii/Documents/PolitAgent-T2L/text-to-lora/trained_t2l/gemma_2b_t2l"
+        self.checkpoint_path = checkpoint_path or "/home/alisa/Documents/FakeLizzyK/PolitAgent-T2L/text-to-lora/trained_t2l/gemma_2b_t2l"
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self._initialize_t2l()
@@ -223,20 +238,47 @@ class T2LChatModel:
 
     def _create_tools(self):
         return [
-            T2LActTool(self._gen_and_save_lora, self.task_descriptions["act"], self.model, self.tokenizer),
-            T2LTalkTool(self._gen_and_save_lora, self.task_descriptions["talk"], self.model, self.tokenizer),
-            T2LSelfQuestionTool(self._gen_and_save_lora, self.task_descriptions["self_question"], self.model, self.tokenizer),
+            T2LActTool(
+                lora_gen_fn=self._gen_and_save_lora,
+                task_prompt=self.task_descriptions["act"],
+                model=self.model,
+                tokenizer=self.tokenizer
+                ),
+            T2LTalkTool(
+                lora_gen_fn=self._gen_and_save_lora,
+                task_prompt=self.task_descriptions["talk"],
+                model=self.model,
+                tokenizer=self.tokenizer
+                ),
+            T2LSelfQuestionTool(
+                lora_gen_fn=self._gen_and_save_lora,
+                task_prompt=self.task_descriptions["self_question"],
+                model=self.model,
+                tokenizer=self.tokenizer
+                ),
         ]
 
     def _create_agent(self):
+        # --- custom parsing-error handler ---------------------------------
+        def _fix_parsing_err(err):
+            """Clean LLM output so default parser can succeed."""
+            raw = getattr(err, "llm_output", str(err))
+            # убираем строки от LangChain
+            cleaned = re.sub(r"For troubleshooting.*", "", raw)
+
+            # Если модель выдала и Action, и Final Answer, оставляем Action-блок
+            if "Action:" in cleaned and "Final Answer:" in cleaned:
+                # обрезаем всё после Final Answer (по умолчанию ReAct берёт Action)
+                cleaned = cleaned.split("Final Answer:")[0].rstrip()
+            return cleaned
         if self.agent is None:
             self.agent = initialize_agent(
                 tools=self._create_tools(),
                 llm=self.llm,
                 agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-                verbose=True,
-                handle_parsing_errors=True,
-                max_iterations=3,
+                # verbose=True,
+                handle_parsing_errors=_fix_parsing_err,
+                max_iterations=15,
             )
 
     # ------------------------------------------------------------------
@@ -245,15 +287,14 @@ class T2LChatModel:
 
     def invoke(self, input_data, **kwargs):
         self._create_agent()
-        if isinstance(input_data, str):
-            prompt = input_data
-        elif isinstance(input_data, list):
-            prompt = " ".join(m.get("content", "") for m in input_data)
-        elif hasattr(input_data, "messages"):
-            prompt = " ".join(m.content for m in input_data.messages)
+        if isinstance(input_data, list):
+            prompt = "\n".join([m["content"] for m in input_data if "content" in m])
         else:
             prompt = str(input_data)
-        answer = self.agent.run(prompt)
+        answer = self.agent.invoke(prompt).get('output', " ")
+
+        print(f"!!!!!!!!!!!!!! {answer} !!!!!!!!!!!!!!!")
+
         return AIMessage(content=answer)
 
     # ------------------------------------------------------------------
